@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Shizuku2
 {
-  public interface IBACnetDevice
+  public interface IBACnetController
   {
 
     /// <summary>サービスを開始する</summary>

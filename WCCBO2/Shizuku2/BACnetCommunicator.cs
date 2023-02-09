@@ -3,30 +3,30 @@ using System.IO.BACnet;
 
 namespace Shizuku2
 {
-  public abstract class AbstractBACnetDevice
+  /// <summary>BACnetで通信するオブジェクト</summary>
+  public class BACnetCommunicator
   {
 
-    #region Fixメンバ
-
-    /// <summary>BACnet Device</summary>
-    protected DeviceObject? dObject;
+    #region インスタンス変数・プロパティの定義
 
     /// <summary>BACnetClient</summary>
     [NonSerialized]
-    private BacnetClient? client;
+    private BacnetClient client;
+
+    /// <summary>BACnetDeviceを取得する</summary>
+    public DeviceObject BACnetDevice { get; private set; }
 
     /// <summary>BACnet Device IDを取得する</summary>
-    public uint DeviceID { get; protected set; }
+    public uint DeviceID { get { return BACnetDevice.PROP_OBJECT_IDENTIFIER.instance; } }
 
-    /// <summary>ポート番号を取得する</summary>
-    public int PortNumber { get; private set; }
-
-    /// <summary>DeviceIDとポート番号対応表を作成する</summary>
-    /// <param name="devicePortNumberTable">DeviceIDとポート番号対応表</param>
-    internal void makePortNumberTable(ref Dictionary<uint, int> devicePortNumberTable)
+    /// <summary>BACnet DeviceのDeviceIDとポート番号対応表を取得する</summary>
+    public static Dictionary<uint, int> BACnetDevicePortList
     {
-      devicePortNumberTable.Add(DeviceID, PortNumber);
-    }
+      get;
+      private set;
+    } = new Dictionary<uint, int>();
+
+    #region 使うかわからない機能
 
     /// <summary>Priority 8で書き込む</summary>
     /// <param name="newVal">新しい値</param>
@@ -84,13 +84,16 @@ namespace Shizuku2
 
     #endregion
 
-    #region abstract / virtualメンバ
+    #endregion
 
-    /// <summary>サービスを開始する</summary>
-    public void StartService()
+    #region コンストラクタ
+
+    public BACnetCommunicator
+      (DeviceObject device, int exclusivePort)
     {
-      //UDPで通信
-      BacnetIpUdpProtocolTransport bUDP = new BacnetIpUdpProtocolTransport(0xBAC0, false);
+      this.BACnetDevice = device;
+
+      BacnetIpUdpProtocolTransport bUDP = new BacnetIpUdpProtocolTransport(0xBAC0, exclusivePort);
       client = new BacnetClient(bUDP);
 
       //イベント登録//当面はIam,WhoIs,WhoHasは使わないが、遅くなるだけか？？？
@@ -101,23 +104,28 @@ namespace Shizuku2
       client.OnReadPropertyMultipleRequest += client_OnReadPropertyMultipleRequest;
       client.OnWritePropertyRequest += client_OnWritePropertyRequest;
 
+      //Device IDとポート番号対応表に追加
+      if (BACnetDevicePortList.ContainsKey(DeviceID)) BACnetDevicePortList[DeviceID] = exclusivePort;
+      else BACnetDevicePortList.Add(DeviceID, exclusivePort);
+    }
+
+    #endregion
+
+    #region BACnet通信開始/終了処理
+
+    /// <summary>サービスを開始する</summary>
+    public void StartService()
+    {
       //サーバー開始,ポート登録
       client.Start();
-      PortNumber = bUDP.ExclusivePort;
     }
 
     /// <summary>リソースを解放する</summary>
     public void EndService()
     {
-      if (dObject != null) dObject.Dispose();
+      if (BACnetDevice != null) BACnetDevice.Dispose();
       if (client != null) client.Dispose();
     }
-
-    /// <summary>制御値を機器やセンサに反映する</summary>
-    public abstract void ApplyManipulatedVariables();
-
-    /// <summary>機器やセンサの検出値を取得する</summary>
-    public abstract void ReadMeasuredValues();
 
     #endregion
 
@@ -132,7 +140,7 @@ namespace Shizuku2
     /// <param name="vendor_id"></param>
     private void client_OnIam(BacnetClient sender, BacnetAddress adr, uint device_id, uint max_apdu, BacnetSegmentations segmentation, ushort vendor_id)
     {
-      dObject.ReceivedIam(sender, adr, device_id);
+      BACnetDevice.ReceivedIam(sender, adr, device_id);
     }
 
     /// <summary>WhoHas発生時の処理</summary>
@@ -152,9 +160,9 @@ namespace Shizuku2
       if (objId != null)
       {
         BacnetObjectId objIdNotNull = (BacnetObjectId)objId;
-        o = dObject.FindBacnetObject(objIdNotNull);
+        o = BACnetDevice.FindBacnetObject(objIdNotNull);
         if (o != null)
-          sender.IHave(dObject.m_PROP_OBJECT_IDENTIFIER, objIdNotNull, o.m_PROP_OBJECT_NAME);
+          sender.IHave(BACnetDevice.m_PROP_OBJECT_IDENTIFIER, objIdNotNull, o.m_PROP_OBJECT_NAME);
       }      
     }
 
@@ -181,9 +189,9 @@ namespace Shizuku2
       (BacnetClient sender, BacnetAddress adr, byte invoke_id,
       BacnetObjectId object_id, BacnetPropertyReference property, BacnetMaxSegments max_segments)
     {
-      lock (dObject)
+      lock (BACnetDevice)
       {
-        BaCSharpObject bacobj = dObject.FindBacnetObject(object_id);
+        BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(object_id);
 
         if (bacobj != null)
         {
@@ -213,9 +221,9 @@ namespace Shizuku2
       (BacnetClient sender, BacnetAddress adr, byte invoke_id,
       BacnetObjectId object_id, BacnetPropertyValue value, BacnetMaxSegments max_segments)
     {
-      lock (dObject)
+      lock (BACnetDevice)
       {
-        BaCSharpObject bacobj = dObject.FindBacnetObject(object_id);
+        BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(object_id);
         if (bacobj != null)
         {
           ErrorCodes error = bacobj.WritePropertyValue(sender, adr, value, true);
@@ -248,7 +256,7 @@ namespace Shizuku2
     private void client_OnReadPropertyMultipleRequest
       (BacnetClient sender, BacnetAddress adr, byte invoke_id, IList<BacnetReadAccessSpecification> properties, BacnetMaxSegments max_segments)
     {
-      lock (dObject)
+      lock (BACnetDevice)
       {
         try
         {
@@ -258,7 +266,7 @@ namespace Shizuku2
           {
             if (p.propertyReferences.Count == 1 && p.propertyReferences[0].propertyIdentifier == (uint)BacnetPropertyIds.PROP_ALL)
             {
-              BaCSharpObject bacobj = dObject.FindBacnetObject(p.objectIdentifier);
+              BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(p.objectIdentifier);
               if (!bacobj.ReadPropertyAll(sender, adr, out value))
               {
                 sender.ErrorResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, invoke_id, BacnetErrorClasses.ERROR_CLASS_OBJECT, BacnetErrorCodes.ERROR_CODE_UNKNOWN_OBJECT);
@@ -267,7 +275,7 @@ namespace Shizuku2
             }
             else
             {
-              BaCSharpObject bacobj = dObject.FindBacnetObject(p.objectIdentifier);
+              BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(p.objectIdentifier);
               bacobj.ReadPropertyMultiple(sender, adr, p.propertyReferences, out value);
             }
             values.Add(new BacnetReadAccessResult(p.objectIdentifier, value));
