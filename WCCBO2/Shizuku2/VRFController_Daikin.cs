@@ -1,4 +1,5 @@
 ﻿using BaCSharp;
+using Popolo.HVAC.MultiplePackagedHeatPump;
 using System;
 using System.Collections.Generic;
 using System.IO.BACnet;
@@ -85,26 +86,32 @@ namespace Shizuku2
 
     /// <summary>室内機の台数を取得する</summary>
     public int NumberOfIndoorUnits
-    { get; private set; }
+    { get { return vrfUnitIndices.Length; } }
 
+    private readonly VRFUnitIndex[] vrfUnitIndices;
+
+    private readonly VRFSystem[] vrfSystems;
 
   #endregion
 
     #region コンストラクタ
 
-    public VRFController_Daikin(int indoorUnitNumber)
+    public VRFController_Daikin(VRFSystem[] vrfs)
     {
-      //DMS502B71が扱える台数は256台まで
-      if (indoorUnitNumber <= 0 || 256 <= indoorUnitNumber)
-        throw new Exception("Invalid indoor unit number");
+      vrfSystems = vrfs;
 
-      NumberOfIndoorUnits = indoorUnitNumber;
+      List< VRFUnitIndex > vrfInd = new List< VRFUnitIndex >();
+      for (int i = 0; i < vrfs.Length; i++)
+        for (int j = 0; j < vrfs[i].IndoorUnitNumber; j++)
+          vrfInd.Add(new VRFUnitIndex(i, j));
+      vrfUnitIndices = vrfInd.ToArray();
+
+      //DMS502B71が扱える台数は256台まで
+      if (256 <= NumberOfIndoorUnits)
+        throw new Exception("Invalid indoor unit number");
 
       communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
-
-      //室内機台数に応じてBACnetオブジェクトを用意
-      makeDeviceObject();
     }
 
     /// <summary>BACnet Deviceを作成する</summary>
@@ -137,22 +144,22 @@ namespace Shizuku2
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting),
           "AirConModeCommand_" + iuNum.ToString("000"),
-          "This object is used to set an indoor unit’s operation mode.", 5, 3));
+          "This object is used to set an indoor unit’s operation mode.", 3, 5));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.OperationMode_Status),
           "AirConModeStatus_" + iuNum.ToString("000"),
-          "This object is used to monitor an indoor unit’s operation mode.", 5, 3, false));
+          "This object is used to monitor an indoor unit’s operation mode.", 3, 5, false));
 
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.FanSpeed_Setting),
           "AirFlowRateCommand_" + iuNum.ToString("000"),
-          "This object is used to set an indoor unit’s fan speed.", 4, 2));
+          "This object is used to set an indoor unit’s fan speed.", 2, 4));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.FanSpeed_Status),
           "AirFlowRateStatus_" + iuNum.ToString("000"),
-          "This object is used to monitor the indoor unit’s fan speed.", 4, 2, false));
+          "This object is used to monitor the indoor unit’s fan speed.", 2, 4, false));
 
         dObject.AddBacnetObject(new AnalogInput<double>
           (getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.MeasuredRoomTemperature),
@@ -267,22 +274,22 @@ namespace Shizuku2
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.VentilationMode_Setting),
           "VentilationModeCommand_" + iuNum.ToString("000"),
-          "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 3, 2));
+          "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 2, 3));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.VentilationMode_Status),
           "VentilationModeStatus_" + iuNum.ToString("000"),
-          "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 3, 2, false));
+          "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 2, 3, false));
 
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.VentilationAmount_Setting),
           "VentilationAmountCommand_" + iuNum.ToString("000"),
-          "This object is used to set the Energy Recovery Ventilator’s Ventilation Amount.", 6, 2));
+          "This object is used to set the Energy Recovery Ventilator’s Ventilation Amount.", 2, 6));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.VentilationAmount_Status),
           "VentilationAmountStatus_" + iuNum.ToString("000"),
-          "This object is used to monitor the Energy Recovery Ventilator’s Ventilation Amount.", 6, 2, false));
+          "This object is used to monitor the Energy Recovery Ventilator’s Ventilation Amount.", 2, 6, false));
       }
 
       return dObject;
@@ -290,7 +297,7 @@ namespace Shizuku2
 
     private int getInstanceNumber(ObjectNumber objNumber, int iUnitNumber, MemberNumber memNumber)
     {
-      //return (int)objNumber + iUnitNumber * 256 + (int)memNumber;
+      //return (int)objNumber + iUnitNumber * 256 + (int)memNumber; //DBACSではこの番号で管理しているようだが。。。
       return iUnitNumber * 256 + (int)memNumber;
     }
 
@@ -300,7 +307,47 @@ namespace Shizuku2
 
     public void ApplyManipulatedVariables()
     {
-      //
+
+      lock (communicator.BACnetDevice)
+      {
+        int iuNum = 0;
+        for (int i = 0; i < vrfSystems.Length; i++)
+        {
+          VRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          bool isSystemOn = false;
+          for (int j = 0; j < vrf.IndoorUnitNumber; j++)
+          {
+            BacnetObjectId boID;
+
+            //On/off
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting));
+            bool isIUon = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+
+            //運転モード
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting));
+            uint mode = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            VRFUnit.Mode md;
+            if (mode == 1) md = VRFUnit.Mode.Cooling;
+            else if (mode == 2) md = VRFUnit.Mode.Heating;
+            else md = VRFUnit.Mode.ThermoOff; //AutoとDryは一旦無視
+            vrf.SetIndoorUnitMode(j, isIUon ? md : VRFUnit.Mode.ShutOff);
+
+            //ファン風量
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.FanSpeed_Setting));
+            uint fan = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            double fRate;
+            if (fan == 1) fRate = 0.3;
+            else if (fan == 2) fRate = 1.0;
+            else fRate = 0.7; //Low, High, Middleの係数は適当
+            vrf.SetIndoorUnitAirFlowRate(j, vrf.IndoorUnits[j].NominalAirFlowRate * fRate);
+
+            //1台でも室内機が動いていれば室外機はOn
+            isSystemOn |= isIUon;
+
+            iuNum++;
+          }
+        }
+      }
     }
 
     public void EndService()
@@ -316,6 +363,24 @@ namespace Shizuku2
     public void StartService()
     {
       communicator.StartService();
+    }
+
+    #endregion
+
+    #region 構造体定義
+
+    /// <summary>室外機と室内機の番号を保持する</summary>
+    private struct VRFUnitIndex
+    {
+      public int OUnitIndex { get; private set; }
+
+      public int IUnitIndex { get; private set; }
+
+      public VRFUnitIndex(int oUnitIndex, int iUnitIndex)
+      {
+        OUnitIndex = oUnitIndex;
+        IUnitIndex = iUnitIndex;
+      }
     }
 
     #endregion

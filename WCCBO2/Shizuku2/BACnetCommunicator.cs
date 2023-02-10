@@ -57,7 +57,7 @@ namespace Shizuku2
     /// <summary>object型をbool値に変換する</summary>
     /// <param name="obj">object型変数</param>
     /// <returns>bool値</returns>
-    protected static bool convertToBool(object obj)
+    public static bool ConvertToBool(object obj)
     {
       if (obj is int) return ((int)obj == 1);
       else if (obj is bool) return (bool)obj;
