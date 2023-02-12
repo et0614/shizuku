@@ -15,9 +15,9 @@ namespace Shizuku2
 
     #region 定数宣言
 
-    const uint DEVICE_ID = 99;
+    const uint DEVICE_ID = 2;
 
-    const int EXCLUSIVE_PORT = 0xBAC0 + 1;
+    const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
 
     const string DEVICE_NAME = "VRF controller";
 

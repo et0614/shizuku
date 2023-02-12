@@ -12,4 +12,10 @@
     <PackageReference Include="Popolo" Version="2.3.1.46" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="setting.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

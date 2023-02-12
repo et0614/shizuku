@@ -26,6 +26,16 @@ namespace Shizuku2
       private set;
     } = new Dictionary<uint, int>();
 
+    /// <summary>object型をbool値に変換する</summary>
+    /// <param name="obj">object型変数</param>
+    /// <returns>bool値</returns>
+    public static bool ConvertToBool(object obj)
+    {
+      if (obj is int) return ((int)obj == 1);
+      else if (obj is bool) return (bool)obj;
+      else return false;
+    }
+
     #region 使うかわからない機能
 
     /// <summary>Priority 8で書き込む</summary>
@@ -52,16 +62,6 @@ namespace Shizuku2
       bpv.value = new List<BacnetValue>() { new BacnetValue(newVal ? (uint)1 : (uint)0) };
       bObj.WritePropertyValue(bpv, false);
       return bObj.m_PROP_PRESENT_VALUE == 1;
-    }
-
-    /// <summary>object型をbool値に変換する</summary>
-    /// <param name="obj">object型変数</param>
-    /// <returns>bool値</returns>
-    public static bool ConvertToBool(object obj)
-    {
-      if (obj is int) return ((int)obj == 1);
-      else if (obj is bool) return (bool)obj;
-      else return false;
     }
 
     /// <summary>日時がカレンダーに含まれるか否か</summary>
