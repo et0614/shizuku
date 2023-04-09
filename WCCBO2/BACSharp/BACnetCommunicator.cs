@@ -1,7 +1,7 @@
 ﻿using BaCSharp;
 using System.IO.BACnet;
 
-namespace Shizuku2
+namespace BaCSharp
 {
   /// <summary>BACnetで通信するオブジェクト</summary>
   public class BACnetCommunicator

@@ -32,7 +32,7 @@ using System.IO.BACnet;
 namespace BaCSharp
 {
   [Serializable]
-  class BacnetDateTime:BaCSharpObject
+  public class BacnetDateTime:BaCSharpObject
     {
         public DateTime m_PresentValue = new DateTime(1, 1, 1);
         [BaCSharpType(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME)]

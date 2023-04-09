@@ -85,19 +85,19 @@ namespace Shizuku2
 
     private readonly VRFUnitIndex[] vrfUnitIndices;
 
-    private readonly VRFSystem[] vrfSystems;
+    private readonly ExVRFSystem[] vrfSystems;
 
     #endregion
 
     #region コンストラクタ
 
-    public VRFController_Daikin(VRFSystem[] vrfs)
+    public VRFController_Daikin(ExVRFSystem[] vrfs)
     {
       vrfSystems = vrfs;
 
       List< VRFUnitIndex > vrfInd = new List< VRFUnitIndex >();
       for (int i = 0; i < vrfs.Length; i++)
-        for (int j = 0; j < vrfs[i].IndoorUnitNumber; j++)
+        for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
           vrfInd.Add(new VRFUnitIndex(i, j));
       vrfUnitIndices = vrfInd.ToArray();
 
@@ -311,10 +311,10 @@ namespace Shizuku2
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
-          VRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
           bool isSystemOn = false;
           VRFSystem.Mode pMode = VRFSystem.Mode.ThermoOff;
-          for (int j = 0; j < vrf.IndoorUnitNumber; j++)
+          for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             BacnetObjectId boID;
 
@@ -344,19 +344,21 @@ namespace Shizuku2
                 (modeSet == 1 || modeSet == 2) ? 1u : 0u;
             }
 
-            VRFUnit.Mode md;
-            if (modeSet == 1) md = VRFUnit.Mode.Cooling;
-            else if (modeSet == 2) md = VRFUnit.Mode.Heating;
-            else md = VRFUnit.Mode.ThermoOff; //AutoとDryは一旦無視
-            vrf.SetIndoorUnitMode(j, isIUonSet ? md : VRFUnit.Mode.ShutOff);
+            ExVRFSystem.Mode md;
+            if (modeSet == 1) md = ExVRFSystem.Mode.Cooling;
+            else if (modeSet == 2) md = ExVRFSystem.Mode.Heating;
+            else md = ExVRFSystem.Mode.ThermoOff; //AutoとDryは一旦無視
+            vrf.IndoorUnitModes[j] = isIUonSet ? md : ExVRFSystem.Mode.ShutOff;
             //室外機は最後の稼働室内機のモードに依存（修正必要）
-            if (md == VRFUnit.Mode.Cooling) pMode = VRFSystem.Mode.Cooling;
-            else if (md == VRFUnit.Mode.Heating) pMode = VRFSystem.Mode.Heating;
+            if (md == ExVRFSystem.Mode.Cooling) pMode = VRFSystem.Mode.Cooling;
+            else if (md == ExVRFSystem.Mode.Heating) pMode = VRFSystem.Mode.Heating;
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
             double tSp = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            //***未実装***
+            //ダイキンの設定温度は冷暖で5度の偏差を持つ
+            vrf.SetPoints_C[j] = tSp;
+            vrf.SetPoints_H[j] = tSp - 5;
 
             //フィルタ信号リセット********
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.FilterSignSignalReset));
@@ -395,7 +397,7 @@ namespace Shizuku2
             double fRate =
               fanSpdSet == 1 ? 0.3 :
               fanSpdSet == 2 ? 1.0 : 0.7; //Low, High, Middleの係数は適当
-            vrf.SetIndoorUnitAirFlowRate(j, vrf.IndoorUnits[j].NominalAirFlowRate * fRate);
+            vrf.VRFSystem.SetIndoorUnitAirFlowRate(j, vrf.VRFSystem.IndoorUnits[j].NominalAirFlowRate * fRate);
 
             //風向***********************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting));
@@ -449,8 +451,8 @@ namespace Shizuku2
 
             iuNum++;
           }
-          if (isSystemOn) vrf.CurrentMode = pMode;
-          else vrf.CurrentMode = VRFSystem.Mode.ShutOff;
+          if (isSystemOn) vrf.VRFSystem.CurrentMode = pMode;
+          else vrf.VRFSystem.CurrentMode = VRFSystem.Mode.ShutOff;
         }
       }
     }
@@ -463,8 +465,8 @@ namespace Shizuku2
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
-          VRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
-          for (int j = 0; j < vrf.IndoorUnitNumber; j++)
+          ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             BacnetObjectId boID;
 
@@ -489,7 +491,7 @@ namespace Shizuku2
             //吸い込み室温****************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
               (uint)getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.MeasuredRoomTemperature));
-            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.IndoorUnits[j].InletAirTemperature;
+            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
 
             //ガス消費（EHPのため0固定）****
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR,
@@ -499,7 +501,7 @@ namespace Shizuku2
             //電力消費********************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR,
               (uint)getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedPower));
-            ((Accumulator<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE += vrf.IndoorUnits[j].FanElectricity;
+            ((Accumulator<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE += vrf.VRFSystem.IndoorUnits[j].FanElectricity;
 
             //通信状況********************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
@@ -543,6 +545,11 @@ namespace Shizuku2
     /// <summary>室外機と室内機の番号を保持する</summary>
     private struct VRFUnitIndex
     {
+      public string ToString()
+      {
+        return (OUnitIndex + 1).ToString() + "-" + (IUnitIndex + 1).ToString();
+      }
+
       public int OUnitIndex { get; private set; }
 
       public int IUnitIndex { get; private set; }

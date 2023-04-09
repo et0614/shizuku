@@ -1,4 +1,4 @@
-﻿using System.IO.BACnet;
+﻿using BaCSharp;
 
 using Popolo.ThermalLoad;
 using Popolo.HVAC.MultiplePackagedHeatPump;
@@ -20,7 +20,7 @@ namespace Shizuku2
     private static readonly BuildingThermalModel building = makeBuildingModel();
 
     /// <summary>VRFモデル</summary>
-    private static readonly VRFSystem[] vrfs = makeVRFSystem();
+    private static readonly ExVRFSystem[] vrfs = makeVRFSystem();
 
     /// <summary>日時コントローラ</summary>
     private static DateTimeController dtCtrl;
@@ -113,8 +113,11 @@ namespace Shizuku2
 
           //VRF更新
           setVRFInletAir();
-          for (int i = 0; i < vrfs.Length; i++) 
-            vrfs[i].UpdateState(false);
+          for (int i = 0; i < vrfs.Length; i++)
+          {
+            vrfs[i].UpdateControl();
+            vrfs[i].VRFSystem.UpdateState(false);
+          }
           setVRFOutletAir();
 
           //内部発熱や換気量の更新
@@ -133,16 +136,16 @@ namespace Shizuku2
     private static void setVRFInletAir()
     {
       for (int i = 0; i < 6; i++)
-        vrfs[0].SetIndoorUnitInletAirState
+        vrfs[0].VRFSystem.SetIndoorUnitInletAirState
           (i, building.MultiRoom[0].Zones[i].Temperature, building.MultiRoom[0].Zones[i].HumidityRatio);
       for (int i = 0; i < 6; i++)
-        vrfs[1].SetIndoorUnitInletAirState
+        vrfs[1].VRFSystem.SetIndoorUnitInletAirState
           (i, building.MultiRoom[0].Zones[i + 6].Temperature, building.MultiRoom[0].Zones[i + 6].HumidityRatio);
       for (int i = 0; i < 6; i++)
-        vrfs[2].SetIndoorUnitInletAirState
+        vrfs[2].VRFSystem.SetIndoorUnitInletAirState
           (i, building.MultiRoom[1].Zones[i].Temperature, building.MultiRoom[1].Zones[i].HumidityRatio);
       for (int i = 0; i < 8; i++)
-        vrfs[3].SetIndoorUnitInletAirState
+        vrfs[3].VRFSystem.SetIndoorUnitInletAirState
           (i, building.MultiRoom[1].Zones[i + 6].Temperature, building.MultiRoom[1].Zones[i + 6].HumidityRatio);
     }
 
@@ -150,25 +153,29 @@ namespace Shizuku2
     {
       for (int i = 0; i < 6; i++)
         building.SetSupplyAir(0, i,
-          vrfs[0].IndoorUnits[i].OutletAirTemperature,
-          vrfs[0].IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[0].IndoorUnits[i].AirFlowRate);
+          vrfs[0].VRFSystem.IndoorUnits[i].OutletAirTemperature,
+          vrfs[0].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
+          vrfs[0].VRFSystem.IndoorUnits[i].AirFlowRate);
       for (int i = 0; i < 6; i++)
         building.SetSupplyAir(0, i + 6,
-          vrfs[1].IndoorUnits[i].OutletAirTemperature,
-          vrfs[1].IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[1].IndoorUnits[i].AirFlowRate);
+          vrfs[1].VRFSystem.IndoorUnits[i].OutletAirTemperature,
+          vrfs[1].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
+          vrfs[1].VRFSystem.IndoorUnits[i].AirFlowRate);
       for (int i = 0; i < 6; i++)
         building.SetSupplyAir(1, i,
-          vrfs[2].IndoorUnits[i].OutletAirTemperature,
-          vrfs[2].IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[2].IndoorUnits[i].AirFlowRate);
+          vrfs[2].VRFSystem.IndoorUnits[i].OutletAirTemperature,
+          vrfs[2].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
+          vrfs[2].VRFSystem.IndoorUnits[i].AirFlowRate);
       for (int i = 0; i < 8; i++)
         building.SetSupplyAir(1, i + 6,
-          vrfs[3].IndoorUnits[i].OutletAirTemperature,
-          vrfs[3].IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[3].IndoorUnits[i].AirFlowRate);
+          vrfs[3].VRFSystem.IndoorUnits[i].OutletAirTemperature,
+          vrfs[3].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
+          vrfs[3].VRFSystem.IndoorUnits[i].AirFlowRate);
     }
+
+    #endregion
+
+    #region 補助関数
 
     /// <summary>タイトル表示</summary>
     private static void showTitle()
@@ -184,10 +191,6 @@ namespace Shizuku2
       Console.WriteLine("#########################################################################");
       Console.WriteLine("\r\n");
     }
-
-    #endregion
-
-    #region 補助関数
 
     private static bool loadInitFile()
     {
@@ -215,7 +218,7 @@ namespace Shizuku2
 
     #region VRFシステムモデルの作成
 
-    static VRFSystem[] makeVRFSystem()
+    static ExVRFSystem[] makeVRFSystem()
     {
       VRFSystem[] vrfs = new VRFSystem[]
       {
@@ -269,7 +272,13 @@ namespace Shizuku2
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C11_2)
       });
 
-      return vrfs;
+      return new ExVRFSystem[] 
+      {
+        new ExVRFSystem(vrfs[0]),
+        new ExVRFSystem(vrfs[1]),
+        new ExVRFSystem(vrfs[2]),
+        new ExVRFSystem(vrfs[3])
+      };
     }
 
     #endregion

@@ -8,8 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BACnet" Version="3.0.1-beta6" />
     <PackageReference Include="Popolo" Version="2.3.1.46" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

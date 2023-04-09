@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shizuku2", "Shizuku2\Shizuku2.csproj", "{E0A645D1-3ABF-4612-AE11-834571E027CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shizuku2", "Shizuku2\Shizuku2.csproj", "{E0A645D1-3ABF-4612-AE11-834571E027CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleVRFController", "SampleVRFController\SampleVRFController.csproj", "{B7A6568C-B955-4322-A030-410CA9D7439C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BACSharp", "BACSharp\BACSharp.csproj", "{3A03B751-529E-482F-A6FC-5F860A62AD36}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{E0A645D1-3ABF-4612-AE11-834571E027CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0A645D1-3ABF-4612-AE11-834571E027CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0A645D1-3ABF-4612-AE11-834571E027CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7A6568C-B955-4322-A030-410CA9D7439C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7A6568C-B955-4322-A030-410CA9D7439C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7A6568C-B955-4322-A030-410CA9D7439C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7A6568C-B955-4322-A030-410CA9D7439C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A03B751-529E-482F-A6FC-5F860A62AD36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A03B751-529E-482F-A6FC-5F860A62AD36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A03B751-529E-482F-A6FC-5F860A62AD36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A03B751-529E-482F-A6FC-5F860A62AD36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
