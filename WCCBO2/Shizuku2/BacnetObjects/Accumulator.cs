@@ -11,7 +11,7 @@ namespace BaCSharp
   public class Accumulator<T> : BaCSharpObject
   {
     public Accumulator(int ObjId, String ObjName, String Description, T InitialValue, BacnetUnitsId Unit)
-            : base(new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)ObjId), ObjName, Description)
+            : base(new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR, (uint)ObjId), ObjName, Description)
     {
       m_PRESENT_VALUE_ReadOnly = true;
       m_PROP_UNITS = (uint)Unit;

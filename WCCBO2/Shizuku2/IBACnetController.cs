@@ -10,10 +10,10 @@ namespace Shizuku2
   public interface IBACnetController
   {
 
-    /// <summary>サービスを開始する</summary>
+    /// <summary>BACnetControllerのサービスを開始する</summary>
     void StartService();
 
-    /// <summary>リソースを解放する</summary>
+    /// <summary>BACnetControllerのリソースを解放する</summary>
     void EndService();
 
     /// <summary>制御値を機器やセンサに反映する</summary>

@@ -71,10 +71,11 @@ namespace Shizuku2
 
     #region コンストラクタ
 
-    public DateTimeController(DateTime currentDTime)
+    public DateTimeController(DateTime currentDTime, uint accRate)
     {
       CurrentDateTime = baseSimulationDTime = currentDTime;
       baseRealDTime = DateTime.Now;
+      this.accRate = 1 <= accRate ? accRate : 1;
 
       communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);

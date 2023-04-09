@@ -14,19 +14,19 @@ namespace Shizuku2
     #region クラス変数
 
     /// <summary>初期設定</summary>
-    static Dictionary<string, int> initSettings = new Dictionary<string, int>();
+    private static readonly Dictionary<string, int> initSettings = new Dictionary<string, int>();
 
     /// <summary>熱負荷計算モデル</summary>
-    static BuildingThermalModel building = makeBuildingModel();
+    private static readonly BuildingThermalModel building = makeBuildingModel();
 
     /// <summary>VRFモデル</summary>
-    static VRFSystem[] vrfs = makeVRFSystem();
+    private static readonly VRFSystem[] vrfs = makeVRFSystem();
 
     /// <summary>日時コントローラ</summary>
-    static DateTimeController dtCtrl = new DateTimeController(new DateTime(1999, 1, 1, 0, 0, 0));
+    private static DateTimeController dtCtrl;
 
     /// <summary>VRFコントローラ</summary>
-    static IBACnetController vrfCtrl = new VRFController_Daikin(vrfs);
+    private static IBACnetController vrfCtrl;
 
     #endregion
 
@@ -44,7 +44,18 @@ namespace Shizuku2
         return;
       }
 
+      //VRFコントローラ選択
+      switch (initSettings["controller"])
+      {
+        case 1:
+          vrfCtrl = new VRFController_Daikin(vrfs);
+          break;
+        default:
+          throw new Exception("VRF controller number not supported.");
+      }
+
       //コントローラ開始
+      dtCtrl = new DateTimeController(new DateTime(1999, 1, 1, 0, 0, 0), (uint)initSettings["accerarationRate"]);
       dtCtrl.TimeStep = initSettings["timestep"];
       dtCtrl.StartService();
       vrfCtrl.StartService();

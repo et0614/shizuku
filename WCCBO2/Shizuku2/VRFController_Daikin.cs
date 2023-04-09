@@ -1,11 +1,6 @@
 ﻿using BaCSharp;
 using Popolo.HVAC.MultiplePackagedHeatPump;
-using System;
-using System.Collections.Generic;
 using System.IO.BACnet;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Shizuku2
 {
@@ -57,7 +52,7 @@ namespace Shizuku2
       RemoteControllerPermittion_OnOff = 13,
       RemoteControllerPermittion_OperationMode = 14,
       RemoteControllerPermittion_Setpoint = 16,
-      CentralizedController = 17,
+      CentralizedControl = 17,
       AccumulatedGas = 18,
       AccumulatedPower = 19,
       CommunicationStatus = 20,
@@ -92,7 +87,7 @@ namespace Shizuku2
 
     private readonly VRFSystem[] vrfSystems;
 
-  #endregion
+    #endregion
 
     #region コンストラクタ
 
@@ -197,7 +192,7 @@ namespace Shizuku2
           "This object is used to permit or prohibit the remote controller to set the indoor unit setpoint.", false, false));
 
         dObject.AddBacnetObject(new BinaryValue
-          (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.CentralizedController),
+          (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.CentralizedControl),
           "CL_Rejection_X" + iuNum,
           "This object is used to disable or enable control by the Daikin Centralized Controllers which includes the Intelligent Touch Controller used on each DIII-Net system (up to 4 DIII-Net system can be connected to the Interface for use in BACnet).", false, false));
 
@@ -295,9 +290,11 @@ namespace Shizuku2
       return dObject;
     }
 
-    private int getInstanceNumber(ObjectNumber objNumber, int iUnitNumber, MemberNumber memNumber)
+    private int getInstanceNumber
+      (ObjectNumber objNumber, int iUnitNumber, MemberNumber memNumber)
     {
-      //return (int)objNumber + iUnitNumber * 256 + (int)memNumber; //DBACSではこの番号で管理しているようだが。。。
+      //DBACSではこの番号で管理しているようだが、これでは桁が大きすぎる。
+      //return (int)objNumber + iUnitNumber * 256 + (int)memNumber; 
       return iUnitNumber * 256 + (int)memNumber;
     }
 
@@ -305,6 +302,7 @@ namespace Shizuku2
 
     #region IBACnetController実装
 
+    /// <summary>制御値を機器やセンサに反映する</summary>
     public void ApplyManipulatedVariables()
     {
 
@@ -315,34 +313,209 @@ namespace Shizuku2
         {
           VRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
           bool isSystemOn = false;
+          VRFSystem.Mode pMode = VRFSystem.Mode.ThermoOff;
           for (int j = 0; j < vrf.IndoorUnitNumber; j++)
           {
             BacnetObjectId boID;
 
-            //On/off
+            //On/off******************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting));
-            bool isIUon = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            bool isIUonSet = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.OnOff_Status));
+            bool isIUonStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            if (isIUonSet != isIUonStt) //設定!=状態の場合には更新処理
+              ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = isIUonSet ? 1u : 0u;
+            //1台でも室内機が動いていれば室外機はOn
+            isSystemOn |= isIUonSet;
 
-            //運転モード
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting));
-            uint mode = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            //運転モード****************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+              (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting));
+            uint modeSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.OperationMode_Status));
+            uint modeStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            if (modeSet != modeStt) //設定!=状態の場合には更新処理
+            {
+              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = modeSet;
+              boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+                (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.ThermoOn_Status));
+              ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 
+                (modeSet == 1 || modeSet == 2) ? 1u : 0u;
+            }
+
             VRFUnit.Mode md;
-            if (mode == 1) md = VRFUnit.Mode.Cooling;
-            else if (mode == 2) md = VRFUnit.Mode.Heating;
+            if (modeSet == 1) md = VRFUnit.Mode.Cooling;
+            else if (modeSet == 2) md = VRFUnit.Mode.Heating;
             else md = VRFUnit.Mode.ThermoOff; //AutoとDryは一旦無視
-            vrf.SetIndoorUnitMode(j, isIUon ? md : VRFUnit.Mode.ShutOff);
+            vrf.SetIndoorUnitMode(j, isIUonSet ? md : VRFUnit.Mode.ShutOff);
+            //室外機は最後の稼働室内機のモードに依存（修正必要）
+            if (md == VRFUnit.Mode.Cooling) pMode = VRFSystem.Mode.Cooling;
+            else if (md == VRFUnit.Mode.Heating) pMode = VRFSystem.Mode.Heating;
 
-            //ファン風量
+            //室内温度設定***************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
+            double tSp = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            //***未実装***
+
+            //フィルタ信号リセット********
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.FilterSignSignalReset));
+            bool restFilter = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            if (restFilter)
+            {
+              //リセット処理
+              //***未実装***
+
+              //信号を戻す
+              ((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0;
+            }
+
+            //リモコン手元操作許可禁止*****
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_OnOff));
+            bool rmtPmtOnOff = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_OperationMode));
+            bool rmtPmtMode = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_Setpoint));
+            bool rmtPmtSP = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            //***未実装***
+
+            //中央制御*******************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.CentralizedControl));
+            bool cntCtrl = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            //***未実装***
+
+            //ファン風量*****************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.FanSpeed_Setting));
-            uint fan = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            double fRate;
-            if (fan == 1) fRate = 0.3;
-            else if (fan == 2) fRate = 1.0;
-            else fRate = 0.7; //Low, High, Middleの係数は適当
+            uint fanSpdSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.FanSpeed_Status));
+            uint fanSpdStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            if(fanSpdSet != fanSpdStt)
+              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = fanSpdSet;
+
+            double fRate =
+              fanSpdSet == 1 ? 0.3 :
+              fanSpdSet == 2 ? 1.0 : 0.7; //Low, High, Middleの係数は適当
             vrf.SetIndoorUnitAirFlowRate(j, vrf.IndoorUnits[j].NominalAirFlowRate * fRate);
 
-            //1台でも室内機が動いていれば室外機はOn
-            isSystemOn |= isIUon;
+            //風向***********************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting));
+            double afDirSet = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.AirflowDirection_Status));
+            double afDirStt = ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
+              ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
+            //***未実装***
+
+            //強制サーモオフ*************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.ForcedThermoOff_Setting));
+            bool fceTOffSet = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.ForcedThermoOff_Status));
+            bool fceTOffStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            if(fceTOffSet != fceTOffStt) //設定!=状態の場合には更新処理
+              ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = fceTOffStt ? 1u : 0u;
+            //***未実装***
+
+            //省エネ指令*****************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.EnergySaving_Setting));
+            bool engySavingSet = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.EnergySaving_Status));
+            bool engySavingStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            if (engySavingSet != engySavingStt) //設定!=状態の場合には更新処理
+              ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = engySavingSet ? 1u : 0u;
+            //***未実装***
+
+            //換気モード*****************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.VentilationMode_Setting));
+            uint vModeSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.VentilationMode_Status));
+            uint vModeStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            if (vModeSet != vModeStt) //設定!=状態の場合には更新処理
+              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vModeSet;
+            //***未実装***
+
+            //換気量********************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.VentilationAmount_Setting));
+            uint vAmountSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.VentilationAmount_Status));
+            uint vAmountStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            if (vAmountSet != vAmountStt) //設定!=状態の場合には更新処理
+              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vAmountSet;
+            //***未実装***
+
+            //強制停止
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.ForcedSystemStop));
+            uint fceStop = ((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            //***未実装***
+
+            iuNum++;
+          }
+          if (isSystemOn) vrf.CurrentMode = pMode;
+          else vrf.CurrentMode = VRFSystem.Mode.ShutOff;
+        }
+      }
+    }
+
+    /// <summary>機器やセンサの検出値を取得する</summary>
+    public void ReadMeasuredValues()
+    {
+      lock (communicator.BACnetDevice)
+      {
+        int iuNum = 0;
+        for (int i = 0; i < vrfSystems.Length; i++)
+        {
+          VRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          for (int j = 0; j < vrf.IndoorUnitNumber; j++)
+          {
+            BacnetObjectId boID;
+
+            //警報***********************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.Alarm));
+            //未実装
+            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u;
+
+            //故障***********************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.MalfunctionCode));
+            //未実装
+            ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 1u;
+
+            //フィルタサイン***************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, 
+              (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.FilterSignSignal));
+            //未実装
+            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u;
+
+            //吸い込み室温****************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.MeasuredRoomTemperature));
+            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.IndoorUnits[j].InletAirTemperature;
+
+            //ガス消費（EHPのため0固定）****
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR,
+              (uint)getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedGas));
+            ((Accumulator<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0;
+
+            //電力消費********************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR,
+              (uint)getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedPower));
+            ((Accumulator<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE += vrf.IndoorUnits[j].FanElectricity;
+
+            //通信状況********************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.CommunicationStatus));
+            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u; //1でBACnet通信エラー
+
+            //圧縮機、ファン、ヒータ異常*****
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.Compressor_Status));
+            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u; //1でエラー
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.IndoorFan_Status));
+            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u; //1でエラー
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+              (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.Heater_Status));
+            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u; //1でエラー
 
             iuNum++;
           }
@@ -350,20 +523,18 @@ namespace Shizuku2
       }
     }
 
+    /// <summary>BACnetControllerのサービスを開始する</summary>
+    public void StartService()
+    {
+      communicator.StartService();
+    }
+
+    /// <summary>BACnetControllerのリソースを解放する</summary>
     public void EndService()
     {
       communicator.EndService();
     }
 
-    public void ReadMeasuredValues()
-    {
-      //
-    }
-
-    public void StartService()
-    {
-      communicator.StartService();
-    }
 
     #endregion
 
