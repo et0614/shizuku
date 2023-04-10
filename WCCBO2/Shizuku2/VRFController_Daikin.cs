@@ -216,12 +216,12 @@ namespace Shizuku2
           "SystemForcedOff_" + iuNum.ToString("000"),
           "This object is used to stop all the indoor units connected to the specified DIII network port and permits/prohibits the On/Off operation from the connected remote controller.", false, false));
 
-        dObject.AddBacnetObject(new AnalogValue<double>
+        dObject.AddBacnetObject(new AnalogValue<uint>
           (getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting),
           "AirDirectionCommand_" + iuNum.ToString("000"),
           "This object is used to change the indoor unit’s airflow direction.", 0, BacnetUnitsId.UNITS_NO_UNITS, false));
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<uint>
           (getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.AirflowDirection_Status),
           "AirDirectionStatus_" + iuNum.ToString("000"),
           "This object is used to monitor the indoor unit’s airflow direction setting.", 0, BacnetUnitsId.UNITS_NO_UNITS));
@@ -401,11 +401,11 @@ namespace Shizuku2
 
             //風向***********************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting));
-            double afDirSet = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            uint afDirSet = ((AnalogValue<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.AirflowDirection_Status));
-            double afDirStt = ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            uint afDirStt = ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
-              ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
+              ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
             //***未実装***
 
             //強制サーモオフ*************

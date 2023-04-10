@@ -8,6 +8,7 @@ namespace SampleVRFController
 {
   public partial class Form1 : Form
   {
+
     #region 定数宣言
 
     const uint DEVICE_ID = 2; //DaikinController
@@ -71,11 +72,25 @@ namespace SampleVRFController
 
     #endregion
 
+    #region インスタンス変数・プロパティ
+
+    private int iuIndex = -1;
+
     List<VRFUnitIndex> vrfUnitIndices;
 
     BacnetClient client;
 
     BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + EXCLUSIVE_PORT.ToString());
+
+    private uint cMode = 1;
+
+    private double cSp = 24;
+
+    private uint cAmount = 1;
+
+    private uint cDirection = 1;
+
+    #endregion
 
     public Form1()
     {
@@ -97,7 +112,19 @@ namespace SampleVRFController
 
       for (int i = 0; i < vrfUnitIndices.Count; i++)
         lb_iUnits.Items.Add("室内機 " + vrfUnitIndices[i].ToString());
+
+      //情報を一定時間間隔で更新
+      Task.Run(() =>
+      {
+        while (true)
+        {
+          loadStatus();
+          Thread.Sleep(500);
+        }
+      });
     }
+
+    #region BACnet通信受信による状態更新処理
 
     private async void loadSetPoint()
     {
@@ -122,8 +149,89 @@ namespace SampleVRFController
       //暖房モードの場合には5℃の偏差を反映
       if (modeStt == 2) tSp -= 5;
 
-      lbl_SP.Text = tSp.ToString();
+      lblSP.Text = tSp.ToString();
     }
+
+    private async void loadStatus()
+    {
+      //室内機を特定
+      if (iuIndex == -1) return;
+
+      //読み込むプロパティ
+      BacnetPropertyReference[] properties = new BacnetPropertyReference[]
+      { new BacnetPropertyReference((uint)BacnetPropertyIds.PROP_PRESENT_VALUE, System.IO.BACnet.Serialize.ASN1.BACNET_ARRAY_ALL) };
+      //読み込むBACnetObjectIdのリスト
+      BacnetReadAccessSpecification[] propToRead = new BacnetReadAccessSpecification[]
+      {
+        //運転モード
+        new BacnetReadAccessSpecification(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+          (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuIndex, MemberNumber.OperationMode_Status)),properties),
+        //設定室温
+         new BacnetReadAccessSpecification(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+          (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndex, MemberNumber.Setpoint)),properties),
+         //風量
+         new BacnetReadAccessSpecification(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+          (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuIndex, MemberNumber.VentilationAmount_Status)),properties),
+         //風向
+         new BacnetReadAccessSpecification(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          (uint)getInstanceNumber(ObjectNumber.AnalogInput, iuIndex, MemberNumber.AirflowDirection_Status)),properties)
+      };
+
+      if (client.ReadPropertyMultipleRequest(bacAddress, propToRead, out IList<BacnetReadAccessResult> rslt))
+      {
+        cMode = (uint)rslt[0].values[0].value[0].Value;
+        cSp = (double)rslt[1].values[0].value[0].Value;
+        cAmount = (uint)rslt[2].values[0].value[0].Value;
+        cDirection = (uint)rslt[3].values[0].value[0].Value;
+        if (this.IsDisposed) return;  //気休めコード。本質的な解決になっていない
+
+        //暖房モードの場合には5℃の偏差を反映
+        if (cMode == 2) cSp -= 5;
+
+        //設定温度
+        lblSP.Invoke(new Action(() =>
+        {
+          lblSP.Text = cSp.ToString("F0");
+        }));
+
+        //運転モード
+        lblMode.Invoke(new Action(() =>
+        {
+          lblMode.Text =
+          cMode == 1 ? "冷房" :
+          cMode == 2 ? "暖房" :
+          cMode == 3 ? "換気" :
+          cMode == 4 ? "自動" : "除湿";
+        }));
+
+        //風量
+        lblAmount.Invoke(new Action(() =>
+        {
+          lblAmount.Text =
+          cAmount == 1 ? "弱" :
+          cAmount == 2 ? "強" : "自動";
+        }));
+
+        //風向
+        pbxDirection.Invoke(new Action(() =>
+        {
+          pbxDirection.Image =
+          cDirection == 0 ? Resource._0 :
+          cDirection == 1 ? Resource._1 :
+          cDirection == 2 ? Resource._2 :
+          cDirection == 3 ? Resource._3 :
+          cDirection == 4 ? Resource._4 : Resource._7;
+        }));
+      }
+    }
+
+    #endregion
+
+    #region 汎用関数
 
     private int getInstanceNumber
       (ObjectNumber objNumber, int iUnitNumber, MemberNumber memNumber)
@@ -133,10 +241,76 @@ namespace SampleVRFController
       return iUnitNumber * 256 + (int)memNumber;
     }
 
+    #endregion
+
+    #region コントロール操作時の処理
+
     private void lb_iUnits_SelectedIndexChanged(object sender, EventArgs e)
     {
-      loadSetPoint();
+      iuIndex = lb_iUnits.SelectedIndex;
     }
+    private void btnSPUpDown_Click(object sender, EventArgs e)
+    {
+      bool isUp = (sender == btnSPUp);
+
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+          (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndex, MemberNumber.Setpoint));
+      List<BacnetValue> values = new List<BacnetValue>();
+      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, cSp + (isUp ? 1 : -1)));
+      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+    }
+
+    private void btnModeUpDown_Click(object sender, EventArgs e)
+    {
+      bool isUp = (sender == btnModeUp);
+
+      int inc = isUp ? 1 : -1;
+      uint nMode = (uint)Math.Max(1, Math.Min(4, cMode + inc));
+
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+          (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuIndex, MemberNumber.OperationMode_Setting));
+      List<BacnetValue> values = new List<BacnetValue>();
+      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nMode));
+      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+    }
+
+    private void btnAmountUpDown_Click(object sender, EventArgs e)
+    {
+      bool isUp = (sender == btnAmountUp);
+
+      int inc = isUp ? 1 : -1;
+      uint nAmount = (uint)Math.Max(1, Math.Min(3, cAmount + inc));
+
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+          (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuIndex, MemberNumber.VentilationAmount_Setting));
+      List<BacnetValue> values = new List<BacnetValue>();
+      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nAmount));
+      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+    }
+
+    private void btnDirectionUpDown_Click(object sender, EventArgs e)
+    {
+      bool isUp = (sender == btnDirectionUp);
+
+      //風向の値は0,1,2,3,4,7だから厄介
+      uint nDirection;
+      if (cDirection == 4 && isUp) nDirection = 7;
+      else if (cDirection == 7 && !isUp) nDirection = 4;
+      else if (cDirection == 7 && isUp) nDirection = 7;
+      else
+      {
+        int inc = isUp ? 1 : -1;
+        nDirection = (uint)Math.Max(0, Math.Min(4, cDirection + inc));
+      }
+
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+          (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndex, MemberNumber.AirflowDirection_Setting));
+      List<BacnetValue> values = new List<BacnetValue>();
+      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nDirection));
+      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+    }
+
+    #endregion
 
     #region 構造体定義
 

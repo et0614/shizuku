@@ -32,27 +32,28 @@
       tabPage1 = new TabPage();
       label3 = new Label();
       label2 = new Label();
-      lbl_SP = new Label();
-      btnSP_Down = new Button();
-      btnSP_Up = new Button();
+      lblSP = new Label();
+      btnSPDown = new Button();
+      btnSPUp = new Button();
       tabPage2 = new TabPage();
-      label6 = new Label();
-      button1 = new Button();
-      button2 = new Button();
+      lblMode = new Label();
+      btnModeDown = new Button();
+      btnModeUp = new Button();
       tabPage3 = new TabPage();
-      label4 = new Label();
-      button3 = new Button();
-      button4 = new Button();
+      lblAmount = new Label();
+      btnAmountDown = new Button();
+      btnAmountUp = new Button();
       tabPage4 = new TabPage();
-      label5 = new Label();
-      button5 = new Button();
-      button6 = new Button();
+      pbxDirection = new PictureBox();
+      btnDirectionDown = new Button();
+      btnDirectionUp = new Button();
       lb_iUnits = new ListBox();
       tabControl1.SuspendLayout();
       tabPage1.SuspendLayout();
       tabPage2.SuspendLayout();
       tabPage3.SuspendLayout();
       tabPage4.SuspendLayout();
+      ((System.ComponentModel.ISupportInitialize)pbxDirection).BeginInit();
       SuspendLayout();
       // 
       // tabControl1
@@ -72,9 +73,9 @@
       // 
       tabPage1.Controls.Add(label3);
       tabPage1.Controls.Add(label2);
-      tabPage1.Controls.Add(lbl_SP);
-      tabPage1.Controls.Add(btnSP_Down);
-      tabPage1.Controls.Add(btnSP_Up);
+      tabPage1.Controls.Add(lblSP);
+      tabPage1.Controls.Add(btnSPDown);
+      tabPage1.Controls.Add(btnSPUp);
       tabPage1.Location = new Point(8, 46);
       tabPage1.Name = "tabPage1";
       tabPage1.Padding = new Padding(3);
@@ -103,41 +104,43 @@
       label2.TabIndex = 2;
       label2.Text = "設定\r\n温度";
       // 
-      // lbl_SP
+      // lblSP
       // 
-      lbl_SP.AutoSize = true;
-      lbl_SP.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
-      lbl_SP.Location = new Point(210, 270);
-      lbl_SP.Name = "lbl_SP";
-      lbl_SP.Size = new Size(140, 113);
-      lbl_SP.TabIndex = 1;
-      lbl_SP.Text = "28";
+      lblSP.AutoSize = true;
+      lblSP.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
+      lblSP.Location = new Point(210, 270);
+      lblSP.Name = "lblSP";
+      lblSP.Size = new Size(140, 113);
+      lblSP.TabIndex = 1;
+      lblSP.Text = "28";
       // 
-      // btnSP_Down
+      // btnSPDown
       // 
-      btnSP_Down.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      btnSP_Down.Location = new Point(200, 450);
-      btnSP_Down.Name = "btnSP_Down";
-      btnSP_Down.Size = new Size(150, 100);
-      btnSP_Down.TabIndex = 0;
-      btnSP_Down.Text = "▽";
-      btnSP_Down.UseVisualStyleBackColor = true;
+      btnSPDown.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnSPDown.Location = new Point(200, 450);
+      btnSPDown.Name = "btnSPDown";
+      btnSPDown.Size = new Size(150, 100);
+      btnSPDown.TabIndex = 0;
+      btnSPDown.Text = "▽";
+      btnSPDown.UseVisualStyleBackColor = true;
+      btnSPDown.Click += btnSPUpDown_Click;
       // 
-      // btnSP_Up
+      // btnSPUp
       // 
-      btnSP_Up.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      btnSP_Up.Location = new Point(200, 100);
-      btnSP_Up.Name = "btnSP_Up";
-      btnSP_Up.Size = new Size(150, 100);
-      btnSP_Up.TabIndex = 0;
-      btnSP_Up.Text = "△";
-      btnSP_Up.UseVisualStyleBackColor = true;
+      btnSPUp.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnSPUp.Location = new Point(200, 100);
+      btnSPUp.Name = "btnSPUp";
+      btnSPUp.Size = new Size(150, 100);
+      btnSPUp.TabIndex = 0;
+      btnSPUp.Text = "△";
+      btnSPUp.UseVisualStyleBackColor = true;
+      btnSPUp.Click += btnSPUpDown_Click;
       // 
       // tabPage2
       // 
-      tabPage2.Controls.Add(label6);
-      tabPage2.Controls.Add(button1);
-      tabPage2.Controls.Add(button2);
+      tabPage2.Controls.Add(lblMode);
+      tabPage2.Controls.Add(btnModeDown);
+      tabPage2.Controls.Add(btnModeUp);
       tabPage2.Location = new Point(8, 46);
       tabPage2.Name = "tabPage2";
       tabPage2.Padding = new Padding(3);
@@ -146,41 +149,43 @@
       tabPage2.Text = "モード";
       tabPage2.UseVisualStyleBackColor = true;
       // 
-      // label6
+      // lblMode
       // 
-      label6.AutoSize = true;
-      label6.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
-      label6.Location = new Point(171, 283);
-      label6.Name = "label6";
-      label6.Size = new Size(218, 113);
-      label6.TabIndex = 5;
-      label6.Text = "冷房";
+      lblMode.AutoSize = true;
+      lblMode.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
+      lblMode.Location = new Point(171, 283);
+      lblMode.Name = "lblMode";
+      lblMode.Size = new Size(218, 113);
+      lblMode.TabIndex = 5;
+      lblMode.Text = "冷房";
       // 
-      // button1
+      // btnModeDown
       // 
-      button1.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      button1.Location = new Point(205, 462);
-      button1.Name = "button1";
-      button1.Size = new Size(150, 100);
-      button1.TabIndex = 3;
-      button1.Text = "▽";
-      button1.UseVisualStyleBackColor = true;
+      btnModeDown.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnModeDown.Location = new Point(205, 462);
+      btnModeDown.Name = "btnModeDown";
+      btnModeDown.Size = new Size(150, 100);
+      btnModeDown.TabIndex = 3;
+      btnModeDown.Text = "▽";
+      btnModeDown.UseVisualStyleBackColor = true;
+      btnModeDown.Click += btnModeUpDown_Click;
       // 
-      // button2
+      // btnModeUp
       // 
-      button2.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      button2.Location = new Point(205, 112);
-      button2.Name = "button2";
-      button2.Size = new Size(150, 100);
-      button2.TabIndex = 4;
-      button2.Text = "△";
-      button2.UseVisualStyleBackColor = true;
+      btnModeUp.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnModeUp.Location = new Point(205, 112);
+      btnModeUp.Name = "btnModeUp";
+      btnModeUp.Size = new Size(150, 100);
+      btnModeUp.TabIndex = 4;
+      btnModeUp.Text = "△";
+      btnModeUp.UseVisualStyleBackColor = true;
+      btnModeUp.Click += btnModeUpDown_Click;
       // 
       // tabPage3
       // 
-      tabPage3.Controls.Add(label4);
-      tabPage3.Controls.Add(button3);
-      tabPage3.Controls.Add(button4);
+      tabPage3.Controls.Add(lblAmount);
+      tabPage3.Controls.Add(btnAmountDown);
+      tabPage3.Controls.Add(btnAmountUp);
       tabPage3.Location = new Point(8, 46);
       tabPage3.Name = "tabPage3";
       tabPage3.Padding = new Padding(3);
@@ -189,41 +194,43 @@
       tabPage3.Text = "風量";
       tabPage3.UseVisualStyleBackColor = true;
       // 
-      // label4
+      // lblAmount
       // 
-      label4.AutoSize = true;
-      label4.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
-      label4.Location = new Point(205, 283);
-      label4.Name = "label4";
-      label4.Size = new Size(133, 113);
-      label4.TabIndex = 8;
-      label4.Text = "強";
+      lblAmount.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
+      lblAmount.Location = new Point(119, 283);
+      lblAmount.Name = "lblAmount";
+      lblAmount.Size = new Size(300, 113);
+      lblAmount.TabIndex = 8;
+      lblAmount.Text = "強";
+      lblAmount.TextAlign = ContentAlignment.MiddleCenter;
       // 
-      // button3
+      // btnAmountDown
       // 
-      button3.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      button3.Location = new Point(196, 462);
-      button3.Name = "button3";
-      button3.Size = new Size(150, 100);
-      button3.TabIndex = 6;
-      button3.Text = "▽";
-      button3.UseVisualStyleBackColor = true;
+      btnAmountDown.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnAmountDown.Location = new Point(196, 462);
+      btnAmountDown.Name = "btnAmountDown";
+      btnAmountDown.Size = new Size(150, 100);
+      btnAmountDown.TabIndex = 6;
+      btnAmountDown.Text = "▽";
+      btnAmountDown.UseVisualStyleBackColor = true;
+      btnAmountDown.Click += btnAmountUpDown_Click;
       // 
-      // button4
+      // btnAmountUp
       // 
-      button4.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      button4.Location = new Point(196, 112);
-      button4.Name = "button4";
-      button4.Size = new Size(150, 100);
-      button4.TabIndex = 7;
-      button4.Text = "△";
-      button4.UseVisualStyleBackColor = true;
+      btnAmountUp.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnAmountUp.Location = new Point(196, 112);
+      btnAmountUp.Name = "btnAmountUp";
+      btnAmountUp.Size = new Size(150, 100);
+      btnAmountUp.TabIndex = 7;
+      btnAmountUp.Text = "△";
+      btnAmountUp.UseVisualStyleBackColor = true;
+      btnAmountUp.Click += btnAmountUpDown_Click;
       // 
       // tabPage4
       // 
-      tabPage4.Controls.Add(label5);
-      tabPage4.Controls.Add(button5);
-      tabPage4.Controls.Add(button6);
+      tabPage4.Controls.Add(pbxDirection);
+      tabPage4.Controls.Add(btnDirectionDown);
+      tabPage4.Controls.Add(btnDirectionUp);
       tabPage4.Location = new Point(8, 46);
       tabPage4.Name = "tabPage4";
       tabPage4.Padding = new Padding(3);
@@ -232,35 +239,36 @@
       tabPage4.Text = "風向";
       tabPage4.UseVisualStyleBackColor = true;
       // 
-      // label5
+      // pbxDirection
       // 
-      label5.AutoSize = true;
-      label5.Font = new Font("Yu Gothic UI", 31.875F, FontStyle.Regular, GraphicsUnit.Point);
-      label5.Location = new Point(205, 283);
-      label5.Name = "label5";
-      label5.Size = new Size(133, 113);
-      label5.TabIndex = 11;
-      label5.Text = "強";
+      pbxDirection.Image = Resource._0;
+      pbxDirection.Location = new Point(187, 251);
+      pbxDirection.Name = "pbxDirection";
+      pbxDirection.Size = new Size(160, 160);
+      pbxDirection.TabIndex = 12;
+      pbxDirection.TabStop = false;
       // 
-      // button5
+      // btnDirectionDown
       // 
-      button5.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      button5.Location = new Point(196, 462);
-      button5.Name = "button5";
-      button5.Size = new Size(150, 100);
-      button5.TabIndex = 9;
-      button5.Text = "▽";
-      button5.UseVisualStyleBackColor = true;
+      btnDirectionDown.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnDirectionDown.Location = new Point(196, 462);
+      btnDirectionDown.Name = "btnDirectionDown";
+      btnDirectionDown.Size = new Size(150, 100);
+      btnDirectionDown.TabIndex = 9;
+      btnDirectionDown.Text = "▽";
+      btnDirectionDown.UseVisualStyleBackColor = true;
+      btnDirectionDown.Click += btnDirectionUpDown_Click;
       // 
-      // button6
+      // btnDirectionUp
       // 
-      button6.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
-      button6.Location = new Point(196, 112);
-      button6.Name = "button6";
-      button6.Size = new Size(150, 100);
-      button6.TabIndex = 10;
-      button6.Text = "△";
-      button6.UseVisualStyleBackColor = true;
+      btnDirectionUp.Font = new Font("Yu Gothic UI", 19.875F, FontStyle.Regular, GraphicsUnit.Point);
+      btnDirectionUp.Location = new Point(196, 112);
+      btnDirectionUp.Name = "btnDirectionUp";
+      btnDirectionUp.Size = new Size(150, 100);
+      btnDirectionUp.TabIndex = 10;
+      btnDirectionUp.Text = "△";
+      btnDirectionUp.UseVisualStyleBackColor = true;
+      btnDirectionUp.Click += btnDirectionUpDown_Click;
       // 
       // lb_iUnits
       // 
@@ -292,9 +300,8 @@
       tabPage2.ResumeLayout(false);
       tabPage2.PerformLayout();
       tabPage3.ResumeLayout(false);
-      tabPage3.PerformLayout();
       tabPage4.ResumeLayout(false);
-      tabPage4.PerformLayout();
+      ((System.ComponentModel.ISupportInitialize)pbxDirection).EndInit();
       ResumeLayout(false);
     }
 
@@ -305,20 +312,20 @@
     private TabPage tabPage2;
     private TabPage tabPage3;
     private TabPage tabPage4;
-    private Label lbl_SP;
-    private Button btnSP_Down;
-    private Button btnSP_Up;
+    private Label lblSP;
+    private Button btnSPDown;
+    private Button btnSPUp;
     private ListBox lb_iUnits;
     private Label label3;
     private Label label2;
-    private Label label6;
-    private Button button1;
-    private Button button2;
-    private Label label4;
-    private Button button3;
-    private Button button4;
-    private Label label5;
-    private Button button5;
-    private Button button6;
+    private Label lblMode;
+    private Button btnModeDown;
+    private Button btnModeUp;
+    private Label lblAmount;
+    private Button btnAmountDown;
+    private Button btnAmountUp;
+    private Button btnDirectionDown;
+    private Button btnDirectionUp;
+    private PictureBox pbxDirection;
   }
 }
