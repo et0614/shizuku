@@ -76,11 +76,15 @@ namespace SampleVRFController
 
     private int iuIndex = -1;
 
+    private List<int> iuIndices = new List<int>();
+
     List<VRFUnitIndex> vrfUnitIndices;
 
     BacnetClient client;
 
     BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + EXCLUSIVE_PORT.ToString());
+
+    private bool isOn = false;
 
     private uint cMode = 1;
 
@@ -163,6 +167,10 @@ namespace SampleVRFController
       //読み込むBACnetObjectIdのリスト
       BacnetReadAccessSpecification[] propToRead = new BacnetReadAccessSpecification[]
       {
+        //On/Off
+        new BacnetReadAccessSpecification(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
+          (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuIndex, MemberNumber.OnOff_Status)),properties),
         //運転モード
         new BacnetReadAccessSpecification(
           new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
@@ -183,14 +191,21 @@ namespace SampleVRFController
 
       if (client.ReadPropertyMultipleRequest(bacAddress, propToRead, out IList<BacnetReadAccessResult> rslt))
       {
-        cMode = (uint)rslt[0].values[0].value[0].Value;
-        cSp = (double)rslt[1].values[0].value[0].Value;
-        cAmount = (uint)rslt[2].values[0].value[0].Value;
-        cDirection = (uint)rslt[3].values[0].value[0].Value;
+        isOn = BACnetCommunicator.ConvertToBool(rslt[0].values[0].value[0].Value);
+        cMode = (uint)rslt[1].values[0].value[0].Value;
+        cSp = (double)rslt[2].values[0].value[0].Value;
+        cAmount = (uint)rslt[3].values[0].value[0].Value;
+        cDirection = (uint)rslt[4].values[0].value[0].Value;
         if (this.IsDisposed) return;  //気休めコード。本質的な解決になっていない
 
         //暖房モードの場合には5℃の偏差を反映
         if (cMode == 2) cSp -= 5;
+
+        //On/Off
+        btnOnOff.Invoke(new Action(() =>
+        {
+          btnOnOff.BackColor = isOn ? Color.PaleGreen : Color.MistyRose;
+        }));
 
         //設定温度
         lblSP.Invoke(new Action(() =>
@@ -248,48 +263,80 @@ namespace SampleVRFController
     private void lb_iUnits_SelectedIndexChanged(object sender, EventArgs e)
     {
       iuIndex = lb_iUnits.SelectedIndex;
+      iuIndices.Clear();
+      for (int i = 0; i < lb_iUnits.SelectedIndices.Count; i++) iuIndices.Add(lb_iUnits.SelectedIndices[i]);
     }
+
+    private void btnOnOff_Click(object sender, EventArgs e)
+    {
+      if (iuIndex == -1) return;
+      bool nIsOn = !isOn;
+
+      for (int i = 0; i < iuIndices.Count; i++)
+      {
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
+          (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuIndices[i], MemberNumber.OnOff_Setting));
+        List<BacnetValue> values = new List<BacnetValue>();
+        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nIsOn ? 1u : 0u));
+        client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      }
+    }
+
     private void btnSPUpDown_Click(object sender, EventArgs e)
     {
+      if (iuIndex == -1) return;
       bool isUp = (sender == btnSPUp);
+      double nSP = (cMode == 2 ? cSp + 5 : cSp) + (isUp ? 1 : -1);
 
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-          (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndex, MemberNumber.Setpoint));
-      List<BacnetValue> values = new List<BacnetValue>();
-      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, cSp + (isUp ? 1 : -1)));
-      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      for (int i = 0; i < iuIndices.Count; i++)
+      {
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+            (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndices[i], MemberNumber.Setpoint));
+        List<BacnetValue> values = new List<BacnetValue>();
+        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, nSP));
+        client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      }
     }
 
     private void btnModeUpDown_Click(object sender, EventArgs e)
     {
+      if (iuIndex == -1) return;
       bool isUp = (sender == btnModeUp);
 
       int inc = isUp ? 1 : -1;
       uint nMode = (uint)Math.Max(1, Math.Min(4, cMode + inc));
 
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-          (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuIndex, MemberNumber.OperationMode_Setting));
-      List<BacnetValue> values = new List<BacnetValue>();
-      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nMode));
-      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      for (int i = 0; i < iuIndices.Count; i++)
+      {
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+          (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuIndices[i], MemberNumber.OperationMode_Setting));
+        List<BacnetValue> values = new List<BacnetValue>();
+        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nMode));
+        client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      }
     }
 
     private void btnAmountUpDown_Click(object sender, EventArgs e)
     {
+      if (iuIndex == -1) return;
       bool isUp = (sender == btnAmountUp);
 
       int inc = isUp ? 1 : -1;
       uint nAmount = (uint)Math.Max(1, Math.Min(3, cAmount + inc));
 
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-          (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuIndex, MemberNumber.VentilationAmount_Setting));
-      List<BacnetValue> values = new List<BacnetValue>();
-      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nAmount));
-      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      for (int i = 0; i < iuIndices.Count; i++)
+      {
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+          (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuIndices[i], MemberNumber.VentilationAmount_Setting));
+        List<BacnetValue> values = new List<BacnetValue>();
+        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nAmount));
+        client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      }
     }
 
     private void btnDirectionUpDown_Click(object sender, EventArgs e)
     {
+      if (iuIndex == -1) return;
       bool isUp = (sender == btnDirectionUp);
 
       //風向の値は0,1,2,3,4,7だから厄介
@@ -303,11 +350,14 @@ namespace SampleVRFController
         nDirection = (uint)Math.Max(0, Math.Min(4, cDirection + inc));
       }
 
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-          (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndex, MemberNumber.AirflowDirection_Setting));
-      List<BacnetValue> values = new List<BacnetValue>();
-      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nDirection));
-      client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      for (int i = 0; i < iuIndices.Count; i++)
+      {
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+          (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuIndices[i], MemberNumber.AirflowDirection_Setting));
+        List<BacnetValue> values = new List<BacnetValue>();
+        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nDirection));
+        client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+      }
     }
 
     #endregion

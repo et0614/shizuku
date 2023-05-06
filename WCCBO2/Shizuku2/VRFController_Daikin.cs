@@ -311,9 +311,10 @@ namespace Shizuku2
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
-          ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          ExVRFSystem vrf = vrfSystems[i];
+          //ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
           bool isSystemOn = false;
-          VRFSystem.Mode pMode = VRFSystem.Mode.ThermoOff;
+          //VRFSystem.Mode pMode = VRFSystem.Mode.ThermoOff;
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             BacnetObjectId boID;
@@ -344,14 +345,15 @@ namespace Shizuku2
                 (modeSet == 1 || modeSet == 2) ? 1u : 0u;
             }
 
-            ExVRFSystem.Mode md;
-            if (modeSet == 1) md = ExVRFSystem.Mode.Cooling;
-            else if (modeSet == 2) md = ExVRFSystem.Mode.Heating;
-            else md = ExVRFSystem.Mode.ThermoOff; //AutoとDryは一旦無視
-            vrf.IndoorUnitModes[j] = isIUonSet ? md : ExVRFSystem.Mode.ShutOff;
+            vrf.IndoorUnitModes[j] =
+              !isIUonSet ? ExVRFSystem.Mode.ShutOff :
+              modeSet == 1 ? ExVRFSystem.Mode.Cooling :
+              modeSet == 2 ? ExVRFSystem.Mode.Heating :
+              modeSet == 3 ? ExVRFSystem.Mode.ThermoOff :
+              modeSet == 4 ? ExVRFSystem.Mode.Auto : ExVRFSystem.Mode.Dry;
             //室外機は最後の稼働室内機のモードに依存（修正必要）
-            if (md == ExVRFSystem.Mode.Cooling) pMode = VRFSystem.Mode.Cooling;
-            else if (md == ExVRFSystem.Mode.Heating) pMode = VRFSystem.Mode.Heating;
+            //if (md == ExVRFSystem.Mode.Cooling) pMode = VRFSystem.Mode.Cooling;
+            //else if (md == ExVRFSystem.Mode.Heating) pMode = VRFSystem.Mode.Heating;
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
@@ -451,8 +453,8 @@ namespace Shizuku2
 
             iuNum++;
           }
-          if (isSystemOn) vrf.VRFSystem.CurrentMode = pMode;
-          else vrf.VRFSystem.CurrentMode = VRFSystem.Mode.ShutOff;
+          //if (isSystemOn) vrf.VRFSystem.CurrentMode = pMode;
+          //else vrf.VRFSystem.CurrentMode = VRFSystem.Mode.ShutOff;
         }
       }
     }

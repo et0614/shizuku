@@ -18,6 +18,8 @@ namespace Shizuku2
       ThermoOff,
       Cooling,
       Heating,
+      Auto,
+      Dry,
       ShutOff
     }
 
@@ -62,7 +64,7 @@ namespace Shizuku2
       VRFSystem.Mode mode = VRFSystem.Mode.ShutOff;
       for (int i = 0; i < IndoorUnitModes.Length; i++)
       {
-        if (IndoorUnitModes[i] == Mode.Cooling) mode = VRFSystem.Mode.Cooling;
+        if (IndoorUnitModes[i] == Mode.Cooling || IndoorUnitModes[i] == Mode.Dry) mode = VRFSystem.Mode.Cooling;
         else if (IndoorUnitModes[i] == Mode.Heating) mode = VRFSystem.Mode.Heating;
       }
       VRFSystem.CurrentMode = mode;

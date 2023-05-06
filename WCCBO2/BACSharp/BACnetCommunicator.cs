@@ -31,7 +31,8 @@ namespace BaCSharp
     /// <returns>bool値</returns>
     public static bool ConvertToBool(object obj)
     {
-      if (obj is int) return ((int)obj == 1);
+      if (obj is uint) return ((uint)obj == 1);
+      else if (obj is int) return ((int)obj == 1);
       else if (obj is bool) return (bool)obj;
       else return false;
     }

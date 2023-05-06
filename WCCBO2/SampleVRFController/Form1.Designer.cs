@@ -29,6 +29,8 @@
     private void InitializeComponent()
     {
       tabControl1 = new TabControl();
+      tabPage5 = new TabPage();
+      btnOnOff = new Button();
       tabPage1 = new TabPage();
       label3 = new Label();
       label2 = new Label();
@@ -49,6 +51,7 @@
       btnDirectionUp = new Button();
       lb_iUnits = new ListBox();
       tabControl1.SuspendLayout();
+      tabPage5.SuspendLayout();
       tabPage1.SuspendLayout();
       tabPage2.SuspendLayout();
       tabPage3.SuspendLayout();
@@ -58,6 +61,7 @@
       // 
       // tabControl1
       // 
+      tabControl1.Controls.Add(tabPage5);
       tabControl1.Controls.Add(tabPage1);
       tabControl1.Controls.Add(tabPage2);
       tabControl1.Controls.Add(tabPage3);
@@ -68,6 +72,28 @@
       tabControl1.SelectedIndex = 0;
       tabControl1.Size = new Size(558, 729);
       tabControl1.TabIndex = 0;
+      // 
+      // tabPage5
+      // 
+      tabPage5.Controls.Add(btnOnOff);
+      tabPage5.Location = new Point(8, 46);
+      tabPage5.Name = "tabPage5";
+      tabPage5.Padding = new Padding(3);
+      tabPage5.Size = new Size(542, 675);
+      tabPage5.TabIndex = 4;
+      tabPage5.Text = "On/Off";
+      tabPage5.UseVisualStyleBackColor = true;
+      // 
+      // btnOnOff
+      // 
+      btnOnOff.BackColor = Color.MistyRose;
+      btnOnOff.Image = Resource.onoff;
+      btnOnOff.Location = new Point(174, 214);
+      btnOnOff.Name = "btnOnOff";
+      btnOnOff.Size = new Size(210, 210);
+      btnOnOff.TabIndex = 0;
+      btnOnOff.UseVisualStyleBackColor = false;
+      btnOnOff.Click += btnOnOff_Click;
       // 
       // tabPage1
       // 
@@ -278,6 +304,7 @@
       lb_iUnits.ItemHeight = 45;
       lb_iUnits.Location = new Point(0, 0);
       lb_iUnits.Name = "lb_iUnits";
+      lb_iUnits.SelectionMode = SelectionMode.MultiExtended;
       lb_iUnits.Size = new Size(250, 729);
       lb_iUnits.TabIndex = 1;
       lb_iUnits.SelectedIndexChanged += lb_iUnits_SelectedIndexChanged;
@@ -295,6 +322,7 @@
       Name = "Form1";
       Text = "VRFコントローラサンプル";
       tabControl1.ResumeLayout(false);
+      tabPage5.ResumeLayout(false);
       tabPage1.ResumeLayout(false);
       tabPage1.PerformLayout();
       tabPage2.ResumeLayout(false);
@@ -327,5 +355,7 @@
     private Button btnDirectionDown;
     private Button btnDirectionUp;
     private PictureBox pbxDirection;
+    private TabPage tabPage5;
+    private Button btnOnOff;
   }
 }
