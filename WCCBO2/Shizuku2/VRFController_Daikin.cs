@@ -408,7 +408,7 @@ namespace Shizuku2
             uint afDirStt = ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
               ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
-            //***未実装***
+            vrf.Direction[j] = afDirSet * 22.5;
 
             //強制サーモオフ*************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.ForcedThermoOff_Setting));

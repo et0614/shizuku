@@ -8,13 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
+    <PackageReference Include="Popolo" Version="2.3.1.57" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Popolo">
-      <HintPath>..\dll\Popolo.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

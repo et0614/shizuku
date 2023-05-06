@@ -35,6 +35,10 @@ namespace Shizuku2
 
     public double[] SetPoints_H { get; private set; }
 
+    /// <summary>吹き出し風向[radian]を設定・取得する</summary>
+    /// <remarks>水平が0 radian、下向きがプラス</remarks>
+    public double[] Direction { get; private set; }
+
     #endregion
 
     #region コンストラクタ
@@ -46,12 +50,14 @@ namespace Shizuku2
       IndoorUnitModes = new Mode[VRFSystem.IndoorUnitNumber];
       SetPoints_C = new double[VRFSystem.IndoorUnitNumber];
       SetPoints_H = new double[VRFSystem.IndoorUnitNumber];
+      Direction = new double[VRFSystem.IndoorUnitNumber];
 
       for (int i = 0; i < IndoorUnitModes.Length; i++)
       {
         IndoorUnitModes[i] = Mode.ShutOff;
         SetPoints_C[i] = 25;
         SetPoints_H[i] = 20;
+        Direction[i] = 0;
       }
     }
 

@@ -7,6 +7,7 @@ using System.Data.Common;
 using System.Security.Principal;
 
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 
 namespace Shizuku2
 {
@@ -159,27 +160,59 @@ namespace Shizuku2
 
     private static void setVRFOutletAir()
     {
+      //最大風速[m/s]
+      const double MAX_VELOCITY = 3.0;
+
       for (int i = 0; i < 6; i++)
-        building.SetSupplyAir(0, i,
-          vrfs[0].VRFSystem.IndoorUnits[i].OutletAirTemperature,
-          vrfs[0].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[0].VRFSystem.IndoorUnits[i].AirFlowRate);
+      {
+        ImmutableVRFUnit unt = vrfs[0].VRFSystem.IndoorUnits[i];
+        double hRate = getBlowRate(
+          building.MultiRoom[0].Zones[i], building.MultiRoom[0].Zones[i + 12],
+          unt.OutletAirTemperature, MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), vrfs[0].Direction[i]);
+        building.SetSupplyAir(0, i, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * hRate);
+        building.SetSupplyAir(0, i + 12, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - hRate));
+      }
       for (int i = 0; i < 6; i++)
-        building.SetSupplyAir(0, i + 6,
-          vrfs[1].VRFSystem.IndoorUnits[i].OutletAirTemperature,
-          vrfs[1].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[1].VRFSystem.IndoorUnits[i].AirFlowRate);
+      {
+        ImmutableVRFUnit unt = vrfs[1].VRFSystem.IndoorUnits[i];
+        double hRate = getBlowRate(
+          building.MultiRoom[0].Zones[i + 6], building.MultiRoom[0].Zones[i + 18],
+          unt.OutletAirTemperature, MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), vrfs[1].Direction[i]);
+        building.SetSupplyAir(0, i + 6, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * hRate);
+        building.SetSupplyAir(0, i + 18, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - hRate));
+      }
       for (int i = 0; i < 6; i++)
-        building.SetSupplyAir(1, i,
-          vrfs[2].VRFSystem.IndoorUnits[i].OutletAirTemperature,
-          vrfs[2].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[2].VRFSystem.IndoorUnits[i].AirFlowRate);
+      {
+        ImmutableVRFUnit unt = vrfs[2].VRFSystem.IndoorUnits[i];
+        double hRate = getBlowRate(
+          building.MultiRoom[1].Zones[i], building.MultiRoom[1].Zones[i + 12],
+          unt.OutletAirTemperature, MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), vrfs[2].Direction[i]);
+        building.SetSupplyAir(1, i, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * hRate);
+        building.SetSupplyAir(1, i + 12, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - hRate));
+      }
       for (int i = 0; i < 8; i++)
-        building.SetSupplyAir(1, i + 6,
-          vrfs[3].VRFSystem.IndoorUnits[i].OutletAirTemperature,
-          vrfs[3].VRFSystem.IndoorUnits[i].OutletAirHumidityRatio,
-          vrfs[3].VRFSystem.IndoorUnits[i].AirFlowRate);
+      {
+        ImmutableVRFUnit unt = vrfs[3].VRFSystem.IndoorUnits[i];
+        double hRate = getBlowRate(
+          building.MultiRoom[1].Zones[i + 6], building.MultiRoom[1].Zones[i + 18],
+          unt.OutletAirTemperature, MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), vrfs[3].Direction[i]);
+        building.SetSupplyAir(1, i + 6, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * hRate);
+        building.SetSupplyAir(1, i + 20, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - hRate));
+      }
     }
+
+    private static double getBlowRate
+      (ImmutableZone upperZn, ImmutableZone lowerZn, double splyTmp, double velocity, double direction)
+    {
+      double uTmp = upperZn.Temperature;
+      double lTmp = lowerZn.Temperature;
+      double dTdY = Math.Max(0, uTmp - lTmp) / 1.35;
+      double ambT = uTmp + dTdY * 0.5;
+      PrimaryFlow.CalcBlowDown(splyTmp, ambT, velocity, dTdY, direction,
+        out double hRate, out _, out _);
+      return hRate;
+    }
+
 
     #endregion
 
