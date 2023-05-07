@@ -1,4 +1,5 @@
 ﻿using Popolo.HVAC.MultiplePackagedHeatPump;
+using Popolo.ThermalLoad;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,6 +40,9 @@ namespace Shizuku2
     /// <remarks>水平が0 radian、下向きがプラス</remarks>
     public double[] Direction { get; private set; }
 
+    /// <summary>下部ゾーンへ送る風量比[-]を取得する</summary>
+    public double[] LowZoneBlowRate { get; private set; }
+
     #endregion
 
     #region コンストラクタ
@@ -51,6 +55,7 @@ namespace Shizuku2
       SetPoints_C = new double[VRFSystem.IndoorUnitNumber];
       SetPoints_H = new double[VRFSystem.IndoorUnitNumber];
       Direction = new double[VRFSystem.IndoorUnitNumber];
+      LowZoneBlowRate = new double[VRFSystem.IndoorUnitNumber];
 
       for (int i = 0; i < IndoorUnitModes.Length; i++)
       {
@@ -58,6 +63,7 @@ namespace Shizuku2
         SetPoints_C[i] = 25;
         SetPoints_H[i] = 20;
         Direction[i] = 0;
+        LowZoneBlowRate[i] = 0;
       }
     }
 
@@ -87,5 +93,25 @@ namespace Shizuku2
       }
     }
 
+    /// <summary>下部空間へ吹き出す流量を更新する</summary>
+    /// <param name="iuntIndex">室内機番号</param>
+    /// <param name="lowerZoneTemperature">下部空間の温度[C]</param>
+    /// <param name="upperZoneTemperature">上部空間の温度[C]</param>
+    public void UpdateBlowRate
+      (int iuntIndex, double lowerZoneTemperature, double upperZoneTemperature)
+    {
+      //最大風速[m/s]
+      const double MAX_VELOCITY = 3.0;
+
+      ImmutableVRFUnit unt = VRFSystem.IndoorUnits[iuntIndex];
+      double dTdY = Math.Max(0, upperZoneTemperature - lowerZoneTemperature) / 1.35;
+      double ambT = upperZoneTemperature + dTdY * 0.5;
+      PrimaryFlow.CalcBlowDown(
+        unt.OutletAirTemperature, 
+        ambT,
+        MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), dTdY, Direction[iuntIndex],
+        out double hRate, out _, out _);
+      LowZoneBlowRate[iuntIndex] = hRate;
+    }
   }
 }

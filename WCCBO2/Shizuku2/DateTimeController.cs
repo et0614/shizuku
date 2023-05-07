@@ -101,6 +101,8 @@ namespace Shizuku2
 
     #endregion
 
+    /// <summary>加速度を考慮しながら計算時刻を進める</summary>
+    /// <returns>計算を進めるべきであればTrue</returns>
     public bool TryProceed()
     {
       //本来のシミュレーション計算時刻
