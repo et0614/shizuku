@@ -72,13 +72,13 @@ namespace Shizuku2
       {
         sznASum += SZN_AREAS[i];
         znSs[i] = new Zone("S" + i, SZN_AREAS[i] * 1.7 * 1.2, SZN_AREAS[i]);
-        znSs[i + 12] = new Zone("S" + i + "_up", SZN_AREAS[i] * 1.7 * 1.2, SZN_AREAS[i]);
+        znSs[i + 12] = new Zone("S" + i + "_Up", SZN_AREAS[i] * 1.7 * 1.2, SZN_AREAS[i]);
       }
       for (int i = 0; i < NZN_AREAS.Length; i++)
       {
         nznASum += NZN_AREAS[i];
         znNs[i] = new Zone("N" + i, NZN_AREAS[i] * 1.7 * 1.2, NZN_AREAS[i]);
-        znNs[i + 14] = new Zone("N" + i + "_up", NZN_AREAS[i] * 1.0 * 1.2, NZN_AREAS[i]);
+        znNs[i + 14] = new Zone("N" + i + "_Up", NZN_AREAS[i] * 1.0 * 1.2, NZN_AREAS[i]);
       }
       znSs[24] = new Zone("S_Attic", sznASum * 1.5 * 1.2, sznASum);
       znNs[28] = new Zone("N_Attic", nznASum * 1.5 * 1.2, nznASum);
@@ -498,7 +498,7 @@ namespace Shizuku2
         int half = zns.Length / 2; //半分までは下部空間
         for (int i = 0; i < zns.Length; i++)
         {
-          zns[i].VentilationRate = zns[i].AirMass * LEAK_RATE;
+          zns[i].VentilationRate = zns[i].AirMass * LEAK_RATE / 3600d;
           zns[i].InitializeAirState(22, 0.0105);
           zns[i].HeatCapacity = zns[i].AirMass * 1006 * (i < half ? 10 : 2); //下部空間は家具の熱容量を考慮
         }

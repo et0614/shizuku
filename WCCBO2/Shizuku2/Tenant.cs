@@ -134,8 +134,7 @@ namespace Shizuku.Models
     }
 
     /// <summary>執務者の在不在情報と滞在ゾーンを更新する</summary>
-    /// <param name="tStep">計算時間間隔[sec]</param>
-    public void MoveOccupants(DateTime dTime, double tStep)
+    public void MoveOccupants(DateTime dTime)
     {
       //在不在情報
       nobodyStay = true;
@@ -146,7 +145,7 @@ namespace Shizuku.Models
       }
 
       //執務者のゾーン間移動
-      foreach (Occupant oc in occs) oc.UpdateStatus(dTime, tStep);
+      foreach (Occupant oc in occs) oc.UpdateStatus(dTime);
     }
 
     /// <summary>消費電力を更新する</summary>
@@ -220,17 +219,16 @@ namespace Shizuku.Models
       sensibleHeat = latentHeat = number = 0;
       if (Zones.Contains(zone))
       {
+        //人体負荷
         foreach (Occupant oc in occs)
           if (zone.Equals(oc.CurrentZone))
-          {
             number++;
-            //人体負荷
-            sensibleHeat += (oc.TNModel.SensibleHeatLossByRespiration + oc.TNModel.SensibleHeatLossFromSkin) * oc.TNModel.BodySurface;
-            latentHeat += (oc.TNModel.LatentHeatLossByRespiration + oc.TNModel.LatentHeatLossFromSkin) * oc.TNModel.BodySurface;
-          }
-      }
-      if (Zones.Contains(zone))
-      {
+
+        //人体負荷（潜顕比は石野「人体Two-node modelの簡易化と応用に関する研究」より回帰」
+        double znT = Math.Max(22, Math.Min(28, zone.Temperature));
+        sensibleHeat += number * (-5.3 * znT + 211.3);
+        latentHeat += number * (-5.4 * znT - 91.5);
+
         //コンセント負荷（金融業と通信業は70W、その他は40W）
         double pcLoad = 40;
         if (znTenants[0].Industry == OfficeTenant.CategoryOfIndustry.InformationAndCommunications ||
@@ -251,12 +249,13 @@ namespace Shizuku.Models
           calcIlluminance(zone, out difE, out dirE);
           dirIllm[indx] = dirE;
 
-          //750lxを基準に消費電力軽減。LEDで120lm/W,保守率0.9,照明率0.6
-          //(12W=750/(120*0.6*0.9))
+          //500lxを基準に消費電力軽減。LEDで130lm/W,保守率0.9,照明率0.6
+          //(7.1W/m2=500/(130*0.6*0.9))
           //直接光の照度は眩しいだけなので無視
-          double uE = 12 * Math.Max(0, 750 - difE) / 750d;
-          sensibleHeat += zone.FloorArea * uE;
-          eLight += zone.FloorArea * uE;
+          double uE = 7.1 * Math.Max(0, 500 - difE) / 500d;
+          double wt = zone.FloorArea * uE;
+          sensibleHeat += wt;
+          eLight += wt;
         }
       }
     }

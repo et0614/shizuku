@@ -17,6 +17,9 @@ namespace Shizuku2
 
     #region 定数宣言
 
+    /// <summary>乱数シード</summary>
+    private const uint SEED = 1;
+
     /// <summary>漏気量[回/h]</summary>
     private const double LEAK_RATE = 0.2;
 
@@ -31,7 +34,10 @@ namespace Shizuku2
     private static BuildingThermalModel building;
 
     /// <summary>VRFモデル</summary>
-    private static readonly ExVRFSystem[] vrfs = makeVRFSystem();
+    private static ExVRFSystem[] vrfs;
+
+    /// <summary>テナントリスト</summary>
+    private static TenantList tenants;
 
     /// <summary>日時コントローラ</summary>
     private static DateTimeController dtCtrl;
@@ -57,6 +63,10 @@ namespace Shizuku2
 
       //建物モデルを作成
       building = BuildingMaker.Make();
+      vrfs = makeVRFSystem();
+
+      //テナントを生成
+      tenants = new TenantList(SEED, building);
 
       //VRFコントローラ選択
       switch (initSettings["controller"])
@@ -125,7 +135,10 @@ namespace Shizuku2
           //気象データを建物モデルに反映
           sun.Update(dtCtrl.CurrentDateTime);
           wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
-          building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, hmd, 0);
+          building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
+
+          //テナントを更新
+          tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
 
           //VRF更新
           setVRFInletAir();

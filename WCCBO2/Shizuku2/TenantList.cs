@@ -6,6 +6,7 @@ using System.IO;
 using Popolo.Numerics;
 using Popolo.BuildingOccupant;
 using Popolo.ThermalLoad;
+using System.Reflection;
 
 namespace Shizuku.Models
 {
@@ -23,7 +24,7 @@ namespace Shizuku.Models
     private Accumulator eAcmLight = new Accumulator(3600, 1, 1);
 
     /// <summary>1タイムステップ前の日付</summary>
-    private int lstDay = 0;
+    private int lastDTime = 0;
 
     /// <summary>内部発熱の最終更新日時</summary>
     private DateTime lastHLcalc = new DateTime(3000, 1, 1);
@@ -129,20 +130,19 @@ namespace Shizuku.Models
     /// <summary>モデルを更新する</summary>
     public void Update(DateTime cTime, double timeStep)
     {
-      //日付変化時には執務者行動および基準着衣量を更新
-      if (lstDay != cTime.Day)
-      {
+      //日付変化時に執務者行動を更新
+      if (lastDTime != cTime.Hour && cTime.Hour == 0)
         foreach (Tenant tnt in tenants)
-        {
           tnt.UpdateDailySchedule(cTime);
+      //AM6時に着衣量を更新
+      if (lastDTime != cTime.Hour && cTime.Hour == 6)
+        foreach (Tenant tnt in tenants)
           tnt.UpdateDailyCloValues();
-        }
-      }
-      lstDay = cTime.Day;
+      lastDTime = cTime.Hour;
 
       //在不在情報・内部発熱を更新
       foreach (Tenant tnt in tenants)
-        tnt.MoveOccupants(cTime, timeStep);
+        tnt.MoveOccupants(cTime);
 
       //負荷情報を更新（60secに1回）
       //初回の処理
@@ -157,20 +157,24 @@ namespace Shizuku.Models
         lastHLcalc = cTime;
         foreach (ImmutableZone zn in zones)
         {
-          uint num, numSum;
-          double sload, lload, sloadSum, lloadSum;
-          sloadSum = lloadSum = numSum = 0;
-          foreach (Tenant tnt in tenants)
+          //上部空間または天井裏でなければ
+          if (!(zn.Name.Contains("_Up") || zn.Name.Contains("_Attic")))
           {
-            tnt.UpdateHeatLoadInfo(zn, out num, out sload, out lload);
-            numSum += num;
-            sloadSum += sload;
-            lloadSum += lload;
+            uint num, numSum;
+            double sload, lload, sloadSum, lloadSum;
+            sloadSum = lloadSum = numSum = 0;
+            foreach (Tenant tnt in tenants)
+            {
+              tnt.UpdateHeatLoadInfo(zn, out num, out sload, out lload);
+              numSum += num;
+              sloadSum += sload;
+              lloadSum += lload;
+            }
+            workerNumbers[zn] = numSum;
+            sHeatLoads[zn] = sloadSum;
+            lHeatLoads[zn] = lloadSum;
           }
-          workerNumbers[zn] = numSum;
-          sHeatLoads[zn] = sloadSum;
-          lHeatLoads[zn] = lloadSum;
-        }        
+        }
       }
 
       //消費電力合計
@@ -189,49 +193,37 @@ namespace Shizuku.Models
     /// <param name="uRnd">一様乱数生成器</param>
     internal void introduceSpecialCharacters(MersenneTwister uRnd)
     {
-      bool[] isMale;
-      string[] lastNames;
-      string[] firstNames;
-      string[] lastNames_EN;
-      string[] firstNames_EN;
-      using (StreamReader sReader = new StreamReader("initFiles" + Path.DirectorySeparatorChar + "SpecialCharacters.txt", System.Text.Encoding.GetEncoding("Shift_JIS")))
-      {
-        List<bool> isM = new List<bool>();
-        List<string> lNm = new List<string>();
-        List<string> fNm = new List<string>();
-        List<string> lNm_EN = new List<string>();
-        List<string> fNm_EN = new List<string>();
+      List<bool> isM = new List<bool>();
+      List<string> lNm = new List<string>();
+      List<string> fNm = new List<string>();
+
+      var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.SpecialCharacters.txt");
+      using (StreamReader sReader = new StreamReader(stream))
+      {        
         string bf;
         while ((bf = sReader.ReadLine()) != null)
         {
           string[] bf2 = bf.Split(',');
           lNm.Add(bf2[0]);
           fNm.Add(bf2[1]);
-          lNm_EN.Add(bf2[2]);
-          fNm_EN.Add(bf2[3]);
-          isM.Add(bool.Parse(bf2[4]));
+          isM.Add(bool.Parse(bf2[2]));
         }
-        lastNames = lNm.ToArray();
-        firstNames = fNm.ToArray();
-        lastNames_EN = lNm_EN.ToArray();
-        firstNames_EN = fNm_EN.ToArray();
-        isMale = isM.ToArray();
       }
 
-      for (int i = 0; i < lastNames.Length; i++)
+      for (int i = 0; i < isM.Count; i++)
       {
         int tntN = (int)Math.Floor(tenants.Length * uRnd.NextDouble());
-        tenants[tntN].introduceSpecialCharacter(uRnd, isMale[i], firstNames[i], lastNames[i]);
+        tenants[tntN].introduceSpecialCharacter(uRnd, isM[i], fNm[i], lNm[i]);
       }
     }
 
     /// <summary>不満情報を取得する</summary>
-    /// <param name="numStay">建物内執務者数</param>
-    /// <param name="numDissatisfied">不満足者数</param>
-    public void GetDissatisfiedInfo(out uint numStay, out uint numDissatisfied)
+    /// <param name="stayNumber">建物内執務者数</param>
+    /// <param name="averageUncomfortableProbability">平均不満足率</param>
+    public void GetDissatisfiedInfo(out uint stayNumber, out double averageUncomfortableProbability)
     {
-      numStay = 0;
-      numDissatisfied = 0;
+      stayNumber = 0;
+      averageUncomfortableProbability = 0;
 
       foreach (Tenant tnt in tenants)
       {
@@ -239,11 +231,12 @@ namespace Shizuku.Models
         {
           if (oc.Worker.StayInOffice)
           {
-            numStay++;
-            if (oc.Dissatisfied) numDissatisfied++;
+            stayNumber++;
+            averageUncomfortableProbability += oc.OCModel.UncomfortableProbability;
           }
         }
       }
+      if (stayNumber != 0) averageUncomfortableProbability /= stayNumber;
     }
 
     /// <summary>ゾーンに滞在する人数を取得する</summary>

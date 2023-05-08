@@ -1,0 +1,7 @@
+﻿Carrier,Willis,true
+Rietschel,Hermann,true
+Carpenter,Rolla,true
+Conder,Josiah,true
+Sabine,Wallace,true
+Hill,Leonard,true
+Yaglou,Constantin,true

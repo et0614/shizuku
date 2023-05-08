@@ -92,9 +92,11 @@ namespace Shizuku2
       bool needPath, double supplyTemperature, double ambientTemperature, double velocity, double dtdy, double direction,
       out double lowHRate, out double velocityAtNeck, out double tempAtNeck, out double[] xPath, out double[] yPath)
     {
-      //5-85度に丸める
-      direction = Math.Max(5d / 180 * Math.PI, Math.Min(85d / 180d * Math.PI, direction));
-      velocity = Math.Max(0, Math.Min(4.0, velocity));
+      //入力範囲を調整
+      direction = Math.Max(5d / 180 * Math.PI, Math.Min(85d / 180d * Math.PI, direction));　//5-85度
+      velocity = Math.Max(0, Math.Min(4.0, velocity)); //0-4m/s
+      dtdy = Math.Max(0, Math.Min(5, dtdy));
+
       if (velocity == 0)
       {
         lowHRate = velocityAtNeck = tempAtNeck = 0;
@@ -238,7 +240,8 @@ namespace Shizuku2
       else
       {
         double htSum = htUp + htLw;
-        lowHRate = htLw / htSum;
+        if (htSum < 1e-5) lowHRate = 0; //極めて交換熱量が小さい場合の対応
+        else lowHRate = htLw / htSum;
       }
       if (needPath)
       {
