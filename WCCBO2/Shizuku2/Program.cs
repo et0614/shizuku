@@ -17,9 +17,6 @@ namespace Shizuku2
 
     #region 定数宣言
 
-    /// <summary>乱数シード</summary>
-    private const uint SEED = 1;
-
     /// <summary>漏気量[回/h]</summary>
     private const double LEAK_RATE = 0.2;
 
@@ -66,7 +63,7 @@ namespace Shizuku2
       vrfs = makeVRFSystem();
 
       //テナントを生成
-      tenants = new TenantList(SEED, building);
+      tenants = new TenantList((uint)initSettings["seed"], building);
 
       //VRFコントローラ選択
       switch (initSettings["controller"])
@@ -79,7 +76,11 @@ namespace Shizuku2
       }
 
       //コントローラ開始
-      dtCtrl = new DateTimeController(new DateTime(1999, 1, 1, 0, 0, 0), (uint)initSettings["accerarationRate"]);
+      DateTime dt =
+        initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
+        initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
+        new DateTime(1999, 4, 28, 0, 0, 0); //中間期
+      dtCtrl = new DateTimeController(dt, (uint)initSettings["accerarationRate"]);
       dtCtrl.TimeStep = initSettings["timestep"];
       dtCtrl.StartService();
       vrfCtrl.StartService();
@@ -99,6 +100,9 @@ namespace Shizuku2
 
         //メイン処理
         run();
+
+        Console.WriteLine("Emulation finished. Press any key to exit.");
+        Console.ReadLine();
       }
       catch (Exception e)
       {
@@ -106,7 +110,9 @@ namespace Shizuku2
         {
           sWriter.Write(e.ToString());
         }
+
         Console.Write(e.ToString());
+        Console.WriteLine("Emulation aborted. Press any key to exit.");
         Console.ReadLine();
       }
     }
@@ -121,13 +127,26 @@ namespace Shizuku2
         initSettings["weather"] == 4 ? RandomWeather.Location.Osaka :
         initSettings["weather"] == 5 ? RandomWeather.Location.Fukuoka :
         RandomWeather.Location.Naha);
-      Sun sun = new Sun(Sun.City.Tokyo);
+      Sun sun = 
+        initSettings["weather"] == 1 ? new Sun(43.0621, 141.3544, 135) :
+        initSettings["weather"] == 2 ? new Sun(38.2682, 140.8693, 135) :
+        initSettings["weather"] == 3 ? new Sun(35.6894, 139.6917, 135) :
+        initSettings["weather"] == 4 ? new Sun(34.6937, 135.5021, 135) :
+        initSettings["weather"] == 5 ? new Sun(33.5903, 130.4017, 135) :
+        new Sun(26.2123, 127.6791, 135);
 
+      //初期化・周期定常化処理
+      preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
+
+      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
       while (true)
       {
         //加速度を考慮して計算を進める
         while (dtCtrl.TryProceed())
         {
+          //1週間で計算終了
+          if (endDTime < dtCtrl.CurrentDateTime) break;
+
           //コントローラの制御値を機器やセンサに反映
           vrfCtrl.ApplyManipulatedVariables();
           dtCtrl.ApplyManipulatedVariables();
@@ -137,7 +156,7 @@ namespace Shizuku2
           wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
           building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
 
-          //テナントを更新
+          //テナントを更新（内部発熱もここで更新される）
           tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
 
           //VRF更新
@@ -152,17 +171,44 @@ namespace Shizuku2
           //換気量を更新
           setVentilationRate();
 
-          //内部発熱を更新
-          //***未実装***
-
           //熱環境更新
-          building.UpdateHeatTransferWithinCapacityLimit();
+          building.ForecastHeatTransfer();
+          building.ForecastWaterTransfer();
+          building.FixState();
+          //building.UpdateHeatTransferWithinCapacityLimit();
 
           //機器やセンサの検出値を取得
           vrfCtrl.ReadMeasuredValues();
           dtCtrl.ReadMeasuredValues();
         }
       }
+    }
+
+    private static void preRun(DateTime dTime, Sun sun, WeatherLoader wetLoader)
+    {
+      double tStep = building.TimeStep;
+      building.TimeStep = 3600;
+      for(int i = 0; i < 10; i++)
+      {
+        DateTime dt = dTime;
+        for (int j = 0; j < 24; j++)
+        {
+          //気象データを建物モデルに反映
+          sun.Update(dt);
+          wetLoader.GetWeather(dt, out double dbt, out double hmd, ref sun);
+          building.UpdateOutdoorCondition(dt, sun, dbt, 0.001 * hmd, 0);
+          //換気量を更新
+          setVentilationRate();
+
+          //熱環境更新
+          building.ForecastHeatTransfer();
+          building.ForecastWaterTransfer();
+          building.FixState();
+
+          dt = dt.AddHours(1);
+        }
+      }
+      building.TimeStep = tStep;
     }
 
     #endregion
@@ -178,11 +224,18 @@ namespace Shizuku2
         dtCtrl.CurrentDateTime.Hour < 8 |
         20 < dtCtrl.CurrentDateTime.Hour);
 
-      double vRate = (ventilate ? 5 : LEAK_RATE * 2.7) / 3600d; //機械換気：5CMH/m2、漏気：天井高2.7m
+      double vRateDwn = (ventilate ? 5 : LEAK_RATE * 1.7) / 3600d; //機械換気：5CMH/m2、漏気：天井高1.7m
+      double vRateUp = (ventilate ? 5 : LEAK_RATE * 1.0) / 3600d; //機械換気：5CMH/m2、漏気：天井高1.0m
       for (int i = 0; i < 12; i++)
-        building.SetVentilationRate(0, i, building.MultiRoom[0].Zones[i].FloorArea * vRate);
+      {
+        building.SetVentilationRate(0, i, building.MultiRoom[0].Zones[i].FloorArea * vRateDwn);
+        building.SetVentilationRate(0, i + 12, building.MultiRoom[0].Zones[i + 12].FloorArea * vRateUp);
+      }
       for (int i = 0; i < 14; i++)
-        building.SetVentilationRate(1, i, building.MultiRoom[1].Zones[i].FloorArea * vRate);
+      {
+        building.SetVentilationRate(1, i, building.MultiRoom[1].Zones[i].FloorArea * vRateDwn);
+        building.SetVentilationRate(1, i + 14, building.MultiRoom[1].Zones[i + 14].FloorArea * vRateDwn);
+      }
     }
 
     #endregion
