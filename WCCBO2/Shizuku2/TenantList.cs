@@ -23,8 +23,8 @@ namespace Shizuku.Models
     /// <summary>積算電力量計（照明）</summary>
     private Accumulator eAcmLight = new Accumulator(3600, 1, 1);
 
-    /// <summary>1タイムステップ前の日付</summary>
-    private int lastDTime = 0;
+    /// <summary>1タイムステップ前の時刻</summary>
+    private int lastDTimeHour = 23;
 
     /// <summary>内部発熱の最終更新日時</summary>
     private DateTime lastHLcalc = new DateTime(3000, 1, 1);
@@ -131,14 +131,14 @@ namespace Shizuku.Models
     public void Update(DateTime cTime, double timeStep)
     {
       //日付変化時に執務者行動を更新
-      if (lastDTime != cTime.Hour && cTime.Hour == 0)
+      if (lastDTimeHour != cTime.Hour && cTime.Hour == 0)
         foreach (Tenant tnt in tenants)
           tnt.UpdateDailySchedule(cTime);
       //AM6時に着衣量を更新
-      if (lastDTime != cTime.Hour && cTime.Hour == 6)
+      if (lastDTimeHour != cTime.Hour && cTime.Hour == 6)
         foreach (Tenant tnt in tenants)
           tnt.UpdateDailyCloValues();
-      lastDTime = cTime.Hour;
+      lastDTimeHour = cTime.Hour;
 
       //在不在情報・内部発熱を更新
       foreach (Tenant tnt in tenants)

@@ -145,7 +145,8 @@ namespace Shizuku.Models
       }
 
       //執務者のゾーン間移動
-      foreach (Occupant oc in occs) oc.UpdateStatus(dTime);
+      foreach (Occupant oc in occs) 
+        oc.UpdateStatus(dTime);
     }
 
     /// <summary>消費電力を更新する</summary>

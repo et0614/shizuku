@@ -1,5 +1,7 @@
 ﻿using Popolo.HVAC.MultiplePackagedHeatPump;
+using Popolo.Numerics;
 using Popolo.ThermalLoad;
+using Shizuku.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,21 +45,32 @@ namespace Shizuku2
     /// <summary>下部ゾーンへ送る風量比[-]を取得する</summary>
     public double[] LowZoneBlowRate { get; private set; }
 
+    /// <summary>電力量計</summary>
+    private Accumulator　eMeters = new Accumulator(3600, 2, 1);
+
+    /// <summary>電力量計を取得する</summary>
+    public ImmutableAccumulator ElectricityMeters { get { return eMeters; } }
+
+    /// <summary>前回の更新日時</summary>
+    private DateTime lastUpdate;
+
     #endregion
 
     #region コンストラクタ
 
-    public ExVRFSystem(VRFSystem vrfSystem)
+    public ExVRFSystem(DateTime now, VRFSystem vrfSystem)
     {
+      lastUpdate = now;
       VRFSystem = vrfSystem;
 
-      IndoorUnitModes = new Mode[VRFSystem.IndoorUnitNumber];
-      SetPoints_C = new double[VRFSystem.IndoorUnitNumber];
-      SetPoints_H = new double[VRFSystem.IndoorUnitNumber];
-      Direction = new double[VRFSystem.IndoorUnitNumber];
-      LowZoneBlowRate = new double[VRFSystem.IndoorUnitNumber];
+      int iuNum = VRFSystem.IndoorUnitNumber;
+      IndoorUnitModes = new Mode[iuNum];
+      SetPoints_C = new double[iuNum];
+      SetPoints_H = new double[iuNum];
+      Direction = new double[iuNum];
+      LowZoneBlowRate = new double[iuNum];
 
-      for (int i = 0; i < IndoorUnitModes.Length; i++)
+      for (int i = 0; i < iuNum; i++)
       {
         IndoorUnitModes[i] = Mode.ShutOff;
         SetPoints_C[i] = 25;
@@ -70,7 +83,7 @@ namespace Shizuku2
     #endregion
 
     /// <summary>受信した制御信号にもとづいてVRFの制御を更新する</summary>
-    public void UpdateControl()
+    public void UpdateControl(DateTime now)
     {
       //運転モードを確認
       VRFSystem.Mode mode = VRFSystem.Mode.ShutOff;
@@ -81,6 +94,7 @@ namespace Shizuku2
       }
       VRFSystem.CurrentMode = mode;
 
+      //運転モードを設定
       for (int i = 0; i < IndoorUnitModes.Length; i++)
       {
         if(mode == VRFSystem.Mode.ShutOff)
@@ -91,6 +105,14 @@ namespace Shizuku2
           VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
         else VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
       }
+
+      //消費電力を更新
+      eMeters.Update((now - lastUpdate).TotalSeconds,
+        VRFSystem.CompressorElectricity +
+        VRFSystem.OutdoorUnitFanElectricity + 
+        VRFSystem.IndoorUnitFanElectricity
+        );
+      lastUpdate = now;
     }
 
     /// <summary>下部空間へ吹き出す流量を更新する</summary>

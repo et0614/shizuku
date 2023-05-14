@@ -3,14 +3,10 @@
 using Popolo.ThermalLoad;
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.Weather;
-using System.Data.Common;
-using System.Security.Principal;
 using System.Security.Cryptography;
 
 using System.Collections.Generic;
-using System.Net.Http.Headers;
 using Shizuku.Models;
-using System.Text;
 using Popolo.Numerics;
 
 namespace Shizuku2
@@ -22,6 +18,9 @@ namespace Shizuku2
 
     /// <summary>漏気量[回/h]</summary>
     private const double LEAK_RATE = 0.2;
+
+    /// <summary>電力の一次エネルギー換算係数[MJ/kWh]</summary>
+    private const double ELC_PRIM_RATE = 9.76;
 
     #endregion
 
@@ -45,6 +44,12 @@ namespace Shizuku2
     /// <summary>VRFコントローラ</summary>
     private static IBACnetController vrfCtrl;
 
+    /// <summary>エネルギー消費量[MJ]</summary>
+    private static double energyConsumption = 0.0;
+
+    /// <summary>平均不満足率[-]</summary>
+    private static double averageDissatisfactionRate = 0.0;
+    
     #endregion
 
     #region メイン処理
@@ -63,7 +68,7 @@ namespace Shizuku2
 
       //建物モデルを作成
       building = BuildingMaker.Make();
-      vrfs = makeVRFSystem();
+      vrfs = makeVRFSystem(building.CurrentDateTime);
 
       //テナントを生成
       tenants = new TenantList((uint)initSettings["seed"], building);
@@ -72,7 +77,7 @@ namespace Shizuku2
       switch (initSettings["controller"])
       {
         case 1:
-          vrfCtrl = new VRFController_Daikin(vrfs);
+          vrfCtrl = new Daikin.VRFController(vrfs);
           break;
         default:
           throw new Exception("VRF controller number not supported.");
@@ -89,28 +94,35 @@ namespace Shizuku2
       vrfCtrl.StartService();
       building.TimeStep = dtCtrl.TimeStep;
 
+      bool finished = false;
       try
       {
         //別スレッドで経過を表示
         Task.Run(() =>
         {
-          while (true)
+          while (!finished)
           {
-            Console.WriteLine(dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss"));
+            Console.WriteLine(
+              dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") + 
+              "  " + energyConsumption.ToString("F4") + 
+              "  " + averageDissatisfactionRate.ToString("F4")
+              );
             Thread.Sleep(1000);
           }
         });
 
         //メイン処理
-        run(out double eConsumption, out double aveDissatisfactionRate);
+        run();
+        finished = true;
         //結果書き出し
-        saveScore("result.szk", eConsumption, aveDissatisfactionRate);
+        saveScore("result.szk", energyConsumption, averageDissatisfactionRate);
 
         Console.WriteLine("Emulation finished. Press any key to exit.");
         Console.ReadLine();
       }
       catch (Exception e)
       {
+        finished = true;
         using (StreamWriter sWriter = new StreamWriter("error.log"))
         {
           sWriter.Write(e.ToString());
@@ -125,8 +137,7 @@ namespace Shizuku2
     /// <summary>期間計算を実行する</summary>
     /// <param name="eConsumption">エネルギー消費[MJ]</param>
     /// <param name="aveDissatisfactionRate">平均不満足率[-]</param>
-    private static void run
-      (out double eConsumption, out double aveDissatisfactionRate)
+    private static void run()
     {
       //気象データ読み込みクラス
       WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["seed"],
@@ -147,60 +158,51 @@ namespace Shizuku2
       //初期化・周期定常化処理
       preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
 
-      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
+      //DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
+      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(1); //DEBUG
       uint ttlOcNum = 0;
-      double sumDis = 0;
-      while (true)
+      //加速度を考慮して計算を進める
+      while (dtCtrl.TryProceed())
       {
         //1週間で計算終了
         if (endDTime < dtCtrl.CurrentDateTime) break;
 
-        //加速度を考慮して計算を進める
-        while (dtCtrl.TryProceed())
+        //コントローラの制御値を機器やセンサに反映
+        vrfCtrl.ApplyManipulatedVariables();
+        dtCtrl.ApplyManipulatedVariables();
+
+        //気象データを建物モデルに反映
+        sun.Update(dtCtrl.CurrentDateTime);
+        wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
+        building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
+
+        //テナントを更新（内部発熱もここで更新される）
+        tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
+
+        //VRF更新
+        setVRFInletAir();
+        for (int i = 0; i < vrfs.Length; i++)
         {
-          //コントローラの制御値を機器やセンサに反映
-          vrfCtrl.ApplyManipulatedVariables();
-          dtCtrl.ApplyManipulatedVariables();
-
-          //気象データを建物モデルに反映
-          sun.Update(dtCtrl.CurrentDateTime);
-          wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
-          building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
-
-          //テナントを更新（内部発熱もここで更新される）
-          tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
-
-          //VRF更新
-          setVRFInletAir();
-          for (int i = 0; i < vrfs.Length; i++)
-          {
-            vrfs[i].UpdateControl();
-            vrfs[i].VRFSystem.UpdateState(false);
-          }
-          setVRFOutletAir();
-
-          //換気量を更新
-          setVentilationRate();
-
-          //熱環境更新
-          building.ForecastHeatTransfer();
-          building.ForecastWaterTransfer();
-          building.FixState();
-
-          //機器やセンサの検出値を取得
-          vrfCtrl.ReadMeasuredValues();
-          dtCtrl.ReadMeasuredValues();
-
-          tenants.GetDissatisfiedInfo(out uint noc, out double dis);
-          ttlOcNum += noc;
-          sumDis += dis;
+          vrfs[i].UpdateControl(building.CurrentDateTime);
+          vrfs[i].VRFSystem.UpdateState(false);
         }
-      }
+        setVRFOutletAir();
 
-      //成績計算
-      if (ttlOcNum == 0) aveDissatisfactionRate = 0;
-      else aveDissatisfactionRate = sumDis / ttlOcNum;
-      eConsumption = 0; //暫定
+        //換気量を更新
+        setVentilationRate();
+
+        //熱環境更新
+        building.ForecastHeatTransfer();
+        building.ForecastWaterTransfer();
+        building.FixState();
+
+        //機器やセンサの検出値を取得
+        vrfCtrl.ReadMeasuredValues();
+        dtCtrl.ReadMeasuredValues();
+
+        //成績を集計
+        getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
+      }
     }
 
     private static void preRun(DateTime dTime, Sun sun, WeatherLoader wetLoader)
@@ -228,6 +230,24 @@ namespace Shizuku2
         }
       }
       building.TimeStep = tStep;
+    }
+
+    private static void getScore( 
+      ref uint totalOccupants, ref double aveDisrate, out double eConsumption) 
+    {
+      tenants.GetDissatisfiedInfo(out uint noc, out double dis);
+      uint tNum = noc + totalOccupants;
+      aveDisrate = (tNum == 0) ? 0 : (aveDisrate * totalOccupants + dis * noc) / tNum;
+      totalOccupants = tNum;
+
+      eConsumption = 0;
+      for(int i=0;i<vrfs.Length;i++)
+        eConsumption += vrfs[i].ElectricityMeters.IntegratedValue * ELC_PRIM_RATE;
+      //デマンドレスポンス検討が無いのであれば、テナントの消費電力は評価対象外の方が良いかもしれない
+      /*for (int i=0;i<tList.Tenants.Length;i++)
+        eConsumption +=
+            (tList.Tenants[i].ElectricityMeter_Light.IntegratedValue +
+            tList.Tenants[i].ElectricityMeter_Plug.IntegratedValue)* ELC_PRIM_RATE;*/
     }
 
     #endregion
@@ -426,7 +446,7 @@ namespace Shizuku2
 
     #region VRFシステムモデルの作成
 
-    static ExVRFSystem[] makeVRFSystem()
+    static ExVRFSystem[] makeVRFSystem(DateTime now)
     {
       VRFSystem[] vrfs = new VRFSystem[]
       {
@@ -498,10 +518,10 @@ namespace Shizuku2
 
       return new ExVRFSystem[] 
       {
-        new ExVRFSystem(vrfs[0]),
-        new ExVRFSystem(vrfs[1]),
-        new ExVRFSystem(vrfs[2]),
-        new ExVRFSystem(vrfs[3])
+        new ExVRFSystem(now, vrfs[0]),
+        new ExVRFSystem(now, vrfs[1]),
+        new ExVRFSystem(now, vrfs[2]),
+        new ExVRFSystem(now, vrfs[3])
       };
     }
 
