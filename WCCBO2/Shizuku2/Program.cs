@@ -5,10 +5,13 @@ using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.Weather;
 using System.Data.Common;
 using System.Security.Principal;
+using System.Security.Cryptography;
 
 using System.Collections.Generic;
 using System.Net.Http.Headers;
 using Shizuku.Models;
+using System.Text;
+using Popolo.Numerics;
 
 namespace Shizuku2
 {
@@ -99,7 +102,9 @@ namespace Shizuku2
         });
 
         //メイン処理
-        run();
+        run(out double eConsumption, out double aveDissatisfactionRate);
+        //結果書き出し
+        saveScore("result.szk", eConsumption, aveDissatisfactionRate);
 
         Console.WriteLine("Emulation finished. Press any key to exit.");
         Console.ReadLine();
@@ -117,7 +122,11 @@ namespace Shizuku2
       }
     }
 
-    private static void run()
+    /// <summary>期間計算を実行する</summary>
+    /// <param name="eConsumption">エネルギー消費[MJ]</param>
+    /// <param name="aveDissatisfactionRate">平均不満足率[-]</param>
+    private static void run
+      (out double eConsumption, out double aveDissatisfactionRate)
     {
       //気象データ読み込みクラス
       WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["seed"],
@@ -139,14 +148,16 @@ namespace Shizuku2
       preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
 
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
+      uint ttlOcNum = 0;
+      double sumDis = 0;
       while (true)
       {
+        //1週間で計算終了
+        if (endDTime < dtCtrl.CurrentDateTime) break;
+
         //加速度を考慮して計算を進める
         while (dtCtrl.TryProceed())
         {
-          //1週間で計算終了
-          if (endDTime < dtCtrl.CurrentDateTime) break;
-
           //コントローラの制御値を機器やセンサに反映
           vrfCtrl.ApplyManipulatedVariables();
           dtCtrl.ApplyManipulatedVariables();
@@ -175,13 +186,21 @@ namespace Shizuku2
           building.ForecastHeatTransfer();
           building.ForecastWaterTransfer();
           building.FixState();
-          //building.UpdateHeatTransferWithinCapacityLimit();
 
           //機器やセンサの検出値を取得
           vrfCtrl.ReadMeasuredValues();
           dtCtrl.ReadMeasuredValues();
+
+          tenants.GetDissatisfiedInfo(out uint noc, out double dis);
+          ttlOcNum += noc;
+          sumDis += dis;
         }
       }
+
+      //成績計算
+      if (ttlOcNum == 0) aveDissatisfactionRate = 0;
+      else aveDissatisfactionRate = sumDis / ttlOcNum;
+      eConsumption = 0; //暫定
     }
 
     private static void preRun(DateTime dTime, Sun sun, WeatherLoader wetLoader)
@@ -364,6 +383,43 @@ namespace Shizuku2
         return true;
       }
       else return false;
+    }
+
+    private static void saveScore
+      (string fileName, double eConsumption, double aveDissatisfiedRate)
+    {
+      //32byteの秘密鍵を生成（固定）
+      MersenneTwister rnd1 = new MersenneTwister(19800614);
+      byte[] key = new byte[32];
+      for (int i = 0; i < key.Length; i++)
+        key[i] = (byte)Math.Ceiling(rnd1.NextDouble() * 256);
+
+      //12byteのランダムなナンスを生成
+      MersenneTwister rnd2 = new MersenneTwister((uint)DateTime.Now.Millisecond);
+      byte[] nonce = new byte[12];
+      for (int i = 0; i < nonce.Length; i++)
+        nonce[i] = (byte)Math.Ceiling(rnd2.NextDouble() * 256);
+
+      //ChaCha20Poly1305用インスタンスの生成
+      ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
+
+      //暗号化
+      byte[] message = new byte[16];
+      Array.Copy(BitConverter.GetBytes(eConsumption), 0, message, 0, 8);
+      Array.Copy(BitConverter.GetBytes(aveDissatisfiedRate), 0, message, 8, 8);
+      byte[] cipherText = new byte[16];
+      byte[] tag = new byte[16];
+      cha2.Encrypt(nonce, message, cipherText, tag);
+      List<byte> oBytes = new List<byte>();
+      for (int i = 0; i < nonce.Length; i++) oBytes.Add(nonce[i]);
+      for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
+      for (int i = 0; i < cipherText.Length; i++) oBytes.Add(cipherText[i]);
+
+      if (File.Exists(fileName)) File.Delete(fileName);
+      using (FileStream fWriter = new FileStream("result.szk", FileMode.Create))
+      {
+        fWriter.Write(oBytes.ToArray());
+      }
     }
 
     #endregion
