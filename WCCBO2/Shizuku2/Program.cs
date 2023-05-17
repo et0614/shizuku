@@ -94,6 +94,12 @@ namespace Shizuku2
       vrfCtrl.StartService();
       building.TimeStep = dtCtrl.TimeStep;
 
+      //DEBUG
+      //while (true) ;
+      Daikin.VRFScheduller scc = new Daikin.VRFScheduller(vrfs);
+      scc.StartScheduling();
+      //DEBUG
+
       bool finished = false;
       try
       {
@@ -158,50 +164,55 @@ namespace Shizuku2
       //初期化・周期定常化処理
       preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
 
-      //DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
-      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(1); //DEBUG
+      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
       uint ttlOcNum = 0;
       //加速度を考慮して計算を進める
-      while (dtCtrl.TryProceed())
+      while (true)
       {
+        while (dtCtrl.TryProceed())
+        {
+          //1週間で計算終了
+          if (endDTime < dtCtrl.CurrentDateTime) break;
+
+          //コントローラの制御値を機器やセンサに反映
+          vrfCtrl.ApplyManipulatedVariables();
+          dtCtrl.ApplyManipulatedVariables();
+
+          //気象データを建物モデルに反映
+          sun.Update(dtCtrl.CurrentDateTime);
+          wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
+          building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
+
+          //テナントを更新（内部発熱もここで更新される）
+          tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
+
+          //VRF更新
+          setVRFInletAir();
+          for (int i = 0; i < vrfs.Length; i++)
+          {
+            vrfs[i].UpdateControl(building.CurrentDateTime);
+            vrfs[i].VRFSystem.UpdateState(false);
+          }
+          setVRFOutletAir();
+
+          //換気量を更新
+          setVentilationRate();
+
+          //熱環境更新
+          building.ForecastHeatTransfer();
+          building.ForecastWaterTransfer();
+          building.FixState();
+
+          //機器やセンサの検出値を取得
+          vrfCtrl.ReadMeasuredValues();
+          dtCtrl.ReadMeasuredValues();
+
+          //成績を集計
+          getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
+        }
+
         //1週間で計算終了
         if (endDTime < dtCtrl.CurrentDateTime) break;
-
-        //コントローラの制御値を機器やセンサに反映
-        vrfCtrl.ApplyManipulatedVariables();
-        dtCtrl.ApplyManipulatedVariables();
-
-        //気象データを建物モデルに反映
-        sun.Update(dtCtrl.CurrentDateTime);
-        wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
-        building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
-
-        //テナントを更新（内部発熱もここで更新される）
-        tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
-
-        //VRF更新
-        setVRFInletAir();
-        for (int i = 0; i < vrfs.Length; i++)
-        {
-          vrfs[i].UpdateControl(building.CurrentDateTime);
-          vrfs[i].VRFSystem.UpdateState(false);
-        }
-        setVRFOutletAir();
-
-        //換気量を更新
-        setVentilationRate();
-
-        //熱環境更新
-        building.ForecastHeatTransfer();
-        building.ForecastWaterTransfer();
-        building.FixState();
-
-        //機器やセンサの検出値を取得
-        vrfCtrl.ReadMeasuredValues();
-        dtCtrl.ReadMeasuredValues();
-
-        //成績を集計
-        getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
       }
     }
 

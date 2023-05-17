@@ -3,6 +3,7 @@ using Popolo.HVAC.MultiplePackagedHeatPump;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO.BACnet;
 using System.Linq;
 using System.Text;
@@ -92,9 +93,9 @@ namespace Shizuku2
 
       //加速度
       dObject.AddBacnetObject(new AnalogOutput<uint>
-          (0,
-          "Acceraration rate",
-          "This object is used to set the acceleration rate to run the emulator.", AccerarationRate, BacnetUnitsId.UNITS_NO_UNITS));
+        (0,
+        "Acceraration rate",
+        "This object is used to set the acceleration rate to run the emulator.", AccerarationRate, BacnetUnitsId.UNITS_NO_UNITS));
 
       return dObject;
     }
