@@ -12,7 +12,7 @@ namespace BaCSharp
 
     /// <summary>BACnetClient</summary>
     [NonSerialized]
-    private BacnetClient client;
+    public BacnetClient Client;
 
     /// <summary>BACnetDeviceを取得する</summary>
     public DeviceObject BACnetDevice { get; private set; }
@@ -88,16 +88,16 @@ namespace BaCSharp
       this.BACnetDevice = device;
 
       BacnetIpUdpProtocolTransport bUDP = new BacnetIpUdpProtocolTransport(0xBAC0, exclusivePort);
-      client = new BacnetClient(bUDP);
+      Client = new BacnetClient(bUDP);
 
       //イベント登録//当面はIam,WhoIs,WhoHasは使わないが、遅くなるだけか？？？
-      client.OnIam += client_OnIam;
-      client.OnWhoIs += client_OnWhoIs;
-      client.OnWhoHas += client_OnWhoHas; ;
-      client.OnReadPropertyRequest += client_OnReadPropertyRequest;
-      client.OnReadPropertyMultipleRequest += client_OnReadPropertyMultipleRequest;
-      client.OnWritePropertyRequest += client_OnWritePropertyRequest;
-      client.OnSubscribeCOV += Client_OnSubscribeCOV;
+      Client.OnIam += client_OnIam;
+      Client.OnWhoIs += client_OnWhoIs;
+      Client.OnWhoHas += client_OnWhoHas; ;
+      Client.OnReadPropertyRequest += client_OnReadPropertyRequest;
+      Client.OnReadPropertyMultipleRequest += client_OnReadPropertyMultipleRequest;
+      Client.OnWritePropertyRequest += client_OnWritePropertyRequest;
+      Client.OnSubscribeCOV += Client_OnSubscribeCOV;
 
       //Device IDとポート番号対応表に追加
       if (BACnetDevicePortList.ContainsKey(DeviceID)) BACnetDevicePortList[DeviceID] = exclusivePort;
@@ -112,14 +112,14 @@ namespace BaCSharp
     public void StartService()
     {
       //サーバー開始,ポート登録
-      client.Start();
+      Client.Start();
     }
 
     /// <summary>リソースを解放する</summary>
     public void EndService()
     {
       if (BACnetDevice != null) BACnetDevice.Dispose();
-      if (client != null) client.Dispose();
+      if (Client != null) Client.Dispose();
     }
 
     #endregion

@@ -2,6 +2,7 @@
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.BACnet;
@@ -19,7 +20,8 @@ namespace Shizuku2
 
     const uint DEVICE_ID = 1;
 
-    const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
+    /// <summary>排他的ポート番号</summary>
+    public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
 
     const string DEVICE_NAME = "Date and time controller";
 
@@ -31,35 +33,28 @@ namespace Shizuku2
 
     private BACnetCommunicator communicator;
 
-    /// <summary>加速度</summary>
-    private uint accRate = 60;
+    public DateTimeAccelerator dtAccelerator;
 
     /// <summary>タイムステップ[sec]</summary>
     private double timeStep = 1;
 
-    /// <summary>基準となる現実の日時</summary>
-    private DateTime baseRealDTime;
-
-    /// <summary>基準となるシミュレーション上の日時</summary>
-    private DateTime baseSimulationDTime;
-
-    /// <summary>加速度を設定・取得する</summary>
-    public uint AccerarationRate
+    /// <summary>加速度を取得する</summary>
+    public uint AccelerationRate
     {
-      get { return accRate; }
+      get { return dtAccelerator.AccelerationRate; }
       private set
-      {
-        if(accRate != value && 1 <= value)
-        {
-          accRate = value;
-          baseRealDTime = DateTime.Now;
-          baseSimulationDTime = CurrentDateTime;
-        }
-      }
+      { dtAccelerator.AccelerationRate = value; }
     }
 
+    /// <summary>現在の日時</summary>
+    private DateTime cDTime;
+
     /// <summary>現在の日時を取得する</summary>
-    public DateTime CurrentDateTime { get; set; }
+    public DateTime CurrentDateTime
+    {
+      get { return cDTime; }
+      set { cDTime = dtAccelerator.AcceleratedDateTime = value; }
+    }
 
     /// <summary>タイムステップ[sec]を設定・取得する</summary>
     public double TimeStep
@@ -74,9 +69,8 @@ namespace Shizuku2
 
     public DateTimeController(DateTime currentDTime, uint accRate)
     {
-      CurrentDateTime = baseSimulationDTime = currentDTime;
-      baseRealDTime = DateTime.Now;
-      this.accRate = 1 <= accRate ? accRate : 1;
+      dtAccelerator = new DateTimeAccelerator(accRate, currentDTime);
+      CurrentDateTime = currentDTime;
 
       communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
@@ -89,13 +83,14 @@ namespace Shizuku2
 
       //日時
       BacnetDateTime dTime = new BacnetDateTime(0, "Current date and time", "Current date and time");
+      dTime.m_PresentValue = CurrentDateTime;
       dObject.AddBacnetObject(dTime);
 
       //加速度
       dObject.AddBacnetObject(new AnalogOutput<uint>
         (0,
         "Acceraration rate",
-        "This object is used to set the acceleration rate to run the emulator.", AccerarationRate, BacnetUnitsId.UNITS_NO_UNITS));
+        "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS));
 
       return dObject;
     }
@@ -104,15 +99,14 @@ namespace Shizuku2
 
     /// <summary>加速度を考慮しながら計算時刻を進める</summary>
     /// <returns>計算を進めるべきであればTrue</returns>
-    public bool TryProceed()
+    public bool TryProceed(out bool isDelayed)
     {
-      //本来のシミュレーション計算時刻
-      DateTime essDTime = baseSimulationDTime.AddSeconds
-        ((DateTime.Now - baseRealDTime).TotalSeconds * AccerarationRate);
-
-      if (CurrentDateTime.AddSeconds(TimeStep) <= essDTime)
+      isDelayed = false;
+      DateTime dt = dtAccelerator.AcceleratedDateTime;
+      if (cDTime.AddSeconds(TimeStep) <= dt)
       {
-        CurrentDateTime = CurrentDateTime.AddSeconds(TimeStep);
+        isDelayed = (cDTime.AddSeconds(2 * TimeStep) <= dt);
+        cDTime = cDTime.AddSeconds(TimeStep);
         return true;
       }
       else return false;
@@ -126,7 +120,7 @@ namespace Shizuku2
 
       //加速度
       boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, 0);
-      AccerarationRate = ((AnalogOutput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+      AccelerationRate = ((AnalogOutput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
     }
 
     public void EndService()

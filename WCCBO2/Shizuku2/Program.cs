@@ -49,7 +49,10 @@ namespace Shizuku2
 
     /// <summary>平均不満足率[-]</summary>
     private static double averageDissatisfactionRate = 0.0;
-    
+
+    /// <summary>計算が遅れているか否か</summary>
+    private static bool isDelayed = false;
+
     #endregion
 
     #region メイン処理
@@ -88,16 +91,16 @@ namespace Shizuku2
         initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
         initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
         new DateTime(1999, 4, 28, 0, 0, 0); //中間期
-      dtCtrl = new DateTimeController(dt, (uint)initSettings["accerarationRate"]);
+      dtCtrl = new DateTimeController(dt, (uint)initSettings["accelerationRate"]);
       dtCtrl.TimeStep = initSettings["timestep"];
       dtCtrl.StartService();
       vrfCtrl.StartService();
       building.TimeStep = dtCtrl.TimeStep;
 
       //DEBUG
-      //while (true) ;
       Daikin.VRFScheduller scc = new Daikin.VRFScheduller(vrfs);
-      scc.StartScheduling();
+      scc.StartService();
+      scc.Synchronize();
       //DEBUG
 
       bool finished = false;
@@ -109,9 +112,10 @@ namespace Shizuku2
           while (!finished)
           {
             Console.WriteLine(
-              dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") + 
-              "  " + energyConsumption.ToString("F4") + 
-              "  " + averageDissatisfactionRate.ToString("F4")
+              dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") +
+              "  " + energyConsumption.ToString("F4") +
+              "  " + averageDissatisfactionRate.ToString("F4") +
+              "  " + (isDelayed ? "DELAYED" : "")
               );
             Thread.Sleep(1000);
           }
@@ -169,7 +173,11 @@ namespace Shizuku2
       //加速度を考慮して計算を進める
       while (true)
       {
-        while (dtCtrl.TryProceed())
+        //最低でも0.1秒ごとに計算実施判定
+        Thread.Sleep(100);
+        dtCtrl.ApplyManipulatedVariables(); //加速度を監視
+
+        while (dtCtrl.TryProceed(out isDelayed))
         {
           //1週間で計算終了
           if (endDTime < dtCtrl.CurrentDateTime) break;
