@@ -17,6 +17,8 @@ namespace Shizuku2.Daikin
 
     const string DEVICE_DESCRIPTION = "VRF controller";
 
+    const int SIGNAL_UPDATE_SPAN = 600;
+
     #endregion
 
     #region 列挙型
@@ -85,6 +87,9 @@ namespace Shizuku2.Daikin
     private readonly VRFUnitIndex[] vrfUnitIndices;
 
     private readonly ExVRFSystem[] vrfSystems;
+
+    private DateTime nextSignalApply = new DateTime(1980, 1, 1, 0, 0, 0);
+    private DateTime nextSignalRead = new DateTime(1980, 1, 1, 0, 0, 0);
 
     #endregion
 
@@ -302,8 +307,10 @@ namespace Shizuku2.Daikin
     #region IBACnetController実装
 
     /// <summary>制御値を機器やセンサに反映する</summary>
-    public void ApplyManipulatedVariables()
+    public void ApplyManipulatedVariables(DateTime dTime)
     {
+      if (dTime < nextSignalApply) return;
+      nextSignalApply = dTime.AddSeconds(SIGNAL_UPDATE_SPAN);
 
       lock (communicator.BACnetDevice)
       {
@@ -457,8 +464,11 @@ namespace Shizuku2.Daikin
     }
 
     /// <summary>機器やセンサの検出値を取得する</summary>
-    public void ReadMeasuredValues()
+    public void ReadMeasuredValues(DateTime dTime)
     {
+      if (dTime < nextSignalRead) return;
+      nextSignalRead = dTime.AddSeconds(SIGNAL_UPDATE_SPAN);
+
       lock (communicator.BACnetDevice)
       {
         int iuNum = 0;

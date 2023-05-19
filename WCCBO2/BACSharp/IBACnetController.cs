@@ -17,10 +17,10 @@ namespace BaCSharp
     void EndService();
 
     /// <summary>制御値を機器やセンサに反映する</summary>
-    abstract void ApplyManipulatedVariables();
+    abstract void ApplyManipulatedVariables(DateTime dTime);
 
     /// <summary>機器やセンサの検出値を取得する</summary>
-    abstract void ReadMeasuredValues();
+    abstract void ReadMeasuredValues(DateTime dTime);
 
   }
 }

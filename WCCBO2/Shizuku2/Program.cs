@@ -44,6 +44,9 @@ namespace Shizuku2
     /// <summary>VRFコントローラ</summary>
     private static IBACnetController vrfCtrl;
 
+    /// <summary>VRFスケジューラ</summary>
+    private static IVRFScheduller? vrfSchedl;
+
     /// <summary>エネルギー消費量[MJ]</summary>
     private static double energyConsumption = 0.0;
 
@@ -76,32 +79,28 @@ namespace Shizuku2
       //テナントを生成
       tenants = new TenantList((uint)initSettings["seed"], building);
 
-      //VRFコントローラ選択
-      switch (initSettings["controller"])
-      {
-        case 1:
-          vrfCtrl = new Daikin.VRFController(vrfs);
-          break;
-        default:
-          throw new Exception("VRF controller number not supported.");
-      }
-
-      //コントローラ開始
+      //日時コントローラ開始
       DateTime dt =
         initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
         initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
         new DateTime(1999, 4, 28, 0, 0, 0); //中間期
       dtCtrl = new DateTimeController(dt, (uint)initSettings["accelerationRate"]);
-      dtCtrl.TimeStep = initSettings["timestep"];
+      dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
       dtCtrl.StartService();
-      vrfCtrl.StartService();
-      building.TimeStep = dtCtrl.TimeStep;
 
-      //DEBUG
-      Daikin.VRFScheduller scc = new Daikin.VRFScheduller(vrfs);
-      scc.StartService();
-      scc.Synchronize();
-      //DEBUG
+      //VRFコントローラ開始
+      switch (initSettings["controller"])
+      {
+        case 1:
+          vrfCtrl = new Daikin.VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          break;
+        default:
+          throw new Exception("VRF controller number not supported.");
+      }
+      vrfCtrl.StartService();
+      vrfSchedl?.StartService();
+      vrfSchedl?.Synchronize();
 
       bool finished = false;
       try
@@ -175,7 +174,7 @@ namespace Shizuku2
       {
         //最低でも0.1秒ごとに計算実施判定
         Thread.Sleep(100);
-        dtCtrl.ApplyManipulatedVariables(); //加速度を監視
+        dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime); //加速度を監視
 
         while (dtCtrl.TryProceed(out isDelayed))
         {
@@ -183,8 +182,8 @@ namespace Shizuku2
           if (endDTime < dtCtrl.CurrentDateTime) break;
 
           //コントローラの制御値を機器やセンサに反映
-          vrfCtrl.ApplyManipulatedVariables();
-          dtCtrl.ApplyManipulatedVariables();
+          vrfCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+          dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
 
           //気象データを建物モデルに反映
           sun.Update(dtCtrl.CurrentDateTime);
@@ -212,8 +211,8 @@ namespace Shizuku2
           building.FixState();
 
           //機器やセンサの検出値を取得
-          vrfCtrl.ReadMeasuredValues();
-          dtCtrl.ReadMeasuredValues();
+          vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+          dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
 
           //成績を集計
           getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);

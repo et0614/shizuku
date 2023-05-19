@@ -54,12 +54,19 @@ namespace Shizuku2
 
     #endregion
 
+    #region コンストラクタ
+
+    /// <summary>インスタンスを初期化する</summary>
+    /// <param name="accRate">加速度[-]</param>
+    /// <param name="dTime">日時</param>
     public DateTimeAccelerator(uint accRate, DateTime dTime)
     {
       this.accRate = accRate;
       this.AcceleratedDateTime = dTime;
       this.baseRealDateTime = DateTime.Now;
     }
+
+    #endregion
 
   }
 }

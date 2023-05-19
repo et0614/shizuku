@@ -114,7 +114,7 @@ namespace Shizuku2
 
     #region IBACnetController実装
 
-    public void ApplyManipulatedVariables()
+    public void ApplyManipulatedVariables(DateTime dTime)
     {
       BacnetObjectId boID;
 
@@ -128,7 +128,7 @@ namespace Shizuku2
       communicator.EndService();
     }
 
-    public void ReadMeasuredValues()
+    public void ReadMeasuredValues(DateTime dTime)
     {
       BacnetObjectId boID;
 

@@ -5,10 +5,11 @@ using System.IO.BACnet;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Shizuku2;
 
 namespace Shizuku2.Daikin
 {
-  public class VRFScheduller : IBACnetController
+  public class VRFScheduller : IVRFScheduller
   {
 
     #region 定数宣言
@@ -80,11 +81,15 @@ namespace Shizuku2.Daikin
 
     #region インスタンス変数・プロパティ
 
+    private DateTimeAccelerator dtAccl;
+
     /// <summary>現在の日時を取得する</summary>
-    public DateTime CurrentDateTime { get; private set; }
+    public DateTime CurrentDateTime 
+    { get { return dtAccl.AcceleratedDateTime; } }
 
     /// <summary>加速度を取得する</summary>
-    public uint AccelerationRate { get; private set; } = 1;
+    public uint AccelerationRate 
+    { get { return dtAccl.AccelerationRate; } }
 
     private BACnetCommunicator communicator;
 
@@ -100,9 +105,10 @@ namespace Shizuku2.Daikin
 
     #region コンストラクタ
 
-    public VRFScheduller(ExVRFSystem[] vrfs)
+    public VRFScheduller(ExVRFSystem[] vrfs, uint accRate, DateTime now)
     {
       vrfSystems = vrfs;
+      dtAccl = new DateTimeAccelerator(accRate, now);
 
       NumberOfIndoorUnits = 0;
       for (int i = 0; i < vrfs.Length; i++)
@@ -144,13 +150,6 @@ namespace Shizuku2.Daikin
 
     #endregion
 
-    /// <summary>日時を同期させる</summary>
-    public void Synchronize()
-    {
-      updateAccelerationRate();
-      updateCurrentDateTime();
-    }
-
     /// <summary>COV通告を受けた場合の処理</summary>
     /// <param name="sender"></param>
     /// <param name="adr"></param>
@@ -177,7 +176,7 @@ namespace Shizuku2.Daikin
         {
           if(value.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PRESENT_VALUE)
           {
-            AccelerationRate = (uint)value.value[0].Value;
+            dtAccl.AccelerationRate = (uint)value.value[0].Value;
             break;
           }
         }
@@ -189,13 +188,20 @@ namespace Shizuku2.Daikin
 
     #region 日時同期用の補助関数
 
+    /// <summary>日時を同期させる</summary>
+    public void Synchronize()
+    {
+      updateAccelerationRate();
+      updateCurrentDateTime();
+    }
+
     /// <summary>加速度を更新する</summary>
     private void updateAccelerationRate()
     {
       BacnetAddress adr = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, 0);
       if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-        AccelerationRate = (uint)val[0].Value;
+        dtAccl.AccelerationRate = (uint)val[0].Value;
     }
 
     /// <summary>日時を更新する</summary>
@@ -207,7 +213,7 @@ namespace Shizuku2.Daikin
       {
         DateTime dt1 = (DateTime)val[0].Value;
         DateTime dt2 = (DateTime)val[1].Value;
-        CurrentDateTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+        dtAccl.AcceleratedDateTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
       }
     }
 
@@ -216,13 +222,13 @@ namespace Shizuku2.Daikin
     #region IBACnetController実装
 
     /// <summary>制御値を機器やセンサに反映する</summary>
-    public void ApplyManipulatedVariables()
+    public void ApplyManipulatedVariables(DateTime dTime)
     {
 
     }
 
     /// <summary>機器やセンサの検出値を取得する</summary>
-    public void ReadMeasuredValues()
+    public void ReadMeasuredValues(DateTime dTime)
     {
       
     }
