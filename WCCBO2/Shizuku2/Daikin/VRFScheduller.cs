@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Shizuku2;
+using System.IO.BACnet.Base;
 
 namespace Shizuku2.Daikin
 {
@@ -14,9 +15,13 @@ namespace Shizuku2.Daikin
 
     #region 定数宣言
 
-    const uint DEVICE_ID = 3;
+    const uint TARGET_DEVICE_ID = 2; //DaikinController
 
-    public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
+    const uint THIS_DEVICE_ID = 3;
+
+    public const int TARGET_EXCLUSIVE_PORT = 0xBAC0 + (int)TARGET_DEVICE_ID;
+
+    public const int THIS_EXCLUSIVE_PORT = 0xBAC0 + (int)THIS_DEVICE_ID;
 
     const string DEVICE_NAME = "VRF scheduller";
 
@@ -101,6 +106,8 @@ namespace Shizuku2.Daikin
 
     private readonly ExVRFSystem[] vrfSystems;
 
+    BacnetAddress targetBACAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + TARGET_EXCLUSIVE_PORT.ToString());
+
     #endregion
 
     #region コンストラクタ
@@ -118,18 +125,71 @@ namespace Shizuku2.Daikin
       if (256 <= NumberOfIndoorUnits)
         throw new Exception("Invalid indoor unit number");
 
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
-      communicator = new BACnetCommunicator(dObject, EXCLUSIVE_PORT);
+      DeviceObject dObject = new DeviceObject(THIS_DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
+      communicator = new BACnetCommunicator(dObject, THIS_EXCLUSIVE_PORT);
 
       try
       {
         //別スレッドでスケジュール設定
         Task.Run(() =>
         {
+          DateTime lastDt = dtAccl.AcceleratedDateTime;
           while (true)
           {
+            //空調開始時
+            if (!isHVACTime(lastDt) && isHVACTime(dtAccl.AcceleratedDateTime))
+            {
+              BacnetObjectId boID;
+              List<BacnetValue> values;
+              for (int iuNum = 0; iuNum < NumberOfIndoorUnits; iuNum++)
+              {
+                //On/Off
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
+                  (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting));
+                values = new List<BacnetValue>
+                {
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
+                };
+                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
+                //Mode
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+                  (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting));
+                values = new List<BacnetValue>
+                {
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 2u) //1:冷房, 2:暖房, 3:換気
+                };
+                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
+                //SP
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+                  (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
+                values = new List<BacnetValue>
+                {
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, 22d)
+                };
+                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+              }
+            }
+            //空調停止時
+            else if (isHVACTime(lastDt) && !isHVACTime(dtAccl.AcceleratedDateTime))
+            {
+              BacnetObjectId boID;
+              List<BacnetValue> values;
+              for (int iuNum = 0; iuNum < NumberOfIndoorUnits; iuNum++)
+              {
+                //On/Off
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
+                (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting));
+                values = new List<BacnetValue>
+                {
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
+                };
+                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+              }
+            }
+
+            lastDt = dtAccl.AcceleratedDateTime;
             Thread.Sleep(100);
           }
         });
@@ -138,6 +198,16 @@ namespace Shizuku2.Daikin
       {
 
       }
+    }
+
+    private bool isWeekday(DateTime dTime)
+    {
+      return dTime.DayOfWeek != DayOfWeek.Saturday && dTime.DayOfWeek != DayOfWeek.Sunday;
+    }
+
+    private bool isHVACTime(DateTime dTime)
+    {
+      return isWeekday(dTime) && (7 <= dTime.Hour && dTime.Hour <= 19);
     }
 
     private int getInstanceNumber

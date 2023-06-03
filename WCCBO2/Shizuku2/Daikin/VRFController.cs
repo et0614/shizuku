@@ -17,7 +17,7 @@ namespace Shizuku2.Daikin
 
     const string DEVICE_DESCRIPTION = "VRF controller";
 
-    const int SIGNAL_UPDATE_SPAN = 600;
+    const int SIGNAL_UPDATE_SPAN = 60;
 
     #endregion
 

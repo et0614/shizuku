@@ -97,6 +97,7 @@ namespace BaCSharp
       Client.OnReadPropertyRequest += client_OnReadPropertyRequest;
       Client.OnReadPropertyMultipleRequest += client_OnReadPropertyMultipleRequest;
       Client.OnWritePropertyRequest += client_OnWritePropertyRequest;
+      Client.OnWritePropertyMultipleRequest += Client_OnWritePropertyMultipleRequest;
       Client.OnSubscribeCOV += Client_OnSubscribeCOV;
 
       //Device IDとポート番号対応表に追加
@@ -283,6 +284,48 @@ namespace BaCSharp
         {
           sender.ErrorResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROP_MULTIPLE, invoke_id, BacnetErrorClasses.ERROR_CLASS_DEVICE, BacnetErrorCodes.ERROR_CODE_OTHER);
         }
+      }
+    }
+
+    /// <summary>WritePeopertyMultipleRequest発生時の処理</summary>
+    /// <param name="sender"></param>
+    /// <param name="adr"></param>
+    /// <param name="invoke_id"></param>
+    /// <param name="object_id"></param>
+    /// <param name="values"></param>
+    /// <param name="maxSegments"></param>
+    /// <remarks>このメソッドは動作を十分に検証できていない</remarks>
+    private void Client_OnWritePropertyMultipleRequest
+      (BacnetClient sender, BacnetAddress adr, byte invoke_id, BacnetObjectId object_id, ICollection<BacnetPropertyValue> values, BacnetMaxSegments maxSegments)
+    {
+      lock (BACnetDevice)
+      {
+        BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(object_id);
+        if (bacobj != null)
+        {
+          foreach (BacnetPropertyValue value in values)
+          {
+            ErrorCodes error = bacobj.WritePropertyValue(sender, adr, value, true);
+            if (error == ErrorCodes.Good)
+            {
+              sender.SimpleAckResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_WRITE_PROPERTY, invoke_id);
+              //COV通知はこれで良いのか？？？2023.05.17
+              sendChangeOfValue(object_id, value.property.GetPropertyId(), value.property.propertyArrayIndex, value.value);
+            }
+            else
+            {
+              BacnetErrorCodes bacEr = BacnetErrorCodes.ERROR_CODE_OTHER;
+              if (error == ErrorCodes.WriteAccessDenied)
+                bacEr = BacnetErrorCodes.ERROR_CODE_WRITE_ACCESS_DENIED;
+              if (error == ErrorCodes.OutOfRange)
+                bacEr = BacnetErrorCodes.ERROR_CODE_VALUE_OUT_OF_RANGE;
+
+              sender.ErrorResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_WRITE_PROPERTY, invoke_id, BacnetErrorClasses.ERROR_CLASS_DEVICE, bacEr);
+            }
+          }
+        }
+        else
+          sender.ErrorResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_READ_PROPERTY, invoke_id, BacnetErrorClasses.ERROR_CLASS_OBJECT, BacnetErrorCodes.ERROR_CODE_UNKNOWN_OBJECT);
       }
     }
 

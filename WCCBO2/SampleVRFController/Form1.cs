@@ -3,6 +3,7 @@ using System.Net.NetworkInformation;
 
 using System.IO.BACnet;
 using BaCSharp;
+using System.IO.BACnet.Base;
 
 namespace SampleVRFController
 {
@@ -277,7 +278,7 @@ namespace SampleVRFController
         BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
           (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuIndices[i], MemberNumber.OnOff_Setting));
         List<BacnetValue> values = new List<BacnetValue>();
-        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, nIsOn ? 1u : 0u));
+        values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, nIsOn ? BacnetBinaryPv.BINARY_ACTIVE : BacnetBinaryPv.BINARY_INACTIVE));
         client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
       }
     }
