@@ -108,25 +108,6 @@ namespace Shizuku.Models
 
     #region インスタンスメソッド
 
-    /*/// <summary>モデル間で情報を伝達する</summary>
-    public void TransferVariables(Building building)
-    {
-      //室内温熱環境を保存
-      for (int i = 0; i < building.HeatLoadSystem.MultiRoom.Length; i++)
-      {
-        //CO2レベルを取得
-        int flr = i / 3;
-        double co2Lvl;
-        if (i % 3 == 0) co2Lvl = building.AirConditioningSystem.CO2Levels[flr][0];
-        else if (i % 3 == 1) co2Lvl = building.AirConditioningSystem.CO2Levels[flr][1];
-        else co2Lvl = 700e-6;
-
-        for (int j = 0; j < building.HeatLoadSystem.MultiRoom[i].ZoneNumber; j++)
-          for (int k = 0; k < tenants.Length; k++)
-            tenants[k].UpdateZoneInfo(building.HeatLoadSystem.MultiRoom[i].Zones[j], co2Lvl);
-      }
-    }*/
-
     /// <summary>モデルを更新する</summary>
     public void Update(DateTime cTime, double timeStep)
     {
@@ -142,7 +123,10 @@ namespace Shizuku.Models
 
       //在不在情報・内部発熱を更新
       foreach (Tenant tnt in tenants)
+      {
+        tnt.UpdateZoneInfo();
         tnt.MoveOccupants(cTime);
+      }
 
       //負荷情報を更新（60secに1回）
       //初回の処理

@@ -14,6 +14,13 @@ namespace Shizuku2
   public class ExVRFSystem
   {
 
+    #region 定数
+
+    /// <summary>制御が変更できる時間間隔[sec]</summary>
+    private const int CONTROL_INTERVAL = 300;
+
+    #endregion
+
     #region 列挙型定義
 
     public enum Mode
@@ -54,6 +61,9 @@ namespace Shizuku2
     /// <summary>前回の更新日時</summary>
     private DateTime lastUpdate;
 
+    /// <summary>次の制御可能時点</summary>
+    private DateTime[] nextControllerbleTime;
+
     #endregion
 
     #region コンストラクタ
@@ -69,6 +79,7 @@ namespace Shizuku2
       SetPoints_H = new double[iuNum];
       Direction = new double[iuNum];
       LowZoneBlowRate = new double[iuNum];
+      nextControllerbleTime = new DateTime[iuNum];
 
       for (int i = 0; i < iuNum; i++)
       {
@@ -77,6 +88,7 @@ namespace Shizuku2
         SetPoints_H[i] = 20;
         Direction[i] = 0;
         LowZoneBlowRate[i] = 0;
+        nextControllerbleTime[i] = now;
       }
     }
 
@@ -97,13 +109,38 @@ namespace Shizuku2
       //運転モードを設定
       for (int i = 0; i < IndoorUnitModes.Length; i++)
       {
-        if(mode == VRFSystem.Mode.ShutOff)
-          VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
-        else if (mode == VRFSystem.Mode.Cooling && SetPoints_C[i] < VRFSystem.IndoorUnits[i].InletAirTemperature)
-          VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
-        else if (mode == VRFSystem.Mode.Heating && VRFSystem.IndoorUnits[i].InletAirTemperature < SetPoints_H[i])
-          VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
-        else VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+        if (nextControllerbleTime[i] <= now)
+        {
+          ImmutableVRFUnit iUnit = VRFSystem.IndoorUnits[i];
+          if (
+            mode == VRFSystem.Mode.ShutOff && 
+            iUnit.CurrentMode != VRFUnit.Mode.ShutOff)
+          {
+            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
+            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+          }
+          else if (
+            mode == VRFSystem.Mode.Cooling && 
+            SetPoints_C[i] < VRFSystem.IndoorUnits[i].InletAirTemperature && 
+            iUnit.CurrentMode != VRFUnit.Mode.Cooling)
+          {
+            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
+            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+          }
+          else if (
+            mode == VRFSystem.Mode.Heating && 
+            VRFSystem.IndoorUnits[i].InletAirTemperature < SetPoints_H[i] && 
+            iUnit.CurrentMode != VRFUnit.Mode.Heating)
+          {
+            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
+            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+          }
+          else if (iUnit.CurrentMode != VRFUnit.Mode.ThermoOff)
+          {
+            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+          }
+        }        
       }
 
       //消費電力を更新

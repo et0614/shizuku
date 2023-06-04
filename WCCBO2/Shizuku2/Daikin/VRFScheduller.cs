@@ -155,9 +155,10 @@ namespace Shizuku2.Daikin
                 //Mode
                 boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
                   (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting));
+                bool isCooling = 5 <= dtAccl.AcceleratedDateTime.Month && dtAccl.AcceleratedDateTime.Month <= 10;
                 values = new List<BacnetValue>
                 {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 2u) //1:冷房, 2:暖房, 3:換気
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, isCooling ? 1u : 2u) //1:冷房, 2:暖房, 3:換気
                 };
                 communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
@@ -166,7 +167,16 @@ namespace Shizuku2.Daikin
                   (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
                 values = new List<BacnetValue>
                 {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, 22d)
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, isCooling ? 26d : 25d)
+                };
+                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                //角度
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+                  (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting));
+                values = new List<BacnetValue>
+                {
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 2u) //0,1,2,3,4,7
                 };
                 communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
               }

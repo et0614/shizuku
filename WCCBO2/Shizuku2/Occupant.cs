@@ -337,7 +337,7 @@ namespace Shizuku.Models
 
       //熱環境情報を取得
       Tenant.GetZoneInfo
-        (CurrentZone, out double dbt, out double rhmd, out double mrt, out double co2lvl, out double dirIll);
+        (CurrentZone, out double dbt, out double rhmd, out double mrt);
 
       //温冷感モデルを更新
       double pmv = ThermalComfort.GetPMV(dbt, mrt, rhmd, VELOCITY, CloValue, MET, 0);

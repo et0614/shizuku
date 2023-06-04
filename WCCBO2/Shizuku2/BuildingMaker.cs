@@ -59,8 +59,8 @@ namespace Shizuku2
       inSWL[0] = new WallLayer("仮想壁", 10000, 1, 0.01);
 
       WallLayer[] inUDWL = new WallLayer[1];
-      inUDWL[0] = new WallLayer("仮想天井", 1.0, 0.001, 1); //内壁_上下空間接続用:(1.0W/m2K)
-
+      inUDWL[0] = new WallLayer("仮想天井", 0.001 * 1, 0.001, 0.001 * 1); //内壁_上下空間接続用:(1.0W/m2K)
+      
       //ゾーンを作成/////////////////////////
       Zone[] znSs = new Zone[25];
       Zone[] znNs = new Zone[29];

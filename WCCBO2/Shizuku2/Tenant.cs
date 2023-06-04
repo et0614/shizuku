@@ -40,10 +40,7 @@ namespace Shizuku.Models
     private Occupant[] occs;
 
     /// <summary>入居ゾーンの乾球温度、相対湿度、平均放射温度、CO2濃度、直達日照リスト</summary>
-    private double[] dbTemps, relHumids, mrTemps, co2Lvls, dirIllm;
-
-    /// <summary>EVホールの温湿度および放射温度</summary>
-    private double dbTempEV1F, relHumidEV1F, mrTempEV1F, dbTempEVTF, relHumidEVTF, mrTempEVTF;
+    private double[] dbTemps, relHumids, mrTemps, dirIllm;
 
     /// <summary>オフィス不在の真偽</summary>
     private bool nobodyStay = true;
@@ -101,7 +98,6 @@ namespace Shizuku.Models
       dbTemps = new double[zones.Length];
       relHumids = new double[zones.Length];
       mrTemps = new double[zones.Length];
-      co2Lvls = new double[zones.Length];
       dirIllm = new double[zones.Length];
 
       //執務者リストを作成する
@@ -159,15 +155,15 @@ namespace Shizuku.Models
     }
 
     /// <summary>ゾーン情報を更新する</summary>
-    /// <param name="zone">ゾーン</param>
-    public void UpdateZoneInfo(ImmutableZone zone, double co2Lvl)
+    public void UpdateZoneInfo()
     {
-      int indx = Array.IndexOf(Zones, zone);
-      dbTemps[indx] = zone.Temperature;
-      relHumids[indx] = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-        (zone.Temperature, zone.HumidityRatio, 101.325);
-      mrTemps[indx] = zone.GetMeanSurfaceTemperature();
-      co2Lvls[indx] = co2Lvl;
+      for (int i = 0; i < Zones.Length; i++)
+      {
+        dbTemps[i] = Zones[i].Temperature;
+        relHumids[i] = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
+          (Zones[i].Temperature, Zones[i].HumidityRatio, 101.325);
+        mrTemps[i] = Zones[i].GetMeanSurfaceTemperature();
+      }
     }
 
     /// <summary>ゾーンの情報を取得する</summary>
@@ -175,23 +171,18 @@ namespace Shizuku.Models
     /// <param name="drybulbTemperature">乾球温度[C]</param>
     /// <param name="relativeHumidity">相対湿度[%]</param>
     /// <param name="meanRadiantTemperature">平均放射温度[C]</param>
-    /// <param name="co2Lvl">CO2濃度[m3/m3]</param>
-    /// <param name="directIlluminance">直達光の床面面積入射比率[-]</param>
     public void GetZoneInfo
       (ImmutableZone zone, out double drybulbTemperature, out double relativeHumidity,
-      out double meanRadiantTemperature, out double co2Lvl, out double directIlluminance)
+      out double meanRadiantTemperature)
     {
-      directIlluminance = 0;
       if (Zones.Contains(zone))
       {
         int indx = Array.IndexOf(Zones, zone);
         drybulbTemperature = dbTemps[indx];
         relativeHumidity = relHumids[indx];
         meanRadiantTemperature = mrTemps[indx];
-        co2Lvl = co2Lvls[indx];
-        directIlluminance = dirIllm[indx];
       }
-      else drybulbTemperature = relativeHumidity = meanRadiantTemperature = co2Lvl = 0;
+      else drybulbTemperature = relativeHumidity = meanRadiantTemperature = 0;
     }
 
     /// <summary>豪華ゲスト達を登場させる</summary>
@@ -372,8 +363,7 @@ namespace Shizuku.Models
     /// <param name="drybulbTemperature">乾球温度[C]</param>
     /// <param name="relativeHumidity">相対湿度[%]</param>
     /// <param name="meanRadiantTemperature">平均放射温度[C]</param>
-    /// <param name="co2Lvl">CO2濃度[m3/m3]</param>
-    void GetZoneInfo(ImmutableZone zone, out double drybulbTemperature, out double relativeHumidity, out double meanRadiantTemperature, out double co2Lvl, out double directIlluminance);
+    void GetZoneInfo(ImmutableZone zone, out double drybulbTemperature, out double relativeHumidity, out double meanRadiantTemperature);
 
   }
 

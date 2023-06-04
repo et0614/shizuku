@@ -19,8 +19,8 @@ namespace Shizuku2
     /// <summary>漏気量[回/h]</summary>
     private const double LEAK_RATE = 0.2;
 
-    /// <summary>電力の一次エネルギー換算係数[MJ/kWh]</summary>
-    private const double ELC_PRIM_RATE = 9.76;
+    /// <summary>電力の一次エネルギー換算係数[GJ/kWh]</summary>
+    private const double ELC_PRIM_RATE = 0.00976;
 
     #endregion
 
@@ -169,60 +169,73 @@ namespace Shizuku2
 
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
       uint ttlOcNum = 0;
-      //加速度を考慮して計算を進める
-      while (true)
+      using (StreamWriter sWriter = new StreamWriter("output.csv"))
       {
-        //最低でも0.1秒ごとに計算実施判定
-        Thread.Sleep(100);
-        dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime); //加速度を監視
+        //タイトル行書き出し
+        outputStatus(sWriter, true);
 
-        while (dtCtrl.TryProceed(out isDelayed))
+        //加速度を考慮して計算を進める
+        while (true)
         {
+          //最低でも0.1秒ごとに計算実施判定
+          Thread.Sleep(100);
+          dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime); //加速度を監視
+
+          while (dtCtrl.TryProceed(out isDelayed))
+          {
+            //1週間で計算終了
+            if (endDTime < dtCtrl.CurrentDateTime) break;
+
+            //コントローラの制御値を機器やセンサに反映
+            vrfCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+            dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+
+            //気象データを建物モデルに反映
+            sun.Update(dtCtrl.CurrentDateTime);
+            wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
+            building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
+
+            //テナントを更新（内部発熱もここで更新される）
+            tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
+
+            //VRF更新
+            setVRFInletAir();
+            for (int i = 0; i < vrfs.Length; i++)
+            {
+              vrfs[i].UpdateControl(building.CurrentDateTime);
+              vrfs[i].VRFSystem.UpdateState(false);
+            }
+            setVRFOutletAir();
+
+            //換気量を更新
+            setVentilationRate();
+
+            //熱環境更新
+            building.ForecastHeatTransfer();
+            building.ForecastWaterTransfer();
+            building.FixState();
+
+            //機器やセンサの検出値を取得
+            vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+
+            //成績を集計
+            getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
+
+            //書き出し
+            outputStatus(sWriter, false);
+          }
+
           //1週間で計算終了
           if (endDTime < dtCtrl.CurrentDateTime) break;
-
-          //コントローラの制御値を機器やセンサに反映
-          vrfCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
-          dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
-
-          //気象データを建物モデルに反映
-          sun.Update(dtCtrl.CurrentDateTime);
-          wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
-          building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
-
-          //テナントを更新（内部発熱もここで更新される）
-          tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
-
-          //VRF更新
-          setVRFInletAir();
-          for (int i = 0; i < vrfs.Length; i++)
-          {
-            vrfs[i].UpdateControl(building.CurrentDateTime);
-            vrfs[i].VRFSystem.UpdateState(false);
-          }
-          setVRFOutletAir();
-
-          //換気量を更新
-          setVentilationRate();
-
-          //熱環境更新
-          building.ForecastHeatTransfer();
-          building.ForecastWaterTransfer();
-          building.FixState();
-
-          //機器やセンサの検出値を取得
-          vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-          dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-
-          //成績を集計
-          getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
         }
-
-        //1週間で計算終了
-        if (endDTime < dtCtrl.CurrentDateTime) break;
       }
     }
 
+    /// <summary>助走計算する</summary>
+    /// <param name="dTime">日時</param>
+    /// <param name="sun">太陽</param>
+    /// <param name="wetLoader">気象データ</param>
     private static void preRun(DateTime dTime, Sun sun, WeatherLoader wetLoader)
     {
       double tStep = building.TimeStep;
@@ -250,6 +263,10 @@ namespace Shizuku2
       building.TimeStep = tStep;
     }
 
+    /// <summary>スコアを計算する</summary>
+    /// <param name="totalOccupants">延執務者数[人]</param>
+    /// <param name="aveDisrate">平均不満足者率[-]</param>
+    /// <param name="eConsumption">エネルギー消費量[GJ]</param>
     private static void getScore( 
       ref uint totalOccupants, ref double aveDisrate, out double eConsumption) 
     {
@@ -266,6 +283,59 @@ namespace Shizuku2
         eConsumption +=
             (tList.Tenants[i].ElectricityMeter_Light.IntegratedValue +
             tList.Tenants[i].ElectricityMeter_Plug.IntegratedValue)* ELC_PRIM_RATE;*/
+    }
+
+    private static DateTime lastOutput;
+
+    private static void outputStatus(StreamWriter sWriter, bool isTitleLine)
+    {
+      if (isTitleLine)
+      {
+        //初回にすぐに書き出すための調整
+        lastOutput = building.CurrentDateTime.AddMinutes(-1);
+
+        sWriter.Write("date,time");
+
+        //部屋の温湿度・執務者数
+        for (int i = 0; i < building.MultiRoom.Length; i++)
+          for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
+            sWriter.Write("," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature [CDB]");
+        for (int i = 0; i < building.MultiRoom.Length; i++)
+          for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
+            sWriter.Write("," + building.MultiRoom[i].Zones[j].Name + " absolute humidity [kg/kg]");
+        for (int i = 0; i < building.MultiRoom.Length; i++)
+          for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
+            sWriter.Write("," + building.MultiRoom[i].Zones[j].Name + " number [occupants]");
+
+        //VRFのエネルギー
+        for (int i = 0; i < vrfs.Length; i++)
+          sWriter.Write(",VRF-" + (i+1) + " electricity [kW]");
+
+        sWriter.WriteLine();
+      }
+
+      //1minに1度書き出し
+      if (lastOutput.Minute == building.CurrentDateTime.Minute) return;
+      lastOutput = building.CurrentDateTime;
+
+      sWriter.Write(building.CurrentDateTime.ToString("MM/dd") + "," + building.CurrentDateTime.ToString("HH:mm:ss"));
+
+      //部屋の温湿度・執務者数
+      for (int i = 0; i < building.MultiRoom.Length; i++)
+        for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
+          sWriter.Write("," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1"));
+      for (int i = 0; i < building.MultiRoom.Length; i++)
+        for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
+          sWriter.Write("," + building.MultiRoom[i].Zones[j].HumidityRatio.ToString("F4"));
+      for (int i = 0; i < building.MultiRoom.Length; i++)
+        for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
+          sWriter.Write("," + tenants.GetOccupantNumber(building.MultiRoom[i].Zones[j]));
+
+      //VRFのエネルギー
+      for (int i = 0; i < vrfs.Length; i++)
+        sWriter.Write("," + vrfs[i].ElectricityMeters.InstantaneousValue.ToString("F2"));
+
+      sWriter.WriteLine();
     }
 
     #endregion
@@ -390,7 +460,7 @@ namespace Shizuku2
       Console.WriteLine("\r\n");
       Console.WriteLine("#########################################################################");
       Console.WriteLine("#                                                                       #");
-      Console.WriteLine("#                  Shizuku2  verstion 0.1.1 (2023.05.06)                #");
+      Console.WriteLine("#                  Shizuku2  verstion 0.1.2 (2023.06.04)                #");
       Console.WriteLine("#                                                                       #");
       Console.WriteLine("#     Thermal Emvironmental System Emulator to participate WCCBO2       #");
       Console.WriteLine("#  (The Second World Championship in Cybernetic Building Optimization)  #");
@@ -470,7 +540,7 @@ namespace Shizuku2
       {
         VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C56_0, 0, false),
         VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C45_0, 0, false),
-        VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C56_0, 0, false),
+        VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C61_5, 0, false),
         VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C61_5, 0, false)
       };
 
