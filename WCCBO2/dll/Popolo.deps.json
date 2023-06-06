@@ -7,7 +7,7 @@
   "targets": {
     ".NETStandard,Version=v2.0": {},
     ".NETStandard,Version=v2.0/": {
-      "Popolo/2.3.1.54": {
+      "Popolo/2.3.1.58": {
         "dependencies": {
           "NETStandard.Library": "2.0.3",
           "System.Text.Json": "4.7.2"
@@ -112,7 +112,7 @@
     }
   },
   "libraries": {
-    "Popolo/2.3.1.54": {
+    "Popolo/2.3.1.58": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

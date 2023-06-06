@@ -2,79 +2,24 @@
 using System.IO.BACnet;
 using System.IO.BACnet.Base;
 
-namespace Shizuku2.Daikin
+namespace Shizuku2.MitsubishiElectric
 {
   public class VRFScheduller : IVRFScheduller
   {
 
     #region 定数宣言
 
-    const uint TARGET_DEVICE_ID = 2; //Daikin.Controller
+    const uint TARGET_DEVICE_ID = 4; //MitsubishiElectric.Controller
 
-    const uint THIS_DEVICE_ID = 3;
+    const uint THIS_DEVICE_ID = 5;
 
     public const int TARGET_EXCLUSIVE_PORT = 0xBAC0 + (int)TARGET_DEVICE_ID;
 
     public const int THIS_EXCLUSIVE_PORT = 0xBAC0 + (int)THIS_DEVICE_ID;
 
-    const string DEVICE_NAME = "Daikin VRF scheduller";
+    const string DEVICE_NAME = "Mitsubishi Electric VRF scheduller";
 
-    const string DEVICE_DESCRIPTION = "Daikin VRF scheduller";
-
-    #endregion
-
-    #region 列挙型
-
-    private enum ObjectNumber
-    {
-      AnalogInput = 0 * 4194304,
-      AnalogOutput = 1 * 4194304,
-      AnalogValue = 2 * 4194304,
-      BinaryInput = 3 * 4194304,
-      BinaryOutput = 4 * 4194304,
-      BinaryValue = 5 * 4194304,
-      MultiStateInput = 13 * 4194304,
-      MultiStateOutput = 14 * 4194304,
-      Accumulator = 23 * 4194304
-    }
-
-    private enum MemberNumber
-    {
-      OnOff_Setting = 1,
-      OnOff_Status = 2,
-      Alarm = 3,
-      MalfunctionCode = 4,
-      OperationMode_Setting = 5,
-      OperationMode_Status = 6,
-      FanSpeed_Setting = 7,
-      FanSpeed_Status = 8,
-      MeasuredRoomTemperature = 9,
-      Setpoint = 10,
-      FilterSignSignal = 11,
-      FilterSignSignalReset = 12,
-      RemoteControllerPermittion_OnOff = 13,
-      RemoteControllerPermittion_OperationMode = 14,
-      RemoteControllerPermittion_Setpoint = 16,
-      CentralizedControl = 17,
-      AccumulatedGas = 18,
-      AccumulatedPower = 19,
-      CommunicationStatus = 20,
-      ForcedSystemStop = 21,
-      AirflowDirection_Setting = 22,
-      AirflowDirection_Status = 23,
-      ForcedThermoOff_Setting = 24,
-      ForcedThermoOff_Status = 25,
-      EnergySaving_Setting = 26,
-      EnergySaving_Status = 27,
-      ThermoOn_Status = 28,
-      Compressor_Status = 29,
-      IndoorFan_Status = 30,
-      Heater_Status = 31,
-      VentilationMode_Setting = 32,
-      VentilationMode_Status = 33,
-      VentilationAmount_Setting = 34,
-      VentilationAmount_Status = 35
-    }
+    const string DEVICE_DESCRIPTION = "Mitsubishi Electric VRF scheduller";
 
     #endregion
 
@@ -83,11 +28,11 @@ namespace Shizuku2.Daikin
     private DateTimeAccelerator dtAccl;
 
     /// <summary>現在の日時を取得する</summary>
-    public DateTime CurrentDateTime 
+    public DateTime CurrentDateTime
     { get { return dtAccl.AcceleratedDateTime; } }
 
     /// <summary>加速度を取得する</summary>
-    public uint AccelerationRate 
+    public uint AccelerationRate
     { get { return dtAccl.AccelerationRate; } }
 
     private BACnetCommunicator communicator;
@@ -115,8 +60,8 @@ namespace Shizuku2.Daikin
       for (int i = 0; i < vrfs.Length; i++)
         NumberOfIndoorUnits += vrfs[i].VRFSystem.IndoorUnitNumber;
 
-      //DMS502B71が扱える台数は256台まで
-      if (256 <= NumberOfIndoorUnits)
+      //AE-200Jが扱える台数は50台まで
+      if (50 <= NumberOfIndoorUnits)
         throw new Exception("Invalid indoor unit number");
 
       DeviceObject dObject = new DeviceObject(THIS_DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
@@ -135,11 +80,10 @@ namespace Shizuku2.Daikin
             {
               BacnetObjectId boID;
               List<BacnetValue> values;
-              for (int iuNum = 0; iuNum < NumberOfIndoorUnits; iuNum++)
+              for (int grpNum = 0; grpNum < NumberOfIndoorUnits; grpNum++)
               {
                 //On/Off
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-                  (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting));
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(10000 + grpNum * 100 + 1));
                 values = new List<BacnetValue>
                 {
                   new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
@@ -147,8 +91,7 @@ namespace Shizuku2.Daikin
                 communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                 //Mode
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-                  (uint)getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting));
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 5));
                 bool isCooling = 5 <= dtAccl.AcceleratedDateTime.Month && dtAccl.AcceleratedDateTime.Month <= 10;
                 values = new List<BacnetValue>
                 {
@@ -157,8 +100,7 @@ namespace Shizuku2.Daikin
                 communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                 //SP
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-                  (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + (isCooling ? 24 : 25)));
                 values = new List<BacnetValue>
                 {
                   new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, isCooling ? 26d : 25d)
@@ -166,11 +108,18 @@ namespace Shizuku2.Daikin
                 communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                 //角度
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-                  (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting));
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 22));
                 values = new List<BacnetValue>
                 {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 2u) //0,1,2,3,4,7
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 4u) //1水平,2下向き60%,3下向き80%,4下向き100%,5スイング
+                };
+                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                //風量
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 7));
+                values = new List<BacnetValue>
+                {
+                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 1u) //1弱,2強,3中2,4中1,5自動
                 };
                 communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
               }
@@ -180,11 +129,10 @@ namespace Shizuku2.Daikin
             {
               BacnetObjectId boID;
               List<BacnetValue> values;
-              for (int iuNum = 0; iuNum < NumberOfIndoorUnits; iuNum++)
+              for (int grpNum = 0; grpNum < NumberOfIndoorUnits; grpNum++)
               {
                 //On/Off
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-                (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting));
+                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(10000 + grpNum * 100 + 1));
                 values = new List<BacnetValue>
                 {
                   new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
@@ -212,14 +160,6 @@ namespace Shizuku2.Daikin
     private bool isHVACTime(DateTime dTime)
     {
       return isWeekday(dTime) && (7 <= dTime.Hour && dTime.Hour <= 19);
-    }
-
-    private int getInstanceNumber
-      (ObjectNumber objNumber, int iUnitNumber, MemberNumber memNumber)
-    {
-      //DBACSではこの番号で管理しているようだが、これでは桁が大きすぎる。
-      //return (int)objNumber + iUnitNumber * 256 + (int)memNumber; 
-      return iUnitNumber * 256 + (int)memNumber;
     }
 
     #endregion
@@ -306,7 +246,7 @@ namespace Shizuku2.Daikin
     /// <summary>機器やセンサの検出値を取得する</summary>
     public void ReadMeasuredValues(DateTime dTime)
     {
-      
+
     }
 
     /// <summary>BACnetControllerのサービスを開始する</summary>

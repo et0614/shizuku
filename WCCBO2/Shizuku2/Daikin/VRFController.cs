@@ -13,9 +13,9 @@ namespace Shizuku2.Daikin
 
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
 
-    const string DEVICE_NAME = "VRF controller";
+    const string DEVICE_NAME = "Daikin VRF controller";
 
-    const string DEVICE_DESCRIPTION = "VRF controller";
+    const string DEVICE_DESCRIPTION = "Daikin VRF controller";
 
     const int SIGNAL_UPDATE_SPAN = 60;
 
@@ -122,173 +122,173 @@ namespace Shizuku2.Daikin
       {
         dObject.AddBacnetObject(new BinaryOutput
           (getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.OnOff_Setting),
-          "StartStopCommand_" + iuNum.ToString("000"),
+          "StartStopCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to start (On)/stop (Off) the indoor unit.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.OnOff_Status),
-          "StartStopStatus_" + iuNum.ToString("000"),
+          "StartStopStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the indoor unit’s On/Off status.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.Alarm),
-          "Alarm_" + iuNum.ToString("000"),
+          "Alarm_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the indoor unit’s normal/malfunction status.", false));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.MalfunctionCode),
-          "MalfunctionCode_" + iuNum.ToString("000"),
+          "MalfunctionCode_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the malfunction code of an indoor unit in malfunction status.", 512, 1, false));
 
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.OperationMode_Setting),
-          "AirConModeCommand_" + iuNum.ToString("000"),
+          "AirConModeCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to set an indoor unit’s operation mode.", 3, 5));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.OperationMode_Status),
-          "AirConModeStatus_" + iuNum.ToString("000"),
-          "This object is used to monitor an indoor unit’s operation mode.", 3, 5, false));
+          "AirConModeStatus_" + vrfUnitIndices[iuNum].ToString(),
+          "This object is used to monitor an indoor unit’s operation mode.", 5, 3, false));
 
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.FanSpeed_Setting),
-          "AirFlowRateCommand_" + iuNum.ToString("000"),
+          "AirFlowRateCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to set an indoor unit’s fan speed.", 2, 4));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.FanSpeed_Status),
-          "AirFlowRateStatus_" + iuNum.ToString("000"),
-          "This object is used to monitor the indoor unit’s fan speed.", 2, 4, false));
+          "AirFlowRateStatus_" + vrfUnitIndices[iuNum].ToString(),
+          "This object is used to monitor the indoor unit’s fan speed.", 4, 2, false));
 
         dObject.AddBacnetObject(new AnalogInput<double>
           (getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.MeasuredRoomTemperature),
-          "RoomTemp_" + iuNum.ToString("000"),
+          "RoomTemp_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the room temperature detected by the indoor unit return air sensor, remote sensor, or remote controller sensor.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
 
         dObject.AddBacnetObject(new AnalogValue<double>
           (getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint),
-          "TempAdjest_" + iuNum.ToString("000"),
+          "TempAdjest_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to set the indoor unit’s setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.FilterSignSignal),
-          "FilterSign_" + iuNum.ToString("000"),
+          "FilterSign_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the indoor unit’s filter sign status.", false));
 
         dObject.AddBacnetObject(new BinaryValue
           (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.FilterSignSignalReset),
-          "FilterSignReset_" + iuNum.ToString("000"),
+          "FilterSignReset_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to reset the indoor unit’s filter sign signal.", false, false));
 
         dObject.AddBacnetObject(new BinaryValue
           (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_OnOff),
-          "RemoteControlStart_" + iuNum.ToString("000"),
+          "RemoteControlStart_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to permit or prohibit the On/Off operation from the remote controller used to start/stop the indoor unit.", false, false));
 
         dObject.AddBacnetObject(new BinaryValue
           (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_OperationMode),
-          "RemoteContorlAirConModeSet_" + iuNum.ToString("000"),
+          "RemoteContorlAirConModeSet_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to permit or prohibit the remote controller from changing the indoor unit’s operation mode.", false, false));
 
         dObject.AddBacnetObject(new BinaryValue
           (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_Setpoint),
-          "RemoteControlTempAdjust_" + iuNum.ToString("000"),
+          "RemoteControlTempAdjust_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to permit or prohibit the remote controller to set the indoor unit setpoint.", false, false));
 
         dObject.AddBacnetObject(new BinaryValue
           (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.CentralizedControl),
-          "CL_Rejection_X" + iuNum,
+          "CL_Rejection_X" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to disable or enable control by the Daikin Centralized Controllers which includes the Intelligent Touch Controller used on each DIII-Net system (up to 4 DIII-Net system can be connected to the Interface for use in BACnet).", false, false));
 
         dObject.AddBacnetObject(new Accumulator<double>
           (getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedGas),
-          "GasTotalPower_" + iuNum.ToString("000"),
+          "GasTotalPower_" + vrfUnitIndices[iuNum].ToString(),
           "No description.", 0, BacnetUnitsId.UNITS_CUBIC_METERS));
 
         dObject.AddBacnetObject(new Accumulator<double>
           (getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedPower),
-          "ElecTotalPower_" + iuNum.ToString("000"),
+          "ElecTotalPower_" + vrfUnitIndices[iuNum].ToString(),
           "No description.", 0, BacnetUnitsId.UNITS_KILOWATT_HOURS));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.CommunicationStatus),
-          "CommunicationStatus_" + iuNum.ToString("000"),
+          "CommunicationStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the communication status between the Interface for use in BACnet and the indoor units.", false));
 
         dObject.AddBacnetObject(new BinaryValue
           (getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.ForcedSystemStop),
-          "SystemForcedOff_" + iuNum.ToString("000"),
+          "SystemForcedOff_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to stop all the indoor units connected to the specified DIII network port and permits/prohibits the On/Off operation from the connected remote controller.", false, false));
 
         dObject.AddBacnetObject(new AnalogValue<uint>
           (getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.AirflowDirection_Setting),
-          "AirDirectionCommand_" + iuNum.ToString("000"),
+          "AirDirectionCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to change the indoor unit’s airflow direction.", 0, BacnetUnitsId.UNITS_NO_UNITS, false));
 
         dObject.AddBacnetObject(new AnalogInput<uint>
           (getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.AirflowDirection_Status),
-          "AirDirectionStatus_" + iuNum.ToString("000"),
+          "AirDirectionStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the indoor unit’s airflow direction setting.", 0, BacnetUnitsId.UNITS_NO_UNITS));
 
         dObject.AddBacnetObject(new BinaryOutput
           (getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.ForcedThermoOff_Setting),
-          "ForcedThermoOFFCommand_" + iuNum.ToString("000"),
+          "ForcedThermoOFFCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to force the indoor unit to operate without actively cooling or heating.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.ForcedThermoOff_Status),
-          "ForcedThermoOFFStatus_" + iuNum.ToString("000"),
+          "ForcedThermoOFFStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor whether or not the indoor unit is forced to operate without actively cooling or heating.", false));
 
         dObject.AddBacnetObject(new BinaryOutput
           (getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.EnergySaving_Setting),
-          "EnergyEfficiencyCommand_" + iuNum.ToString("000"),
+          "EnergyEfficiencyCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to instruct the indoor unit to operate at a temperature offset of 3.6 0F (20C) from the setpoint for saving energy. The actual setpoint is not changed.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.EnergySaving_Status),
-          "EnergyEfficiencyStatus_" + iuNum.ToString("000"),
+          "EnergyEfficiencyStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor whether or not the indoor unit is operating at a temperature offset of 3.6 0F (20C) from the setpoint for saving energy.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.ThermoOn_Status),
-          "ThermoStatus_" + iuNum.ToString("000"),
+          "ThermoStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor if the indoor unit is actively cooling or heating.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.Compressor_Status),
-          "CompressorStatus_" + iuNum.ToString("000"),
+          "CompressorStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the compressor status of the outdoor unit connected to the indoor unit.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.IndoorFan_Status),
-          "IndoorFanStatus_" + iuNum.ToString("000"),
+          "IndoorFanStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the indoor unit’s fan status.", false));
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.Heater_Status),
-          "HeaterStatus_" + iuNum.ToString("000"),
+          "HeaterStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the heater status commanded by the indoor unit logic.", false));
 
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.VentilationMode_Setting),
-          "VentilationModeCommand_" + iuNum.ToString("000"),
+          "VentilationModeCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 2, 3));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.VentilationMode_Status),
-          "VentilationModeStatus_" + iuNum.ToString("000"),
-          "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 2, 3, false));
+          "VentilationModeStatus_" + vrfUnitIndices[iuNum].ToString(),
+          "This object is used to set the Energy Recovery Ventilator’s Ventilation Mode.", 3, 2, false));
 
         dObject.AddBacnetObject(new MultiStateOutput
           (getInstanceNumber(ObjectNumber.MultiStateOutput, iuNum, MemberNumber.VentilationAmount_Setting),
-          "VentilationAmountCommand_" + iuNum.ToString("000"),
+          "VentilationAmountCommand_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to set the Energy Recovery Ventilator’s Ventilation Amount.", 2, 6));
 
         dObject.AddBacnetObject(new MultiStateInput
           (getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.VentilationAmount_Status),
-          "VentilationAmountStatus_" + iuNum.ToString("000"),
-          "This object is used to monitor the Energy Recovery Ventilator’s Ventilation Amount.", 2, 6, false));
+          "VentilationAmountStatus_" + vrfUnitIndices[iuNum].ToString(),
+          "This object is used to monitor the Energy Recovery Ventilator’s Ventilation Amount.", 6, 2, false));
       }
 
       return dObject;
@@ -345,8 +345,9 @@ namespace Shizuku2.Daikin
               ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = modeSet;
               boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
                 (uint)getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.ThermoOn_Status));
+              //送風以外の場合にはサーモOn
               ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
-                modeSet == 1 || modeSet == 2 ? 1u : 0u;
+                modeSet != 3 ? 1u : 0u;
             }
 
             vrf.IndoorUnitModes[j] =
@@ -355,9 +356,6 @@ namespace Shizuku2.Daikin
               modeSet == 2 ? ExVRFSystem.Mode.Heating :
               modeSet == 3 ? ExVRFSystem.Mode.ThermoOff :
               modeSet == 4 ? ExVRFSystem.Mode.Auto : ExVRFSystem.Mode.Dry;
-            //室外機は最後の稼働室内機のモードに依存（修正必要）
-            //if (md == ExVRFSystem.Mode.Cooling) pMode = VRFSystem.Mode.Cooling;
-            //else if (md == ExVRFSystem.Mode.Heating) pMode = VRFSystem.Mode.Heating;
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
@@ -412,7 +410,7 @@ namespace Shizuku2.Daikin
             uint afDirStt = ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
               ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
-            vrf.Direction[j] = afDirSet * 22.5;
+            vrf.Direction[j] = (Math.PI / 180d) * afDirSet * 22.5;
 
             //強制サーモオフ*************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)getInstanceNumber(ObjectNumber.BinaryOutput, iuNum, MemberNumber.ForcedThermoOff_Setting));
@@ -457,8 +455,6 @@ namespace Shizuku2.Daikin
 
             iuNum++;
           }
-          //if (isSystemOn) vrf.VRFSystem.CurrentMode = pMode;
-          //else vrf.VRFSystem.CurrentMode = VRFSystem.Mode.ShutOff;
         }
       }
     }

@@ -95,6 +95,10 @@ namespace Shizuku2
           vrfCtrl = new Daikin.VRFController(vrfs);
           if (initSettings["scheduller"] == 1) vrfSchedl = new Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
+        case 2:
+          vrfCtrl = new MitsubishiElectric.VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new MitsubishiElectric.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          break;
         default:
           throw new Exception("VRF controller number not supported.");
       }
@@ -137,7 +141,7 @@ namespace Shizuku2
           sWriter.Write(e.ToString());
         }
 
-        Console.Write(e.ToString());
+        Console.WriteLine(e.ToString());
         Console.WriteLine("Emulation aborted. Press any key to exit.");
         Console.ReadLine();
       }
