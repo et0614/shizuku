@@ -22,6 +22,18 @@ namespace Shizuku2
     /// <summary>電力の一次エネルギー換算係数[GJ/kWh]</summary>
     private const double ELC_PRIM_RATE = 0.00976;
 
+    /// <summary>バージョン（メジャー）</summary>
+    private const int V_MAJOR = 0;
+
+    /// <summary>バージョン（マイナー）</summary>
+    private const int V_MINOR = 2;
+
+    /// <summary>バージョン（リビジョン）</summary>
+    private const int V_REVISION = 0;
+
+    /// <summary>バージョン（日付）</summary>
+    private const string V_DATE = "2023.06.04";
+
     #endregion
 
     #region クラス変数
@@ -464,7 +476,7 @@ namespace Shizuku2
       Console.WriteLine("\r\n");
       Console.WriteLine("#########################################################################");
       Console.WriteLine("#                                                                       #");
-      Console.WriteLine("#                  Shizuku2  verstion 0.1.2 (2023.06.04)                #");
+      Console.WriteLine("#                  Shizuku2  verstion " + V_MAJOR + "." + V_MINOR + "." + V_REVISION + " (" + V_DATE + ")                #");
       Console.WriteLine("#                                                                       #");
       Console.WriteLine("#     Thermal Emvironmental System Emulator to participate WCCBO2       #");
       Console.WriteLine("#  (The Second World Championship in Cybernetic Building Optimization)  #");
@@ -516,10 +528,15 @@ namespace Shizuku2
       ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
 
       //暗号化
-      byte[] message = new byte[16];
-      Array.Copy(BitConverter.GetBytes(eConsumption), 0, message, 0, 8);
-      Array.Copy(BitConverter.GetBytes(aveDissatisfiedRate), 0, message, 8, 8);
-      byte[] cipherText = new byte[16];
+      byte[] message = new byte[8 + 8 + 4 + 4 + 4 + 4];
+      Array.Copy(BitConverter.GetBytes(eConsumption), 0, message, 0, 8); //エネルギー消費
+      Array.Copy(BitConverter.GetBytes(aveDissatisfiedRate), 0, message, 8, 8); //平均不満足者率
+      Array.Copy(BitConverter.GetBytes(initSettings["userid"]), 0, message, 16, 4); //ユーザーID
+      Array.Copy(BitConverter.GetBytes(V_MAJOR), 0, message, 20, 4); //バージョン（メジャー）
+      Array.Copy(BitConverter.GetBytes(V_MINOR), 0, message, 24, 4); //バージョン（マイナー）
+      Array.Copy(BitConverter.GetBytes(V_REVISION), 0, message, 28, 4); //バージョン（リビジョン）
+
+      byte[] cipherText = new byte[message.Length];
       byte[] tag = new byte[16];
       cha2.Encrypt(nonce, message, cipherText, tag);
       List<byte> oBytes = new List<byte>();
