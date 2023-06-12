@@ -58,6 +58,9 @@ namespace Shizuku2
     /// <summary>電力量計を取得する</summary>
     public ImmutableAccumulator ElectricityMeters { get { return eMeters; } }
 
+    /// <summary>噴流による不満足者率[-]を取得する</summary>
+    public double DissatisfiedRateByJet { get; private set; }
+
     /// <summary>前回の更新日時</summary>
     private DateTime lastUpdate;
 
@@ -162,14 +165,25 @@ namespace Shizuku2
       //最大風速[m/s]
       const double MAX_VELOCITY = 3.0;
 
+      //室内機特定
       ImmutableVRFUnit unt = VRFSystem.IndoorUnits[iuntIndex];
+
+      //停止時
+      if (unt.CurrentMode == VRFUnit.Mode.ShutOff)
+      {
+        DissatisfiedRateByJet = 0.0;
+        LowZoneBlowRate[iuntIndex] = 0.0;
+        return;
+      }
+
       double dTdY = Math.Max(0, upperZoneTemperature - lowerZoneTemperature) / 1.35;
       double ambT = upperZoneTemperature + dTdY * 0.5;
       PrimaryFlow.CalcBlowDown(
-        unt.OutletAirTemperature, 
+        unt.OutletAirTemperature,
         ambT,
         MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), dTdY, Direction[iuntIndex],
-        out double hRate, out _, out _);
+        out double hRate, out double velAtNeck, out double tempAtNeck, out double jetLengthAtNeck);
+      DissatisfiedRateByJet = PrimaryFlow.GetDraftRate(tempAtNeck, velAtNeck, ambT, jetLengthAtNeck);
       LowZoneBlowRate[iuntIndex] = hRate;
     }
   }
