@@ -88,8 +88,9 @@ namespace Shizuku2
       building = BuildingMaker.Make();
       vrfs = makeVRFSystem(building.CurrentDateTime);
 
-      //テナントを生成
-      tenants = new TenantList((uint)initSettings["seed"], building);
+      //テナントを生成//生成と行動で乱数シードを分ける
+      tenants = new TenantList((uint)initSettings["seed1"], building);
+      tenants.ResetRandomSeed((uint)initSettings["seed2"]);
 
       //日時コントローラ開始
       DateTime dt =
@@ -165,7 +166,7 @@ namespace Shizuku2
     private static void run()
     {
       //気象データ読み込みクラス
-      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["seed"],
+      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["seed3"],
         initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
         initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
         initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
