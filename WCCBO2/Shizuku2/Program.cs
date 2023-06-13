@@ -88,20 +88,39 @@ namespace Shizuku2
       building = BuildingMaker.Make();
       vrfs = makeVRFSystem(building.CurrentDateTime);
 
-      //テナントを生成//生成と行動で乱数シードを分ける
-      tenants = new TenantList((uint)initSettings["seed1"], building);
-      tenants.ResetRandomSeed((uint)initSettings["seed2"]);
+      //気象データを生成
+      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["rseed3"],
+        initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
+        initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
+        initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
+        initSettings["weather"] == 4 ? RandomWeather.Location.Osaka :
+        initSettings["weather"] == 5 ? RandomWeather.Location.Fukuoka :
+        RandomWeather.Location.Naha);
+      Sun sun =
+        initSettings["weather"] == 1 ? new Sun(43.0621, 141.3544, 135) :
+        initSettings["weather"] == 2 ? new Sun(38.2682, 140.8693, 135) :
+        initSettings["weather"] == 3 ? new Sun(35.6894, 139.6917, 135) :
+        initSettings["weather"] == 4 ? new Sun(34.6937, 135.5021, 135) :
+        initSettings["weather"] == 5 ? new Sun(33.5903, 130.4017, 135) :
+        new Sun(26.2123, 127.6791, 135);
 
-      //日時コントローラ開始
+      //テナントを生成//生成と行動で乱数シードを分ける
+      tenants = new TenantList((uint)initSettings["rseed1"], building);
+      tenants.ResetRandomSeed((uint)initSettings["rseed2"]);
+
+      //日時コントローラを用意して助走計算
+      Console.Write("Start precalculation...");
       DateTime dt =
         initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
         initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
         new DateTime(1999, 4, 28, 0, 0, 0); //中間期
       dtCtrl = new DateTimeController(dt, (uint)initSettings["accelerationRate"]);
       dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
-      dtCtrl.StartService();
+      //初期化・周期定常化処理
+      preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
+      Console.WriteLine("Done." + Environment.NewLine);
 
-      //VRFコントローラ開始
+      //VRFコントローラ用意
       switch (initSettings["controller"])
       {
         case 1:
@@ -115,6 +134,9 @@ namespace Shizuku2
         default:
           throw new Exception("VRF controller number not supported.");
       }
+
+      //コントローラ開始
+      dtCtrl.StartService();
       vrfCtrl.StartService();
       vrfSchedl?.StartService();
       vrfSchedl?.Synchronize();
@@ -138,7 +160,7 @@ namespace Shizuku2
         });
 
         //メイン処理
-        run();
+        run(wetLoader, sun);
         finished = true;
         //結果書き出し
         saveScore("result.szk", energyConsumption, averageDissatisfactionRate);
@@ -161,29 +183,8 @@ namespace Shizuku2
     }
 
     /// <summary>期間計算を実行する</summary>
-    /// <param name="eConsumption">エネルギー消費[MJ]</param>
-    /// <param name="aveDissatisfactionRate">平均不満足率[-]</param>
-    private static void run()
+    private static void run(WeatherLoader wetLoader, Sun sun)
     {
-      //気象データ読み込みクラス
-      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["seed3"],
-        initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
-        initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
-        initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
-        initSettings["weather"] == 4 ? RandomWeather.Location.Osaka :
-        initSettings["weather"] == 5 ? RandomWeather.Location.Fukuoka :
-        RandomWeather.Location.Naha);
-      Sun sun = 
-        initSettings["weather"] == 1 ? new Sun(43.0621, 141.3544, 135) :
-        initSettings["weather"] == 2 ? new Sun(38.2682, 140.8693, 135) :
-        initSettings["weather"] == 3 ? new Sun(35.6894, 139.6917, 135) :
-        initSettings["weather"] == 4 ? new Sun(34.6937, 135.5021, 135) :
-        initSettings["weather"] == 5 ? new Sun(33.5903, 130.4017, 135) :
-        new Sun(26.2123, 127.6791, 135);
-
-      //初期化・周期定常化処理
-      preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
-
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
       uint ttlOcNum = 0;
       using (StreamWriter sWriter = new StreamWriter("output.csv"))
