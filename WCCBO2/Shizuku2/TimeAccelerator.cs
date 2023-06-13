@@ -1,4 +1,5 @@
 ﻿using BaCSharp;
+using PacketDotNet.Tcp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,10 +17,10 @@ namespace Shizuku2
     /// <summary>加速度</summary>
     private uint accRate;
 
-    /// <summary>基準となる現実日時</summary>
+    /// <summary>基準となる現実の日時</summary>
     private DateTime baseRealDateTime;
 
-    /// <summary>基準となる加速日時</summary>
+    /// <summary>基準となる加速された日時</summary>
     private DateTime baseDateTime;
 
     /// <summary>加速度を設定・取得する</summary>
@@ -51,6 +52,12 @@ namespace Shizuku2
         baseRealDateTime = DateTime.Now;
       }
     }
+
+    /// <summary>基準となる現実の日時</summary>
+    public DateTime BaseRealDateTime { get { return baseRealDateTime; } }
+
+    /// <summary>基準となる加速された日時</summary>
+    public DateTime BaseAcceleratedDateTime { get { return baseDateTime; } }
 
     #endregion
 

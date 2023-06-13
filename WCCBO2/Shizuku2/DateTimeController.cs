@@ -1,15 +1,5 @@
 ﻿using BaCSharp;
-using Popolo.HVAC.MultiplePackagedHeatPump;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.IO.BACnet;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
 
 namespace Shizuku2
 {
@@ -81,16 +71,26 @@ namespace Shizuku2
     {
       DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
 
-      //日時
-      BacnetDateTime dTime = new BacnetDateTime(0, "Current date and time", "Current date and time");
-      dTime.m_PresentValue = CurrentDateTime;
-      dObject.AddBacnetObject(dTime);
+      //シミュレーション内の現在日時
+      BacnetDateTime dTime1 = new BacnetDateTime(0, "Current date and time on the simulation", "Current date and time on the simulation. This value might been accelerated.");
+      dTime1.m_PresentValue = CurrentDateTime;
+      dObject.AddBacnetObject(dTime1);
 
       //加速度
       dObject.AddBacnetObject(new AnalogOutput<uint>
         (0,
         "Acceraration rate",
         "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS));
+
+      //加速の基準となる現実の日時
+      BacnetDateTime dTime2 = new BacnetDateTime(1, "Base real date and time", "Real world date and time starting to accelerate.");
+      dTime2.m_PresentValue = dtAccelerator.BaseRealDateTime;
+      dObject.AddBacnetObject(dTime2);
+
+      //加速の基準となるシミュレーション内の日時
+      BacnetDateTime dTime3 = new BacnetDateTime(2, "Base date and time in the simulation", "Date and time on the simulation when the acceleration started");
+      dTime3.m_PresentValue = dtAccelerator.BaseAcceleratedDateTime;
+      dObject.AddBacnetObject(dTime3);
 
       return dObject;
     }
