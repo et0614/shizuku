@@ -95,7 +95,7 @@ namespace Shizuku.Models
     #region インスタンスメソッド
 
     /// <summary>モデルを更新する</summary>
-    public void Update(DateTime cTime, double timeStep)
+    public void Update(DateTime cTime)
     {
       //日付変化時に執務者行動を更新
       if (lastDTimeHour != cTime.Hour && cTime.Hour == 0)

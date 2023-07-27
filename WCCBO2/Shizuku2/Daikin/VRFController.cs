@@ -9,7 +9,7 @@ namespace Shizuku2.Daikin
 
     #region 定数宣言
 
-    const uint DEVICE_ID = 2;
+    const uint DEVICE_ID = 3;
 
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
 

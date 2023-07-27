@@ -9,9 +9,9 @@ namespace Shizuku2.MitsubishiElectric
 
     #region 定数宣言
 
-    const uint TARGET_DEVICE_ID = 4; //MitsubishiElectric.Controller
+    const uint TARGET_DEVICE_ID = 5; //MitsubishiElectric.Controller
 
-    const uint THIS_DEVICE_ID = 5;
+    const uint THIS_DEVICE_ID = 6;
 
     public const int TARGET_EXCLUSIVE_PORT = 0xBAC0 + (int)TARGET_DEVICE_ID;
 

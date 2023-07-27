@@ -214,7 +214,7 @@ namespace Shizuku2
             building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
 
             //テナントを更新（内部発熱もここで更新される）
-            tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
+            tenants.Update(dtCtrl.CurrentDateTime);
 
             //執務者によるコントロールを反映
             //***

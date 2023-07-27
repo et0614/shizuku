@@ -10,7 +10,7 @@ namespace Shizuku2.MitsubishiElectric
 
     #region 定数宣言
 
-    const uint DEVICE_ID = 4;
+    const uint DEVICE_ID = 5;
 
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
 

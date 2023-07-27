@@ -9,9 +9,9 @@ namespace Shizuku2.Daikin
 
     #region 定数宣言
 
-    const uint TARGET_DEVICE_ID = 2; //Daikin.Controller
+    const uint TARGET_DEVICE_ID = 3; //Daikin.Controller
 
-    const uint THIS_DEVICE_ID = 3;
+    const uint THIS_DEVICE_ID = 4;
 
     public const int TARGET_EXCLUSIVE_PORT = 0xBAC0 + (int)TARGET_DEVICE_ID;
 
