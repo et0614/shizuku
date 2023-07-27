@@ -383,7 +383,7 @@ namespace Shizuku.Models
         
         //調整行動を取る
         TryToRaiseTemperatureSP = TryToLowerTemperatureSP = false;
-        if (dTime <= lastAdj.AddSeconds(COMFORT_ADJUST_SPAN))
+        if (lastAdj.AddSeconds(COMFORT_ADJUST_SPAN) <= dTime)
         {
           if (OCModel.UncomfortablyCold)
           {

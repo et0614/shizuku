@@ -86,7 +86,7 @@ namespace Shizuku2
 
       //建物モデルを作成
       building = BuildingMaker.Make();
-      vrfs = makeVRFSystem(building.CurrentDateTime);
+      vrfs = makeVRFSystem(building);
 
       //気象データを生成
       WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["rseed3"],
@@ -105,7 +105,7 @@ namespace Shizuku2
         new Sun(26.2123, 127.6791, 135);
 
       //テナントを生成//生成と行動で乱数シードを分ける
-      tenants = new TenantList((uint)initSettings["rseed1"], building);
+      tenants = new TenantList((uint)initSettings["rseed1"], building, vrfs);
       tenants.ResetRandomSeed((uint)initSettings["rseed2"]);
 
       //日時コントローラを用意して助走計算
@@ -555,7 +555,7 @@ namespace Shizuku2
 
     #region VRFシステムモデルの作成
 
-    static ExVRFSystem[] makeVRFSystem(DateTime now)
+    static ExVRFSystem[] makeVRFSystem(ImmutableBuildingThermalModel building)
     {
       VRFSystem[] vrfs = new VRFSystem[]
       {
@@ -625,12 +625,15 @@ namespace Shizuku2
           vrfs[i].SetIndoorUnitMode((initSettings["period"] == 0) ? VRFUnit.Mode.Heating : VRFUnit.Mode.Cooling);
       }
 
+      //空調対象のゾーンリストを作成
+      ImmutableZone[] znS = building.MultiRoom[0].Zones;
+      ImmutableZone[] znN = building.MultiRoom[1].Zones;
       return new ExVRFSystem[] 
       {
-        new ExVRFSystem(now, vrfs[0]),
-        new ExVRFSystem(now, vrfs[1]),
-        new ExVRFSystem(now, vrfs[2]),
-        new ExVRFSystem(now, vrfs[3])
+        new ExVRFSystem(building.CurrentDateTime, vrfs[0], new ImmutableZone[] { znS[0], znS[1], znS[2], znS[3], znS[4], znS[5] }),
+        new ExVRFSystem(building.CurrentDateTime, vrfs[1], new ImmutableZone[] { znS[6], znS[7], znS[8], znS[9], znS[10], znS[11] }),
+        new ExVRFSystem(building.CurrentDateTime, vrfs[2], new ImmutableZone[] { znN[0], znN[1], znN[2], znN[3], znN[4], znN[5] }),
+        new ExVRFSystem(building.CurrentDateTime, vrfs[3], new ImmutableZone[] { znN[6], znN[7], znN[8], znN[9], znN[10], znN[11], znN[12], znN[13] })
       };
     }
 

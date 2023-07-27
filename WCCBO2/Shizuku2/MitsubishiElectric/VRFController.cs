@@ -114,7 +114,8 @@ namespace Shizuku2.MitsubishiElectric
         dObject.AddBacnetObject(new AnalogValue<double>
           (10000 + grpNum * 100 + 10,
           "Set Temp_" + vrfUnitIndices[grpNum].ToString(),
-          "This object is used to set the indoor unit’s setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false));
+          "This object is used to set the indoor unit’s setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
+        { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
 
         dObject.AddBacnetObject(new BinaryInput
           (10000 + grpNum * 100 + 11,
@@ -284,8 +285,8 @@ namespace Shizuku2.MitsubishiElectric
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + 25));
             double tSpHeat = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             //通常の温度設定と冷暖モード別の設定値との使い分けが不明
-            vrf.SetPoints_C[j] = tSpCool;
-            vrf.SetPoints_H[j] = tSpHeat;
+            vrf.SetSetpoint(tSpCool, j, true);
+            vrf.SetSetpoint(tSpHeat, j, false);
 
             //フィルタ信号リセット********
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(10000 + grpNum * 100 + 12));
@@ -336,7 +337,7 @@ namespace Shizuku2.MitsubishiElectric
               afDirStt == 1 ? 0.0 : //水平
               afDirStt == 2 ? 0.6 : //下向き60%
               afDirStt == 3 ? 0.8 : 1.0; //下向き80%, 100%
-            vrf.Direction[j] = (Math.PI / 180d) * afDirStt * 90.0;
+            vrf.Direction[j] = (Math.PI / 180d) * ptge * 90.0;
 
             //換気モード*****************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 35));
@@ -395,9 +396,9 @@ namespace Shizuku2.MitsubishiElectric
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + 24));
-            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.SetPoints_C[j];
+            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.GetSetpoint(j, true);
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + 25));
-            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.SetPoints_H[j];
+            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.GetSetpoint(j, false);
 
             grpNum++;
           }

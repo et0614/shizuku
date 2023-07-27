@@ -8,6 +8,7 @@ using Popolo.BuildingOccupant;
 using Popolo.Numerics;
 using Popolo.ThermalLoad;
 using Popolo.ThermophysicalProperty;
+using Shizuku2;
 
 namespace Shizuku.Models
 {
@@ -31,13 +32,16 @@ namespace Shizuku.Models
     public bool IsNonTerritorialOffice { private set; get; }
 
     /// <summary>執務者リストを取得する</summary>
-    public ImmutableOccupant[] Occupants { get { return occs; } }
+    public ImmutableOccupant[] Occupants { get { return occupants; } }
 
     /// <summary>入居ゾーン別情報</summary>
     private OfficeTenant[] znTenants;
 
     /// <summary>執務者リスト</summary>
-    private Occupant[] occs;
+    private Occupant[] occupants;
+
+    /// <summary>ゾーン別の執務者リスト</summary>
+    private Occupant[][] znOccupants;
 
     /// <summary>入居ゾーンの乾球温度リスト</summary>
     private double[] dbTemps;
@@ -50,6 +54,9 @@ namespace Shizuku.Models
 
     /// <summary>オフィス不在の真偽</summary>
     private bool nobodyStay = true;
+
+    /// <summary>テナント用VRF</summary>
+    private ExVRFSystem vrf;
 
     /// <summary>正規乱数製造機</summary>
     private NormalRandom nRnd;
@@ -68,12 +75,13 @@ namespace Shizuku.Models
     /// <param name="seed">乱数シード</param>
     public Tenant(
       ImmutableBuildingThermalModel building, string name, bool isNonTerritorialOffice, 
-      ImmutableZone[] zones, OfficeTenant.CategoryOfIndustry cInd, OfficeTenant.DaysOfWeek dOfWeek, uint seed)
+      ImmutableZone[] zones, OfficeTenant.CategoryOfIndustry cInd, OfficeTenant.DaysOfWeek dOfWeek, ExVRFSystem vrf, uint seed)
     {
       this.Building = building;
       this.Name = name;
       IsNonTerritorialOffice = isNonTerritorialOffice;
       this.Zones = zones;
+      this.vrf = vrf;
 
       MersenneTwister uRnd = new MersenneTwister(seed);
       nRnd = new NormalRandom(uRnd.Next());
@@ -93,12 +101,18 @@ namespace Shizuku.Models
 
       //執務者リストを作成する
       List<Occupant> ocs = new List<Occupant>();
+      znOccupants = new Occupant[zones.Length][];
       for (int i = 0; i < znTenants.Length; i++)
       {
+        znOccupants[i] = new Occupant[znTenants[i].OfficeWorkerNumber];
         for (int j = 0; j < znTenants[i].OfficeWorkerNumber; j++)
-          ocs.Add(new Occupant(uRnd.Next(), znTenants[i].OfficeWorkers[j], this, zones[i]));
+        {
+          Occupant oc = new Occupant(uRnd.Next(), znTenants[i].OfficeWorkers[j], this, zones[i]);
+          ocs.Add(oc);
+          znOccupants[i][j] = oc;
+        }
       }
-      occs = ocs.ToArray();
+      occupants = ocs.ToArray();
     }
 
     #endregion
@@ -116,8 +130,8 @@ namespace Shizuku.Models
     /// <summary>基準着衣量[clo]を更新する</summary>
     public void UpdateDailyCloValues()
     {
-      for (int i = 0; i < occs.Length; i++)
-        occs[i].UpdateDailyCloValue();
+      for (int i = 0; i < occupants.Length; i++)
+        occupants[i].UpdateDailyCloValue();
     }
 
     /// <summary>執務者の在不在情報、滞在ゾーン、温冷感を更新する</summary>
@@ -132,14 +146,39 @@ namespace Shizuku.Models
       }
 
       //ゾーン間移動と温冷感の更新
-      foreach (Occupant oc in occs)
+      foreach (Occupant oc in occupants)
       {
         oc.Move(dTime);
         oc.UpdateComfort(dTime);
       }
 
       //コントローラ操作の判定
-      //*
+      for (int i = 0; i < Zones.Length; i++)
+      {
+        bool controllable = vrf.ControlPermited(Zones[i]);
+        int upNum = 0;
+        int dnNum = 0;
+        for (int j = 0; j < znOccupants[i].Length; j++)
+        {
+          //制御可能性を通達
+          if(znOccupants[i][j].TryToRaiseTemperatureSP || znOccupants[i][j].TryToLowerTemperatureSP) 
+            znOccupants[i][j].ThinkControllable = controllable;
+
+          //制御方向を積算
+          if (znOccupants[i][j].TryToRaiseTemperatureSP) upNum++;
+          else if (znOccupants[i][j].TryToLowerTemperatureSP) dnNum++;
+        }
+        if (upNum > dnNum)
+        {
+          vrf.SetSetpoint(vrf.GetSetpoint(i, true) + 1, i, true);
+          vrf.SetSetpoint(vrf.GetSetpoint(i, false) + 1, i, false);
+        }
+        else if (upNum < dnNum)
+        {
+          vrf.SetSetpoint(vrf.GetSetpoint(i, true) - 1, i, true);
+          vrf.SetSetpoint(vrf.GetSetpoint(i, false) - 1, i, false);
+        }
+      }
     }
 
     /// <summary>ゾーン情報を更新する</summary>
@@ -179,8 +218,8 @@ namespace Shizuku.Models
     {
       for (int i = 0; i < 10; i++)
       {
-        int ocN = (int)Math.Floor(occs.Length * uRnd.NextDouble());
-        Occupant ocp = occs[ocN];
+        int ocN = (int)Math.Floor(occupants.Length * uRnd.NextDouble());
+        Occupant ocp = occupants[ocN];
         if (ocp.IsMale == isMale && !ocp.IsSpecialCharacter)
         {
           ocp.makeSpecialCharacter(firstName, lastName);
@@ -200,7 +239,7 @@ namespace Shizuku.Models
       if (Zones.Contains(zone))
       {
         //人体負荷
-        foreach (Occupant oc in occs)
+        foreach (Occupant oc in occupants)
           if (zone.Equals(oc.CurrentZone))
             number++;
 

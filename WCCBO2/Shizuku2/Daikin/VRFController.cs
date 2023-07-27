@@ -168,7 +168,8 @@ namespace Shizuku2.Daikin
         dObject.AddBacnetObject(new AnalogValue<double>
           (getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint),
           "TempAdjest_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to set the indoor unit’s setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false));
+          "This object is used to set the indoor unit’s setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
+        { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
 
         dObject.AddBacnetObject(new BinaryInput
           (getInstanceNumber(ObjectNumber.BinaryInput, iuNum, MemberNumber.FilterSignSignal),
@@ -361,8 +362,8 @@ namespace Shizuku2.Daikin
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
             double tSp = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             //ダイキンの設定温度は冷暖で5度の偏差を持つ
-            vrf.SetPoints_C[j] = tSp;
-            vrf.SetPoints_H[j] = tSp - 5;
+            vrf.SetSetpoint(tSp, j, true);
+            vrf.SetSetpoint(tSp - 5, j, false);
 
             //フィルタ信号リセット********
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.FilterSignSignalReset));
@@ -491,7 +492,7 @@ namespace Shizuku2.Daikin
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
             ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
-              vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? (vrf.SetPoints_H[j] + 5) : vrf.SetPoints_C[j];
+              vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? (vrf.GetSetpoint(j, false) + 5) : vrf.GetSetpoint(j,true);
 
             //フィルタサイン***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,

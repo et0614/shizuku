@@ -7,6 +7,7 @@ using Popolo.Numerics;
 using Popolo.BuildingOccupant;
 using Popolo.ThermalLoad;
 using System.Reflection;
+using Shizuku2;
 
 namespace Shizuku.Models
 {
@@ -47,7 +48,7 @@ namespace Shizuku.Models
 
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="seed">乱数シード</param>
-    public TenantList(uint seed, ImmutableBuildingThermalModel building)
+    public TenantList(uint seed, ImmutableBuildingThermalModel building, ExVRFSystem[] vrfs)
     {
       MersenneTwister uRnd = new MersenneTwister(seed);
       OfficeTenant.DaysOfWeek dw = OfficeTenant.DaysOfWeek.Saturday | OfficeTenant.DaysOfWeek.Sunday;
@@ -72,18 +73,18 @@ namespace Shizuku.Models
       zns = building.MultiRoom[0].Zones;
       tenants[0] = new Tenant(building, "South west tenant", false, 
         new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5] },
-        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, uRnd.Next());
+        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, vrfs[0], uRnd.Next());
       tenants[1] = new Tenant(building, "South east tenant", false,
         new ImmutableZone[] { zns[6], zns[7], zns[8], zns[9], zns[10], zns[11] },
-        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, uRnd.Next());
+        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, vrfs[1], uRnd.Next());
       //北側
       zns = building.MultiRoom[1].Zones;
       tenants[2] = new Tenant(building, "North west tenant", false,
         new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5] },
-        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, uRnd.Next());
+        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, vrfs[2], uRnd.Next());
       tenants[3] = new Tenant(building, "North east tenant", false,
         new ImmutableZone[] { zns[6], zns[7], zns[8], zns[9], zns[10], zns[11], zns[12], zns[13] },
-        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, uRnd.Next());
+        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, vrfs[3], uRnd.Next());
 
       //豪華ゲストを登場させる
       introduceSpecialCharacters(uRnd);

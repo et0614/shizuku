@@ -37,13 +37,12 @@ namespace Shizuku2
 
     #region プロパティ・インスタンス変数
 
+    /// <summary>温度設定値[C]</summary>
+    private double[] spC, spH;
+
     public VRFSystem VRFSystem { get; private set; }
 
     public Mode[] IndoorUnitModes { get; private set; }
-
-    public double[] SetPoints_C { get; private set; }
-
-    public double[] SetPoints_H { get; private set; }
 
     /// <summary>温度設定値の操作を許可するか否か</summary>
     public bool[] PermitSPControl { get; private set; }
@@ -70,28 +69,37 @@ namespace Shizuku2
     /// <summary>次の制御可能時点</summary>
     private DateTime[] nextControllerbleTime;
 
+    /// <summary>給気対象のゾーンリスト（下部）</summary>
+    private ImmutableZone[] lowerZones;
+
     #endregion
 
     #region コンストラクタ
 
-    public ExVRFSystem(DateTime now, VRFSystem vrfSystem)
+    /// <summary></summary>
+    /// <param name="now"></param>
+    /// <param name="vrfSystem"></param>
+    /// <param name="lowerZones">給気対象のゾーン（下部）</param>
+    public ExVRFSystem(DateTime now, VRFSystem vrfSystem, ImmutableZone[] lowerZones)
     {
       lastUpdate = now;
       VRFSystem = vrfSystem;
+      this.lowerZones = lowerZones;
 
       int iuNum = VRFSystem.IndoorUnitNumber;
       IndoorUnitModes = new Mode[iuNum];
-      SetPoints_C = new double[iuNum];
-      SetPoints_H = new double[iuNum];
+      spC = new double[iuNum];
+      spH = new double[iuNum];
       Direction = new double[iuNum];
       LowZoneBlowRate = new double[iuNum];
       nextControllerbleTime = new DateTime[iuNum];
+      PermitSPControl = new bool[iuNum];
 
       for (int i = 0; i < iuNum; i++)
       {
         IndoorUnitModes[i] = Mode.ShutOff;
-        SetPoints_C[i] = 25;
-        SetPoints_H[i] = 20;
+        spC[i] = 25;
+        spH[i] = 20;
         Direction[i] = 0;
         LowZoneBlowRate[i] = 0;
         nextControllerbleTime[i] = now;
@@ -127,7 +135,7 @@ namespace Shizuku2
           }
           else if (
             mode == VRFSystem.Mode.Cooling && 
-            SetPoints_C[i] < VRFSystem.IndoorUnits[i].InletAirTemperature && 
+            spC[i] < VRFSystem.IndoorUnits[i].InletAirTemperature && 
             iUnit.CurrentMode != VRFUnit.Mode.Cooling)
           {
             VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
@@ -135,7 +143,7 @@ namespace Shizuku2
           }
           else if (
             mode == VRFSystem.Mode.Heating && 
-            VRFSystem.IndoorUnits[i].InletAirTemperature < SetPoints_H[i] && 
+            VRFSystem.IndoorUnits[i].InletAirTemperature < spH[i] && 
             iUnit.CurrentMode != VRFUnit.Mode.Heating)
           {
             VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
@@ -189,5 +197,44 @@ namespace Shizuku2
       DissatisfiedRateByJet = PrimaryFlow.GetDraftRate(tempAtNeck, velAtNeck, ambT, jetLengthAtNeck);
       LowZoneBlowRate[iuntIndex] = hRate;
     }
+
+    /// <summary>コントローラの操作の許可を設定する</summary>
+    /// <param name="zone">対象ゾーン</param>
+    /// <param name="permit">許可する場合はtrue</param>
+    public void PermitControl(ImmutableZone zone, bool permit)
+    {
+      int indx = Array.IndexOf(lowerZones, zone);
+      PermitSPControl[indx] = permit;
+    }
+
+    /// <summary>コントローラの操作の許可状態を取得する</summary>
+    /// <param name="zone">対象ゾーン</param>
+    /// <returns>許可されているか否か</returns>
+    public bool ControlPermited(ImmutableZone zone)
+    {
+      int indx = Array.IndexOf(lowerZones, zone);
+      return PermitSPControl[indx];
+    }
+
+    /// <summary>温度設定値[C]を取得する</summary>
+    /// <param name="iUnitIndex">室内機番号</param>
+    /// <param name="isCoolingMode">冷却モードか否か</param>
+    /// <returns>温度設定値[C]</returns>
+
+    public double GetSetpoint(int iUnitIndex, bool isCoolingMode)
+    {
+      return isCoolingMode ? spC[iUnitIndex] : spH[iUnitIndex];
+    }
+
+    /// <summary>温度設定値[C]を設定する</summary>
+    /// <param name="setpoint">温度設定値[C]</param>
+    /// <param name="iUnitIndex">室内機番号</param>
+    /// <param name="isCoolingMode">冷却モードか否か</param>
+    public void SetSetpoint(double setpoint, int iUnitIndex, bool isCoolingMode)
+    {
+      if (isCoolingMode) spC[iUnitIndex] = Math.Max(16, Math.Min(32, setpoint));
+      else spH[iUnitIndex] = Math.Max(16, Math.Min(32, setpoint));
+    }
+
   }
 }
