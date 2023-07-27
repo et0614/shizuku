@@ -308,6 +308,7 @@ namespace Shizuku2.MitsubishiElectric
             bool rmtPmtSP = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(10000 + grpNum * 100 + 17));
             bool rmtPmtFSpeed = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            vrf.PermitSPControl[j] = rmtPmtSP;
             //***未実装***
 
             //ファン風量*****************
@@ -391,6 +392,12 @@ namespace Shizuku2.MitsubishiElectric
             //通信状況********************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(10000 + grpNum * 100 + 20));
             ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0u; //1でBACnet通信エラー
+
+            //室内温度設定***************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + 24));
+            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.SetPoints_C[j];
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + 25));
+            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.SetPoints_H[j];
 
             grpNum++;
           }

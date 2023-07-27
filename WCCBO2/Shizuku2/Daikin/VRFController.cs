@@ -383,6 +383,7 @@ namespace Shizuku2.Daikin
             bool rmtPmtMode = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)getInstanceNumber(ObjectNumber.BinaryValue, iuNum, MemberNumber.RemoteControllerPermittion_Setpoint));
             bool rmtPmtSP = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            vrf.PermitSPControl[j] = rmtPmtSP;
             //***未実装***
 
             //中央制御*******************
@@ -486,6 +487,11 @@ namespace Shizuku2.Daikin
               (uint)getInstanceNumber(ObjectNumber.MultiStateInput, iuNum, MemberNumber.MalfunctionCode));
             //未実装
             ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 1u;
+
+            //室内温度設定***************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
+            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
+              vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? (vrf.SetPoints_H[j] + 5) : vrf.SetPoints_C[j];
 
             //フィルタサイン***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,

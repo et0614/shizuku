@@ -45,6 +45,9 @@ namespace Shizuku2
 
     public double[] SetPoints_H { get; private set; }
 
+    /// <summary>温度設定値の操作を許可するか否か</summary>
+    public bool[] PermitSPControl { get; private set; }
+
     /// <summary>吹き出し風向[radian]を設定・取得する</summary>
     /// <remarks>水平が0 radian、下向きがプラス</remarks>
     public double[] Direction { get; private set; }

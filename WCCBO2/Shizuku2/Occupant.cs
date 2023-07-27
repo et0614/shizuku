@@ -8,6 +8,8 @@ using Popolo.Numerics;
 using Popolo.ThermalLoad;
 using Popolo.HumanBody;
 using System.Reflection;
+using PacketDotNet.Tcp;
+using System.Net.NetworkInformation;
 
 namespace Shizuku.Models
 {
@@ -30,6 +32,18 @@ namespace Shizuku.Models
 
     /// <summary>温冷感計算の風速は0.1 m/sに固定</summary>
     private const double VELOCITY = 0.1;
+
+    /// <summary>移動更新時間間隔[sec]</summary>
+    private const int MOVE_UPDATE_SPAN = 30;
+
+    /// <summary>熱的快適性の更新時間間隔[sec]</summary>
+    private const int COMFORT_UPDATE_SPAN = 60;
+
+    /// <summary>調整行動の更新間隔[sec]</summary>
+    private const int COMFORT_ADJUST_SPAN = 60 * 15;
+
+    /// <summary>コントローラの操作許可時のPMVボーナス</summary>
+    private const double PMV_BONUS = 0.2;
 
     #endregion
 
@@ -92,6 +106,12 @@ namespace Shizuku.Models
     /// <summary>セータを着ているか否か</summary>
     public bool WearSweater { get; private set; } = false;
 
+    /// <summary>温度設定値を上げようとしているか否か</summary>
+    public bool TryToRaiseTemperatureSP { get; private set; } = false;
+
+    /// <summary>温度設定値を下げようとしているか否か</summary>
+    public bool TryToLowerTemperatureSP { get; private set; } = false;
+
     /// <summary>自席のゾーンを取得する</summary>
     public ImmutableZone DeskZone { private set; get; }
 
@@ -117,10 +137,10 @@ namespace Shizuku.Models
     private DateTime lastMove = new DateTime(3000, 1, 1);
 
     /// <summary>最終の人体モデル更新日時</summary>
-    private DateTime lastOCcalc;
+    private DateTime lastOCcalc = new DateTime(3000, 1, 1);
 
     /// <summary>最終の環境調整行動日時</summary>
-    private DateTime lastAdj;
+    private DateTime lastAdj = new DateTime(3000, 1, 1);
 
     /// <summary>滞在しているゾーンを取得する(0:外出, 1～:ゾーン番号+1)</summary>
     public int StayZoneNumber
@@ -135,9 +155,21 @@ namespace Shizuku.Models
     /// <summary>自席ゾーンを取得する</summary>
     public int DeskZoneNumber
     { get { return 1 + Array.IndexOf(Tenant.Zones, DeskZone); } }
+
+    /// <summary>自席にいるか否か</summary>
+    public bool StayAtDesk { get { return DeskZone == CurrentZone; } }
     
     /// <summary>朝の着衣量[Clo]</summary>
     private double mornClo = 1.0;
+
+    /// <summary>夏季の中立申告値</summary>
+    private double NeutralSensationInSummer = 0;
+
+    /// <summary>冬季の中立申告値</summary>
+    private double NeutralSensationInWinter = 0;
+
+    /// <summary>コントローラを操作可能と考えているか否か</summary>
+    public bool ThinkControllable { get; set; } = false;
 
     #endregion
 
@@ -188,6 +220,8 @@ namespace Shizuku.Models
 
       //温冷感モデル作成
       OCModel = new OccupantModel_Langevin(myRnd.Next(), true);
+      NeutralSensationInSummer = 0.5 * (OCModel.HighAcceptableSensationInSummer + OCModel.LowAcceptableSensationInSummer);
+      NeutralSensationInWinter = 0.5 * (OCModel.HighAcceptableSensationInWinter + OCModel.LowAcceptableSensationInWinter);
 
       //名前初期化
       if (IsMale)
@@ -251,11 +285,11 @@ namespace Shizuku.Models
     /// <summary>滞在情報を更新する</summary>
     /// <param name="dTime">現在の日時</param>
     /// <param name="tStep">計算時間間隔</param>
-    public void UpdateStatus(DateTime dTime)
+    public void Move(DateTime dTime)
     {
       //初回の処理
       if (dTime < lastMove)
-        lastMove = lastOCcalc = lastAdj = dTime;
+        lastMove = dTime;
 
       //入館時
       if (!stayInOffice_lst && Worker.StayInOffice)
@@ -296,7 +330,7 @@ namespace Shizuku.Models
       //入館済：ゾーン間移動のみ
       if(CurrentZone != null)
       {
-        while (lastMove.AddSeconds(30) <= dTime)
+        while (lastMove.AddSeconds(MOVE_UPDATE_SPAN) <= dTime)
         {
           int curZnIndex = Array.IndexOf(Tenant.Zones, CurrentZone);
           double rnd = myRnd.NextDouble();
@@ -311,60 +345,64 @@ namespace Shizuku.Models
             rnd -= transProbs[curZnIndex, i];
           }
 
-          lastMove = lastMove.AddSeconds(30);
+          lastMove = lastMove.AddSeconds(MOVE_UPDATE_SPAN);
         }
-      }
-
-      //人体熱収支モデルを更新して不満を計算//60secに一度
-      if (lastOCcalc.AddSeconds(60) <= dTime)
-      {
-        double stp = (dTime - lastOCcalc).TotalSeconds;
-        updateComfort(dTime, stp);
-        lastOCcalc = dTime;
       }
     }
 
-    /// <summary>快・不快モデルを更新する</summary>
-    /// <param name="timeStep">計算時間間隔</param>
-    private void updateComfort(DateTime dTime, double timeStep)
+    /// <summary>温冷感を更新して調整行動を取る</summary>
+    /// <param name="dTime"></param>
+    public void UpdateComfort(DateTime dTime)
     {
-      //時間が経過していなければ無視
-      if (timeStep <= 0) return;
+      //初回の処理
+      if (dTime < lastOCcalc)
+        lastOCcalc = lastAdj = dTime;
 
-      //出社中のみ計算する
-      if ((DeskZone.MultiRoom.CurrentDateTime < Worker.ArriveTime) || 
-        (Worker.LeaveTime < DeskZone.MultiRoom.CurrentDateTime)) return;
-
-      //熱環境情報を取得
-      Tenant.GetZoneInfo
-        (CurrentZone, out double dbt, out double rhmd, out double mrt);
-
-      //温冷感モデルを更新
-      double pmv = ThermalComfort.GetPMV(dbt, mrt, rhmd, VELOCITY, CloValue, MET, 0);
-      OCModel.Update(pmv);
-      //調整行動を取る
-      if (dTime <= lastAdj.AddMinutes(15))
+      //人体熱収支モデルを更新して不満を計算
+      if (lastOCcalc.AddSeconds(COMFORT_UPDATE_SPAN) <= dTime)
       {
-        if (OCModel.UncomfortablyCold)
+        lastOCcalc = dTime; //最終の更新日時を保存
+
+        //出社中のみ計算する
+        if ((DeskZone.MultiRoom.CurrentDateTime < Worker.ArriveTime) ||
+          (Worker.LeaveTime < DeskZone.MultiRoom.CurrentDateTime)) return;
+
+        //熱環境情報を取得
+        Tenant.GetZoneInfo
+          (CurrentZone, out double dbt, out double rhmd, out double mrt);
+
+        //温冷感モデルを更新（コントローラの操作可能性に応じてPMVボーナスを付与）
+        double pmv = ThermalComfort.GetPMV(dbt, mrt, rhmd, VELOCITY, CloValue, MET, 0); //環境のPMV
+        if (ThinkControllable)
         {
-          if (RollUpSleeves) RollUpSleeves = false;
-          else if (!WearSweater) WearSweater = true;
-          lastAdj = dTime;
+          double sNeutral = OCModel.IsSummer ? NeutralSensationInSummer : NeutralSensationInWinter;
+          if (pmv < sNeutral) pmv += Math.Min(PMV_BONUS, sNeutral - pmv);
+          else pmv -= Math.Min(PMV_BONUS, pmv - sNeutral);
         }
-        else if (OCModel.UncomfortablyWarm)
+        OCModel.Update(pmv);
+        
+        //調整行動を取る
+        TryToRaiseTemperatureSP = TryToLowerTemperatureSP = false;
+        if (dTime <= lastAdj.AddSeconds(COMFORT_ADJUST_SPAN))
         {
-          if (!RollUpSleeves) RollUpSleeves = true;
-          else if (WearSweater) WearSweater = false;
-          lastAdj = dTime;
+          if (OCModel.UncomfortablyCold)
+          {
+            if (RollUpSleeves) RollUpSleeves = false;
+            else if (!WearSweater) WearSweater = true;
+            else if(StayAtDesk) TryToRaiseTemperatureSP = true;
+            lastAdj = dTime;
+          }
+          else if (OCModel.UncomfortablyWarm)
+          {
+            if (!RollUpSleeves) RollUpSleeves = true;
+            else if (WearSweater) WearSweater = false;
+            else if (StayAtDesk) TryToLowerTemperatureSP = true;
+            lastAdj = dTime;
+          }
         }
       }
-
-      //空気質にもとづく不満発生率
-      //PPD_AirState = 1d / (1 + Math.Exp((0.0012 - co2lvl) / 0.000065));  //CO2濃度900ppmで不満1%、1500ppmで不満99%となるようにロジスティック関数で表現
-
-      //窓面光束発散度にもとづく不満発生率
-      //PPD_Lighting = dirIll;  //直達日射が床面に入射する面積比率で不満発生
     }
+
 
     /// <summary>基準着衣量[clo]を更新する</summary>
     public void UpdateDailyCloValue()
@@ -390,6 +428,8 @@ namespace Shizuku.Models
       IsSpecialCharacter = true;
     }
 
+    /// <summary>夏か否かを取得する</summary>
+    /// <returns></returns>
     private bool isSummer()
     {
       return 5 <= DeskZone.MultiRoom.CurrentDateTime.Month && DeskZone.MultiRoom.CurrentDateTime.Month <= 10;

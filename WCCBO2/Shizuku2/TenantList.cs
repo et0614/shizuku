@@ -17,20 +17,11 @@ namespace Shizuku.Models
 
     #region インスタンス変数・プロパティ
 
-    /// <summary>積算電力量計（コンセント）</summary>
-    private Accumulator eAcmPlug = new Accumulator(3600, 1, 1);
-
-    /// <summary>積算電力量計（照明）</summary>
-    private Accumulator eAcmLight = new Accumulator(3600, 1, 1);
-
     /// <summary>1タイムステップ前の時刻</summary>
     private int lastDTimeHour = 23;
 
     /// <summary>内部発熱の最終更新日時</summary>
     private DateTime lastHLcalc = new DateTime(3000, 1, 1);
-
-    /// <summary>前回の内部発熱更新日時</summary>
-    private DateTime hlLSTUpdt = new DateTime(1900, 1, 1, 0, 0, 0);
     
     /// <summary>テナントリストを取得する</summary>
     public ImmutableTenant[] Tenants { get { return tenants; } }
@@ -49,12 +40,6 @@ namespace Shizuku.Models
 
     /// <summary>ゾーンリスト</summary>
     private ImmutableZone[] zones;
-
-    /// <summary>コンセント電力量計を取得する</summary>
-    public ImmutableAccumulator ElectricityMeter_Plug { get { return eAcmPlug; } }
-
-    /// <summary>照明電力量計を取得する</summary>
-    public ImmutableAccumulator ElectricityMeter_Light { get { return eAcmLight; } }
 
     #endregion
 
@@ -125,7 +110,7 @@ namespace Shizuku.Models
       foreach (Tenant tnt in tenants)
       {
         tnt.UpdateZoneInfo();
-        tnt.MoveOccupants(cTime);
+        tnt.UpdateOccupants(cTime);
       }
 
       //負荷情報を更新（60secに1回）
@@ -133,10 +118,6 @@ namespace Shizuku.Models
       if (cTime < lastHLcalc) lastHLcalc = cTime;
       if (lastHLcalc.AddSeconds(60) <= cTime)
       {
-        //テナント別の消費電力を更新
-        foreach (Tenant tnt in tenants)
-          tnt.UpdateElectricity((cTime - lastHLcalc).TotalSeconds);
-
         //内部発熱を更新（消費電力含む）
         lastHLcalc = cTime;
         foreach (ImmutableZone zn in zones)
@@ -160,17 +141,6 @@ namespace Shizuku.Models
           }
         }
       }
-
-      //消費電力合計
-      double ePlug = 0;
-      double eLight = 0;
-      foreach (ImmutableTenant tnt in tenants)
-      {
-        ePlug += tnt.ElectricityMeter_Plug.InstantaneousValue;
-        eLight += tnt.ElectricityMeter_Light.InstantaneousValue;
-      }
-      eAcmPlug.Update(timeStep, ePlug);
-      eAcmLight.Update(timeStep, eLight);
     }
 
     /// <summary>豪華ゲスト達を登場させる</summary>
@@ -276,12 +246,6 @@ namespace Shizuku.Models
     /// <param name="zone">ゾーン</param>
     /// <returns>ゾーンの潜熱負荷[W]</returns>
     double GetLatentHeat(ImmutableZone zone);
-
-    /// <summary>コンセント電力量計を取得する</summary>
-    ImmutableAccumulator ElectricityMeter_Plug { get; }
-
-    /// <summary>照明電力量計を取得する</summary>
-    ImmutableAccumulator ElectricityMeter_Light { get; }
 
   }
 

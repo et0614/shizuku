@@ -39,28 +39,20 @@ namespace Shizuku.Models
     /// <summary>執務者リスト</summary>
     private Occupant[] occs;
 
-    /// <summary>入居ゾーンの乾球温度、相対湿度、平均放射温度、CO2濃度、直達日照リスト</summary>
-    private double[] dbTemps, relHumids, mrTemps, dirIllm;
+    /// <summary>入居ゾーンの乾球温度リスト</summary>
+    private double[] dbTemps;
+
+    /// <summary>入居ゾーンの相対湿度リスト</summary>
+    private double[] relHumids;
+
+    /// <summary>入居ゾーンの平均放射温度リスト</summary>
+    private double[] mrTemps;
 
     /// <summary>オフィス不在の真偽</summary>
     private bool nobodyStay = true;
 
-    private double ePlug, eLight;
-
-    /// <summary>コンセント積算電力量計</summary>
-    private Accumulator eAcmPlug = new Accumulator(3600, 2, 1);
-
-    /// <summary>照明積算電力量計</summary>
-    private Accumulator eAcmLight = new Accumulator(3600, 2, 1);
-
     /// <summary>正規乱数製造機</summary>
     private NormalRandom nRnd;
-
-    /// <summary>コンセント電力量計を取得する</summary>
-    public ImmutableAccumulator ElectricityMeter_Plug { get { return eAcmPlug; } }
-
-    /// <summary>照明電力量計を取得する</summary>
-    public ImmutableAccumulator ElectricityMeter_Light { get { return eAcmLight; } }
 
     #endregion
 
@@ -98,7 +90,6 @@ namespace Shizuku.Models
       dbTemps = new double[zones.Length];
       relHumids = new double[zones.Length];
       mrTemps = new double[zones.Length];
-      dirIllm = new double[zones.Length];
 
       //執務者リストを作成する
       List<Occupant> ocs = new List<Occupant>();
@@ -129,8 +120,8 @@ namespace Shizuku.Models
         occs[i].UpdateDailyCloValue();
     }
 
-    /// <summary>執務者の在不在情報と滞在ゾーンを更新する</summary>
-    public void MoveOccupants(DateTime dTime)
+    /// <summary>執務者の在不在情報、滞在ゾーン、温冷感を更新する</summary>
+    public void UpdateOccupants(DateTime dTime)
     {
       //在不在情報
       nobodyStay = true;
@@ -140,18 +131,15 @@ namespace Shizuku.Models
         if (tnt.StayWorkerNumber != 0) nobodyStay = false;
       }
 
-      //執務者のゾーン間移動
-      foreach (Occupant oc in occs) 
-        oc.UpdateStatus(dTime);
-    }
+      //ゾーン間移動と温冷感の更新
+      foreach (Occupant oc in occs)
+      {
+        oc.Move(dTime);
+        oc.UpdateComfort(dTime);
+      }
 
-    /// <summary>消費電力を更新する</summary>
-    /// <param name="tStep">計算時間間隔[sec]</param>
-    public void UpdateElectricity(double tStep)
-    {
-      eAcmPlug.Update(tStep, 0.001 * ePlug);
-      eAcmLight.Update(tStep, 0.001 * eLight);
-      ePlug = eLight = 0;
+      //コントローラ操作の判定
+      //*
     }
 
     /// <summary>ゾーン情報を更新する</summary>
@@ -227,28 +215,11 @@ namespace Shizuku.Models
           znTenants[0].Industry == OfficeTenant.CategoryOfIndustry.FinanceOrInsurance) pcLoad = 70;
 
         //コンセント負荷 + 待機電力（3W/m2+ゆらぎ: 野部:オフィスにおける内部発熱負荷要素に関する実態調査）
-        double ep = number * pcLoad + zone.FloorArea * Math.Min(30, Math.Max(0, (3 + 5 * nRnd.NextDouble_Standard())));
-        sensibleHeat += ep;
-        ePlug += ep;
+        sensibleHeat += number * pcLoad + zone.FloorArea * Math.Min(30, Math.Max(0, (3 + 5 * nRnd.NextDouble_Standard())));
 
         //照明負荷//営業時間内か誰かが残っている場合には点灯
-        int indx = Array.IndexOf(Zones, zone);
-        dirIllm[indx] = 0;
         if (znTenants[0].IsBuisinessHours(zone.MultiRoom.CurrentDateTime) || !nobodyStay)
-        {
-          //自然採光による作業面照度を計算
-          double difE, dirE;
-          calcIlluminance(zone, out difE, out dirE);
-          dirIllm[indx] = dirE;
-
-          //500lxを基準に消費電力軽減。LEDで130lm/W,保守率0.9,照明率0.6
-          //(7.1W/m2=500/(130*0.6*0.9))
-          //直接光の照度は眩しいだけなので無視
-          double uE = 7.1 * Math.Max(0, 500 - difE) / 500d;
-          double wt = zone.FloorArea * uE;
-          sensibleHeat += wt;
-          eLight += wt;
-        }
+          sensibleHeat += 7.1 * zone.FloorArea; //7.1W/m2
       }
     }
 
@@ -258,74 +229,6 @@ namespace Shizuku.Models
     {
       foreach (OfficeTenant tnt in znTenants)
         tnt.ResetRandomSeed(seed);
-    }
-
-    #endregion
-
-    #region 照度関連の処理
-
-    /// <summary>ゾーン作業面の照度[lx]を計算する</summary>
-    /// <param name="zone">ゾーン</param>
-    /// <param name="diffIlluminance">拡散光による作業面照度[lx]</param>
-    /// <param name="directIlluminanceRate">直達光の床面入射比率[-]</param>
-    private void calcIlluminance(ImmutableZone zone, out double diffIlluminance, out double directIlluminanceRate)
-    {
-      const double RHO_F = 0.7; //天井の反射率[-]
-      const double RHO_C = 0.2; //床の反射率[-]
-
-      Popolo.Weather.ImmutableSun sun = zone.MultiRoom.Sun;
-
-      ImmutableWindow[] wins = zone.GetWindows();
-      if (wins.Length == 0)
-      {
-        diffIlluminance = directIlluminanceRate = 0;
-        return;
-      }
-
-      directIlluminanceRate = 0;
-      double eU = 0;
-      double eL = 0;
-      //double winArea = 0;
-      for (int i = 0; i < wins.Length; i++)
-      {
-        //winArea += wins[i].Area;
-        double dirE = wins[i].OutsideIncline.GetDirectSolarIlluminance(sun) * wins[i].DirectSolarIncidentTransmittance * wins[i].Area;
-        double difE = wins[i].OutsideIncline.GetDiffuseSolarIlluminance(sun, zone.MultiRoom.Albedo) * wins[i].DiffuseSolarIncidentTransmittance * wins[i].Area;
-        double diffTU, diffTL, dirTU, dirTL, dirDir;
-        IShadingDevice shDv = wins[i].GetShadingDevice(0);
-        if (shDv is VenetianBlind)
-        {
-          VenetianBlind blind = (VenetianBlind)wins[i].GetShadingDevice(0);
-          blind.ComputeOpticalProperties(out diffTU, out diffTL, out dirTU, out dirTL, out dirDir);
-          double sum = dirTU + dirTL + dirDir;
-          if (0 < sum)
-          {
-            //directIlluminanceRate += dirE * dirDir / sum;
-            if (0 < dirDir && 0 < dirE) directIlluminanceRate += wins[i].Area / Math.Tan(sun.Altitude);
-            eU += dirE * dirTU / sum;
-            //eL += dirE * dirTL / sum; //間接光のみを照度向上に寄与するとみなす場合
-            eL += dirE * (dirTL + dirDir) / sum;  //直射光も照度向上に寄与するとみなす場合
-          }
-          sum = diffTU + diffTL;
-          if (0 < sum)
-          {
-            eU += difE * diffTU / sum;
-            eL += difE * diffTL / sum;
-          }          
-        }
-        else
-        {
-          //directIlluminanceRate += dirE;
-          if (0 < dirE) directIlluminanceRate += wins[i].Area / Math.Tan(sun.Altitude);
-          eU += difE * 0.5;
-          //eL += difE * 0.5;   //間接光のみを照度向上に寄与するとみなす場合
-          eL += dirE + difE * 0.5;   //直射光も照度向上に寄与するとみなす場合
-        }
-      }
-      directIlluminanceRate = Math.Min(directIlluminanceRate / zone.FloorArea, 1d);
-
-      //作業面切断公式（松浦邦男）
-      diffIlluminance = ((RHO_F * eL + eU) * RHO_C) / (zone.FloorArea * (1.0 - RHO_C * RHO_F));
     }
 
     #endregion
@@ -351,12 +254,6 @@ namespace Shizuku.Models
 
     /// <summary>執務者リストを取得する</summary>
     ImmutableOccupant[] Occupants { get; }
-
-    /// <summary>コンセント電力量計を取得する</summary>
-    ImmutableAccumulator ElectricityMeter_Plug { get; }
-
-    /// <summary>照明電力量計を取得する</summary>
-    ImmutableAccumulator ElectricityMeter_Light { get; }
 
     /// <summary>ゾーンの情報を取得する</summary>
     /// <param name="zone">ゾーン</param>

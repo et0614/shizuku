@@ -216,6 +216,9 @@ namespace Shizuku2
             //テナントを更新（内部発熱もここで更新される）
             tenants.Update(dtCtrl.CurrentDateTime, dtCtrl.TimeStep);
 
+            //執務者によるコントロールを反映
+            //***
+
             //VRF更新
             setVRFInletAir();
             for (int i = 0; i < vrfs.Length; i++)
@@ -296,11 +299,6 @@ namespace Shizuku2
       eConsumption = 0;
       for(int i=0;i<vrfs.Length;i++)
         eConsumption += vrfs[i].ElectricityMeters.IntegratedValue * ELC_PRIM_RATE;
-      //デマンドレスポンス検討が無いのであれば、テナントの消費電力は評価対象外の方が良いかもしれない
-      /*for (int i=0;i<tList.Tenants.Length;i++)
-        eConsumption +=
-            (tList.Tenants[i].ElectricityMeter_Light.IntegratedValue +
-            tList.Tenants[i].ElectricityMeter_Plug.IntegratedValue)* ELC_PRIM_RATE;*/
     }
 
     private static DateTime lastOutput;
