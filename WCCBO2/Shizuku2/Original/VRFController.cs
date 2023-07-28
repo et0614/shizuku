@@ -124,10 +124,10 @@ namespace Shizuku2.Original
           "This object is used to set the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
         { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
 
-        dObject.AddBacnetObject(new AnalogValue<double>
+        dObject.AddBacnetObject(new AnalogInput<double>
          ((int)(bBase + MemberNumber.Setpoint_Status),
          "TempSPStatus_" + vrfUnitIndices[iuNum].ToString(),
-         "This object is used to monitor the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
+         "This object is used to monitor the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
 
         dObject.AddBacnetObject(new AnalogInput<double>
@@ -275,23 +275,24 @@ namespace Shizuku2.Original
 
             double fRate =
               fanSpdSet == 1 ? 0.3 :
-              fanSpdSet == 2 ? 1.0 : 0.7; //Low, High, Middleの係数は適当
+              fanSpdSet == 2 ? 0.7 : 1.0; //Low, Midddle, Highの係数は適当
             vrf.VRFSystem.SetIndoorUnitAirFlowRate(j, vrf.VRFSystem.IndoorUnits[j].NominalAirFlowRate * fRate);
 
             //風向***********************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.AirflowDirection_Setting));
-            uint afDirSet = ((AnalogValue<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.AirflowDirection_Status));
-            uint afDirStt = ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.AirflowDirection_Setting));
+            uint afDirSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.AirflowDirection_Status));
+            uint afDirStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
-              ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
+              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
             vrf.Direction[j] = (Math.PI / 180d) * (1 + afDirSet) * 22.5;
 
             //リモコン手元操作許可禁止*****
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting));
             bool rmtPmtSPSet = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status));
-            bool rmtPmtSPStt = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            bool rmtPmtSPStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
             if(rmtPmtSPSet != rmtPmtSPStt)
               vrf.PermitSPControl[j] = rmtPmtSPSet;
 
@@ -301,8 +302,8 @@ namespace Shizuku2.Original
           bBase = 1000 * (i + 1);
 
           //蒸発温度・凝縮温度強制設定***
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting));
-          bool fcRefSet = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting));
+          bool fcRefSet = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status));
           bool fcRefStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
           if (fcRefSet != fcRefStt) //設定!=状態の場合には更新処理
@@ -359,7 +360,7 @@ namespace Shizuku2.Original
               vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) : vrf.GetSetpoint(j, true);
 
             //吸い込み室温****************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
             ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
 
             iuNum++;

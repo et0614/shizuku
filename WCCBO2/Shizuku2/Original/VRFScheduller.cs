@@ -1,25 +1,53 @@
 ﻿using BaCSharp;
 using System.IO.BACnet;
 using System.IO.BACnet.Base;
+using static Popolo.ThermophysicalProperty.Refrigerant;
 
-namespace Shizuku2.MitsubishiElectric
+namespace Shizuku2.Original
 {
   public class VRFScheduller : IVRFScheduller
   {
 
     #region 定数宣言
 
-    const uint TARGET_DEVICE_ID = 5; //MitsubishiElectric.Controller
+    const uint TARGET_DEVICE_ID = 2; //Original.Controller
 
-    const uint THIS_DEVICE_ID = 6;
+    const uint THIS_DEVICE_ID = 3;
 
     public const int TARGET_EXCLUSIVE_PORT = 0xBAC0 + (int)TARGET_DEVICE_ID;
 
     public const int THIS_EXCLUSIVE_PORT = 0xBAC0 + (int)THIS_DEVICE_ID;
 
-    const string DEVICE_NAME = "Mitsubishi Electric VRF scheduller";
+    const string DEVICE_NAME = "WCCBO Original VRF scheduller";
 
-    const string DEVICE_DESCRIPTION = "Mitsubishi Electric VRF scheduller";
+    const string DEVICE_DESCRIPTION = "WCCBO Original VRF scheduller";
+
+    #endregion
+
+    #region 列挙型
+
+    private enum MemberNumber
+    {
+      OnOff_Setting = 1,
+      OnOff_Status = 2,
+      OperationMode_Setting = 3,
+      OperationMode_Status = 4,
+      Setpoint_Setting = 5,
+      Setpoint_Status = 6,
+      MeasuredRoomTemperature = 7,
+      FanSpeed_Setting = 8,
+      FanSpeed_Status = 9,
+      AirflowDirection_Setting = 10,
+      AirflowDirection_Status = 11,
+      RemoteControllerPermittion_Setpoint_Setting = 12,
+      RemoteControllerPermittion_Setpoint_Status = 13,
+      ForcedRefrigerantTemperature_Setting = 14,
+      ForcedRefrigerantTemperature_Status = 15,
+      EvaporatingTemperatureSetpoint_Setting = 16,
+      EvaporatingTemperatureSetpoint_Status = 17,
+      CondensingTemperatureSetpoint_Setting = 18,
+      CondensingTemperatureSetpoint_Status = 19
+    }
 
     #endregion
 
@@ -37,9 +65,6 @@ namespace Shizuku2.MitsubishiElectric
 
     private BACnetCommunicator communicator;
 
-    /// <summary>室内機の台数を取得する</summary>
-    public int NumberOfIndoorUnits { get; private set; }
-
     /// <summary>スケジュールを有効にする</summary>
     public bool EnableScheduling { get; set; } = false;
 
@@ -53,13 +78,11 @@ namespace Shizuku2.MitsubishiElectric
     {
       dtAccl = new DateTimeAccelerator(accRate, now);
 
-      NumberOfIndoorUnits = 0;
+      List<VRFUnitIndex> vrfInd = new List<VRFUnitIndex>();
       for (int i = 0; i < vrfs.Length; i++)
-        NumberOfIndoorUnits += vrfs[i].VRFSystem.IndoorUnitNumber;
-
-      //AE-200Jが扱える台数は50台まで
-      if (50 <= NumberOfIndoorUnits)
-        throw new Exception("Invalid indoor unit number");
+        for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
+          vrfInd.Add(new VRFUnitIndex(i, j));
+      VRFUnitIndex[] vrfUnitIndices = vrfInd.ToArray();
 
       DeviceObject dObject = new DeviceObject(THIS_DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
       communicator = new BACnetCommunicator(dObject, THIS_EXCLUSIVE_PORT);
@@ -77,48 +100,54 @@ namespace Shizuku2.MitsubishiElectric
             {
               BacnetObjectId boID;
               List<BacnetValue> values;
-              for (int grpNum = 0; grpNum < NumberOfIndoorUnits; grpNum++)
+
+              for (int oHex = 0; oHex < vrfs.Length; oHex++)
               {
-                //On/Off
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(10000 + grpNum * 100 + 1));
-                values = new List<BacnetValue>
+                for (int iHex = 0; iHex < vrfs[oHex].VRFSystem.IndoorUnitNumber; iHex++)
                 {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
-                };
-                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  int bBase = bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
 
-                //Mode
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 5));
-                bool isCooling = 5 <= dtAccl.AcceleratedDateTime.Month && dtAccl.AcceleratedDateTime.Month <= 10;
-                values = new List<BacnetValue>
-                {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, isCooling ? 1u : 2u) //1:冷房, 2:暖房, 3:換気
-                };
-                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  //On/Off
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
+                  };
+                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
-                //SP
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(10000 + grpNum * 100 + (isCooling ? 24 : 25)));
-                values = new List<BacnetValue>
-                {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, isCooling ? 26d : 25d)
-                };
-                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  //Mode
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.OperationMode_Setting));
+                  bool isCooling = 5 <= dtAccl.AcceleratedDateTime.Month && dtAccl.AcceleratedDateTime.Month <= 10;
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, isCooling ? 1u : 2u) //1:冷房, 2:暖房, 3:換気
+                  };
+                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
-                //角度
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 22));
-                values = new List<BacnetValue>
-                {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 4u) //1水平,2下向き60%,3下向き80%,4下向き100%,5スイング
-                };
-                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  //SP
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, isCooling ? 26d : 25d)
+                  };
+                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
-                //風量
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(10000 + grpNum * 100 + 7));
-                values = new List<BacnetValue>
-                {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 1u) //1弱,2強,3中2,4中1,5自動
-                };
-                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  //風量
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.FanSpeed_Setting));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 1u)  //1:Low, 2:Midddle, 3:High*****3でError。直せ。
+                  };
+                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                  //角度
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.AirflowDirection_Setting));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 3u) //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
+                  };
+                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                }
               }
             }
             //空調停止時
@@ -126,15 +155,21 @@ namespace Shizuku2.MitsubishiElectric
             {
               BacnetObjectId boID;
               List<BacnetValue> values;
-              for (int grpNum = 0; grpNum < NumberOfIndoorUnits; grpNum++)
+
+              for (int oHex = 0; oHex < vrfs.Length; oHex++)
               {
-                //On/Off
-                boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(10000 + grpNum * 100 + 1));
-                values = new List<BacnetValue>
+                for (int iHex = 0; iHex < vrfs[oHex].VRFSystem.IndoorUnitNumber; iHex++)
                 {
-                  new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
-                };
-                communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  int bBase = bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
+
+                  //On/Off
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
+                  };
+                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                }
               }
             }
 
@@ -262,6 +297,29 @@ namespace Shizuku2.MitsubishiElectric
     public void EndService()
     {
       communicator.EndService();
+    }
+
+    #endregion
+
+    #region 構造体定義
+
+    /// <summary>室外機と室内機の番号を保持する</summary>
+    private struct VRFUnitIndex
+    {
+      public string ToString()
+      {
+        return (OUnitIndex + 1).ToString() + "-" + (IUnitIndex + 1).ToString();
+      }
+
+      public int OUnitIndex { get; private set; }
+
+      public int IUnitIndex { get; private set; }
+
+      public VRFUnitIndex(int oUnitIndex, int iUnitIndex)
+      {
+        OUnitIndex = oUnitIndex;
+        IUnitIndex = iUnitIndex;
+      }
     }
 
     #endregion

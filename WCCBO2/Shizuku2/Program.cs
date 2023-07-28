@@ -123,6 +123,10 @@ namespace Shizuku2
       //VRFコントローラ用意
       switch (initSettings["controller"])
       {
+        case 0:
+          vrfCtrl = new Original.VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new Original.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          break;
         case 1:
           vrfCtrl = new Daikin.VRFController(vrfs);
           if (initSettings["scheduller"] == 1) vrfSchedl = new Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);

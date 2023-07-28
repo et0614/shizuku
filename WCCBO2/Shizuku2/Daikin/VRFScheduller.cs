@@ -98,8 +98,6 @@ namespace Shizuku2.Daikin
     /// <summary>スケジュールを有効にする</summary>
     public bool EnableScheduling { get; set; } = false;
 
-    private readonly ExVRFSystem[] vrfSystems;
-
     BacnetAddress targetBACAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + TARGET_EXCLUSIVE_PORT.ToString());
 
     #endregion
@@ -108,7 +106,6 @@ namespace Shizuku2.Daikin
 
     public VRFScheduller(ExVRFSystem[] vrfs, uint accRate, DateTime now)
     {
-      vrfSystems = vrfs;
       dtAccl = new DateTimeAccelerator(accRate, now);
 
       NumberOfIndoorUnits = 0;
