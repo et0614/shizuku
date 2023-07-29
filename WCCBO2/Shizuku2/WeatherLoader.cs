@@ -19,6 +19,11 @@ namespace Shizuku2
       randomWeather.MakeWeather(1, true, out dbTmp, out hmdRatio, out radiation, out bool[] _);
     }
 
+    /// <summary>外気条件を取得する</summary>
+    /// <param name="now">現在の日時</param>
+    /// <param name="drybulbTemperature">乾球温度[CDB]</param>
+    /// <param name="absoluteHumidity">絶対湿度[g/kg]</param>
+    /// <param name="sun">更新する太陽</param>
     public void GetWeather(DateTime now, 
       out double drybulbTemperature, out double absoluteHumidity, 
       ref Sun sun)

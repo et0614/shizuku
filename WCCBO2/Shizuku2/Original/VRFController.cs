@@ -326,12 +326,10 @@ namespace Shizuku2.Original
             ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tCndSet;
 
           //蒸発・凝縮温度反映
-          vrfSystems[i].VRFSystem.MaxEvaporatingTemperature
-            = vrfSystems[i].VRFSystem.MinEvaporatingTemperature
+          vrfSystems[i].VRFSystem.TargetEvaporatingTemperature
             = fcRefSet ? tEvpSet : VRFSystem.NOMINAL_EVPORATING_TEMPERATURE;
 
-          vrfSystems[i].VRFSystem.MaxCondensingTemperature
-            = vrfSystems[i].VRFSystem.MinCondensingTemperature
+          vrfSystems[i].VRFSystem.TargetCondensingTemperature
             = fcRefSet ? tCndSet : VRFSystem.NOMINAL_CONDENSING_TEMPERATURE;
         }
       }

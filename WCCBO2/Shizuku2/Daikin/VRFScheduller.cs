@@ -87,7 +87,7 @@ namespace Shizuku2.Daikin
     { get { return dtAccl.AcceleratedDateTime; } }
 
     /// <summary>加速度を取得する</summary>
-    public uint AccelerationRate 
+    public int AccelerationRate 
     { get { return dtAccl.AccelerationRate; } }
 
     private BACnetCommunicator communicator;
@@ -104,7 +104,7 @@ namespace Shizuku2.Daikin
 
     #region コンストラクタ
 
-    public VRFScheduller(ExVRFSystem[] vrfs, uint accRate, DateTime now)
+    public VRFScheduller(ExVRFSystem[] vrfs, int accRate, DateTime now)
     {
       dtAccl = new DateTimeAccelerator(accRate, now);
 
@@ -244,20 +244,20 @@ namespace Shizuku2.Daikin
       if (
         port == DateTimeController.EXCLUSIVE_PORT &&
         monitoredObjectIdentifier.type == BacnetObjectTypes.OBJECT_ANALOG_OUTPUT &&
-        monitoredObjectIdentifier.instance == 0)
+        monitoredObjectIdentifier.instance == (uint)DateTimeController.MemberNumber.AccerarationRate)
       {
         //この処理は汚いが・・・
         foreach (BacnetPropertyValue value in values)
         {
           if (value.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PRESENT_VALUE)
           {
-            dtAccl.AccelerationRate = (uint)value.value[0].Value;
+            dtAccl.AccelerationRate = (int)value.value[0].Value;
             break;
           }
         }
 
         //現在の日時を更新
-        updateCurrentDateTime();
+        updateDateTime();
       }
     }
 
@@ -265,28 +265,44 @@ namespace Shizuku2.Daikin
     public void Synchronize()
     {
       updateAccelerationRate();
-      updateCurrentDateTime();
+      updateDateTime();
     }
 
     /// <summary>加速度を更新する</summary>
     private void updateAccelerationRate()
     {
       BacnetAddress adr = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, 0);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
       if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-        dtAccl.AccelerationRate = (uint)val[0].Value;
+        dtAccl.AccelerationRate = (int)val[0].Value;
     }
 
     /// <summary>日時を更新する</summary>
-    private void updateCurrentDateTime()
+    private void updateDateTime()
     {
-      BacnetAddress adr = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, 0);
-      if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      BacnetAddress adr;
+      BacnetObjectId boID;
+
+      //基準日時（加速時間）
+      adr = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseAcceleratedDateTime);
+      if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val1))
       {
-        DateTime dt1 = (DateTime)val[0].Value;
-        DateTime dt2 = (DateTime)val[1].Value;
-        dtAccl.AcceleratedDateTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+        DateTime dt1 = (DateTime)val1[0].Value;
+        DateTime dt2 = (DateTime)val1[1].Value;
+        DateTime bAccDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+
+        //基準日時（現実時間）
+        boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseRealDateTime);
+        if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val2))
+        {
+          dt1 = (DateTime)val2[0].Value;
+          dt2 = (DateTime)val2[1].Value;
+          DateTime bRealDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+
+          //初期化
+          dtAccl.InitDateTime(dtAccl.AccelerationRate, bRealDTime, bAccDTime);
+        }
       }
     }
 
@@ -314,8 +330,11 @@ namespace Shizuku2.Daikin
       //COV通告登録処理
       communicator.Client.OnCOVNotification += Client_OnCOVNotification;
       BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, 0);
-      communicator.Client.SubscribeCOVRequest(bacAddress, boID, 0, false, false, 3600);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
+      communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)DateTimeController.MemberNumber.AccerarationRate, false, false, 3600);
+
+      //Who is送信
+      communicator.Client.WhoIs();
     }
 
     /// <summary>BACnetControllerのリソースを解放する</summary>

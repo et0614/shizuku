@@ -21,19 +21,23 @@ namespace Shizuku2
 
     #region インスタンス変数・プロパティ
 
-    private BACnetCommunicator communicator;
+    public BACnetCommunicator Communicator;
 
-    public DateTimeAccelerator dtAccelerator;
+    private DateTimeAccelerator dtAccelerator;
 
     /// <summary>タイムステップ[sec]</summary>
     private double timeStep = 1;
 
     /// <summary>加速度を取得する</summary>
-    public uint AccelerationRate
+    public int AccelerationRate
     {
+      set
+      {
+        dtAccelerator.AccelerationRate = value;
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
+        ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = value;
+      }
       get { return dtAccelerator.AccelerationRate; }
-      private set
-      { dtAccelerator.AccelerationRate = value; }
     }
 
     /// <summary>現在の日時</summary>
@@ -43,7 +47,6 @@ namespace Shizuku2
     public DateTime CurrentDateTime
     {
       get { return cDTime; }
-      set { cDTime = dtAccelerator.AcceleratedDateTime = value; }
     }
 
     /// <summary>タイムステップ[sec]を設定・取得する</summary>
@@ -55,15 +58,40 @@ namespace Shizuku2
 
     #endregion
 
+    #region 列挙型
+
+    public enum MemberNumber
+    {
+      CurrentDateTimeInSimulation = 1,
+      AccerarationRate = 2,
+      BaseRealDateTime = 3,
+      BaseAcceleratedDateTime = 4,
+    }
+
+    #endregion
+
     #region コンストラクタ
 
-    public DateTimeController(DateTime currentDTime, uint accRate)
+    public DateTimeController(DateTime currentDTime, int accRate)
     {
       dtAccelerator = new DateTimeAccelerator(accRate, currentDTime);
-      CurrentDateTime = currentDTime;
+      cDTime = currentDTime;
 
-      communicator = new BACnetCommunicator
+      Communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
+
+      Communicator.Client.OnIam += Client_OnIam;
+      Communicator.Client.OnWhoIs += Client_OnWhoIs;
+    }
+
+    private void Client_OnWhoIs(BacnetClient sender, BacnetAddress adr, int lowLimit, int highLimit)
+    {
+      Console.WriteLine("Recieve \"Who is\" request from, Address =" + adr.ToString());
+    }
+
+    private void Client_OnIam(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxAPDU, BacnetSegmentations segmentation, ushort vendorId)
+    {
+      //Console.WriteLine("Recieve \"I am\" request from, Address =" + adr.ToString() +" : Device ID = " + deviceId);
     }
 
     /// <summary>BACnet Deviceを作成する</summary>
@@ -71,24 +99,33 @@ namespace Shizuku2
     {
       DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
 
-      //シミュレーション内の現在日時
-      BacnetDateTime dTime1 = new BacnetDateTime(0, "Current date and time on the simulation", "Current date and time on the simulation. This value might been accelerated.");
+      //シミュレーション内の現在日時（タイムステップで離散化された値）
+      BacnetDateTime dTime1 = new BacnetDateTime(
+        (int)MemberNumber.CurrentDateTimeInSimulation, 
+        "Current date and time on the simulation", 
+        "Current date and time on the simulation. This value might been accelerated.");
       dTime1.m_PresentValue = CurrentDateTime;
       dObject.AddBacnetObject(dTime1);
 
       //加速度
-      dObject.AddBacnetObject(new AnalogOutput<uint>
-        (0,
+      dObject.AddBacnetObject(new AnalogOutput<int>
+        ((int)MemberNumber.AccerarationRate,
         "Acceraration rate",
         "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS));
 
       //加速の基準となる現実の日時
-      BacnetDateTime dTime2 = new BacnetDateTime(1, "Base real date and time", "Real world date and time starting to accelerate.");
+      BacnetDateTime dTime2 = new BacnetDateTime(
+        (int)MemberNumber.BaseRealDateTime, 
+        "Base real date and time", 
+        "Real world date and time starting to accelerate.");
       dTime2.m_PresentValue = dtAccelerator.BaseRealDateTime;
       dObject.AddBacnetObject(dTime2);
 
       //加速の基準となるシミュレーション内の日時
-      BacnetDateTime dTime3 = new BacnetDateTime(2, "Base date and time in the simulation", "Date and time on the simulation when the acceleration started");
+      BacnetDateTime dTime3 = new BacnetDateTime(
+        (int)MemberNumber.BaseAcceleratedDateTime, 
+        "Base date and time in the simulation", 
+        "Date and time on the simulation when the acceleration started");
       dTime3.m_PresentValue = dtAccelerator.BaseAcceleratedDateTime;
       dObject.AddBacnetObject(dTime3);
 
@@ -119,13 +156,13 @@ namespace Shizuku2
       BacnetObjectId boID;
 
       //加速度
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, 0);
-      AccelerationRate = ((AnalogOutput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
+      AccelerationRate = ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
     }
 
     public void EndService()
     {
-      communicator.EndService();
+      Communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime)
@@ -133,13 +170,13 @@ namespace Shizuku2
       BacnetObjectId boID;
 
       //現在の日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, 0);
-      ((BacnetDateTime)communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = CurrentDateTime;
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.CurrentDateTimeInSimulation);
+      ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = CurrentDateTime;
     }
 
     public void StartService()
     {
-      communicator.StartService();
+      Communicator.StartService();
     }
 
     #endregion

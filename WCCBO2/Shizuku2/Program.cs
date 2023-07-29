@@ -5,9 +5,12 @@ using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.Weather;
 using System.Security.Cryptography;
 
+using System.IO.BACnet;
 using System.Collections.Generic;
 using Shizuku.Models;
 using Popolo.Numerics;
+using PacketDotNet.Tcp;
+using static Shizuku2.DateTimeController;
 
 namespace Shizuku2
 {
@@ -114,7 +117,7 @@ namespace Shizuku2
         initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
         initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
         new DateTime(1999, 4, 28, 0, 0, 0); //中間期
-      dtCtrl = new DateTimeController(dt, (uint)initSettings["accelerationRate"]);
+      dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
       //初期化・周期定常化処理
       preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
@@ -139,11 +142,25 @@ namespace Shizuku2
           throw new Exception("VRF controller number not supported.");
       }
 
-      //コントローラ開始
+      //VRF controller開始
       dtCtrl.StartService();
       vrfCtrl.StartService();
+
+      //BACnet controllerの登録を待つ
+      Console.WriteLine("Waiting for BACnet controller registration.");
+      Console.WriteLine("Press \"Enter\" key to continue.");
+      //Defaultコントローラ開始
       vrfSchedl?.StartService();
       vrfSchedl?.Synchronize();
+      while (Console.ReadKey().Key != ConsoleKey.Enter) ;
+
+      //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
+      List<BacnetValue> values = new List<BacnetValue>();
+      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, initSettings["accelerationRate"]));
+      dtCtrl.Communicator.Client.WritePropertyRequest(
+        new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString()), 
+        boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
       bool finished = false;
       try
@@ -220,13 +237,14 @@ namespace Shizuku2
             //テナントを更新（内部発熱もここで更新される）
             tenants.Update(dtCtrl.CurrentDateTime);
 
-            //執務者によるコントロールを反映
-            //***
-
             //VRF更新
             setVRFInletAir();
             for (int i = 0; i < vrfs.Length; i++)
             {
+              //外気条件
+              vrfs[i].VRFSystem.OutdoorAirDrybulbTemperature = dbt;
+              vrfs[i].VRFSystem.OutdoorAirHumidityRatio = 0.001 * hmd;
+              //制御と状態の更新
               vrfs[i].UpdateControl(building.CurrentDateTime);
               vrfs[i].VRFSystem.UpdateState(false);
             }
