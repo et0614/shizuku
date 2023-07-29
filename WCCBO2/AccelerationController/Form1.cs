@@ -6,6 +6,9 @@ namespace AccelerationController
   public partial class Form1 : Form
   {
 
+    /// <summary>自身のDevice ID</summary>
+    const int DEVICE_ID = 7000;
+
     #region 加速度制御コントローラ（DateTimeController）の情報
 
     /// <summary>加速度制御コントローラのBACnet Device ID</summary>
@@ -33,9 +36,8 @@ namespace AccelerationController
     {
       InitializeComponent();
 
-      const int DEV_ID = 1000;
-      DeviceObject dObject = new DeviceObject(DEV_ID, "Sample controller controlling the speed of emulator.", "Sample controller controlling the speed of emulator.", true);
-      communicator = new BACnetCommunicator(dObject, 0xBAC0 + DEV_ID);
+      DeviceObject dObject = new DeviceObject(DEVICE_ID, "Sample controller controlling the speed of emulator.", "Sample controller controlling the speed of emulator.", true);
+      communicator = new BACnetCommunicator(dObject, 0xBAC0 + DEVICE_ID);
 
       communicator.StartService();
       //COV通告登録処理
