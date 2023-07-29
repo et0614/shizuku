@@ -172,6 +172,14 @@ namespace Shizuku2
       //現在の日時
       boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.CurrentDateTimeInSimulation);
       ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = CurrentDateTime;
+
+      //加速が開始された現実の日時
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseRealDateTime);
+      ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = dtAccelerator.BaseRealDateTime;
+
+      //加速された日時における加速開始日時
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseAcceleratedDateTime);
+      ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = dtAccelerator.BaseAcceleratedDateTime;
     }
 
     public void StartService()
