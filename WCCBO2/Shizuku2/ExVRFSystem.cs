@@ -111,14 +111,21 @@ namespace Shizuku2
     /// <summary>受信した制御信号にもとづいてVRFの制御を更新する</summary>
     public void UpdateControl(DateTime now)
     {
-      //運転モードを確認
-      VRFSystem.Mode mode = VRFSystem.Mode.ShutOff;
+      //室外機の運転モードを確認：若い番号の室内機を優先
+      VRFSystem.CurrentMode = VRFSystem.Mode.ShutOff;
       for (int i = 0; i < IndoorUnitModes.Length; i++)
       {
-        if (IndoorUnitModes[i] == Mode.Cooling || IndoorUnitModes[i] == Mode.Dry) mode = VRFSystem.Mode.Cooling;
-        else if (IndoorUnitModes[i] == Mode.Heating) mode = VRFSystem.Mode.Heating;
+        if (IndoorUnitModes[i] == Mode.Cooling || IndoorUnitModes[i] == Mode.Dry)
+        {
+          VRFSystem.CurrentMode = VRFSystem.Mode.Cooling;
+          break;
+        }
+        else if (IndoorUnitModes[i] == Mode.Heating)
+        {
+          VRFSystem.CurrentMode = VRFSystem.Mode.Heating;
+          break;
+        }
       }
-      VRFSystem.CurrentMode = mode;
 
       //運転モードを設定
       for (int i = 0; i < IndoorUnitModes.Length; i++)
@@ -126,35 +133,45 @@ namespace Shizuku2
         if (nextControllerbleTime[i] <= now)
         {
           ImmutableVRFUnit iUnit = VRFSystem.IndoorUnits[i];
+
+          //室外機が停止した場合には室内機も停止
           if (
-            mode == VRFSystem.Mode.ShutOff && 
+            VRFSystem.CurrentMode == VRFSystem.Mode.ShutOff && 
             iUnit.CurrentMode != VRFUnit.Mode.ShutOff)
           {
             VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
             nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
           }
+
+          //室外機冷却の場合
           else if (
-            mode == VRFSystem.Mode.Cooling && 
+            VRFSystem.CurrentMode == VRFSystem.Mode.Cooling && 
             spC[i] < VRFSystem.IndoorUnits[i].InletAirTemperature && 
             iUnit.CurrentMode != VRFUnit.Mode.Cooling)
           {
             VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
             nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
           }
+
+          //室外機加熱の場合
           else if (
-            mode == VRFSystem.Mode.Heating && 
+            VRFSystem.CurrentMode == VRFSystem.Mode.Heating && 
             VRFSystem.IndoorUnits[i].InletAirTemperature < spH[i] && 
             iUnit.CurrentMode != VRFUnit.Mode.Heating)
           {
             VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
             nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
           }
-          else if (iUnit.CurrentMode != VRFUnit.Mode.ThermoOff)
+
+          //室外機サーモオフの場合には室内機もサーモオフ
+          else if (
+            VRFSystem.CurrentMode == VRFSystem.Mode.ThermoOff &&
+            iUnit.CurrentMode != VRFUnit.Mode.ThermoOff)
           {
             VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
             nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
           }
-        }        
+        }
       }
 
       //消費電力を更新
