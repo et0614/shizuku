@@ -491,6 +491,9 @@ namespace Shizuku.Models
 
     /// <summary>自席ゾーンを取得する</summary>
     int DeskZoneNumber { get; }
+
+    /// <summary>Langevinによる温冷感モデル</summary>
+    OccupantModel_Langevin OCModel { get; }
   }
 
   #endregion

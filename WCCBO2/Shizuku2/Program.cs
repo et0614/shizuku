@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using Shizuku.Models;
 using Popolo.Numerics;
 using PacketDotNet.Tcp;
-using static Shizuku2.DateTimeController;
+using Popolo.HVAC.HeatExchanger;
 
 namespace Shizuku2
 {
@@ -120,7 +120,7 @@ namespace Shizuku2
       dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
       //初期化・周期定常化処理
-      preRun(dtCtrl.CurrentDateTime.AddDays(-1), sun, wetLoader);
+      preRun(dtCtrl.CurrentDateTime, sun, wetLoader);
       Console.WriteLine("Done." + Environment.NewLine);
 
       //VRFコントローラ用意
@@ -207,11 +207,16 @@ namespace Shizuku2
     private static void run(WeatherLoader wetLoader, Sun sun)
     {
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
+      DateTime nextOutput = dtCtrl.CurrentDateTime;
       uint ttlOcNum = 0;
-      using (StreamWriter sWriter = new StreamWriter("output.csv"))
+      if (!Directory.Exists("data")) Directory.CreateDirectory("data");
+      using (StreamWriter swGen = new StreamWriter("data" + Path.DirectorySeparatorChar + "general.csv"))
+      using (StreamWriter swZone = new StreamWriter("data" + Path.DirectorySeparatorChar + "zone.csv"))
+      using (StreamWriter swVRF = new StreamWriter("data" + Path.DirectorySeparatorChar + "vrf.csv"))
+      using (StreamWriter swOcc = new StreamWriter("data" + Path.DirectorySeparatorChar + "occupant.csv"))
       {
         //タイトル行書き出し
-        outputStatus(sWriter, true);
+        outputStatus(swGen, swZone, swVRF, swOcc, true);
 
         //加速度を考慮して計算を進める
         while (true)
@@ -266,7 +271,11 @@ namespace Shizuku2
             getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
 
             //書き出し
-            outputStatus(sWriter, false);
+            if (nextOutput <= building.CurrentDateTime)
+            {
+              outputStatus(swGen, swZone, swVRF, swOcc, false);
+              nextOutput = building.CurrentDateTime.AddSeconds(initSettings["outputSpan"]);
+            }
           }
 
           //1週間で計算終了
@@ -303,6 +312,12 @@ namespace Shizuku2
           dt = dt.AddHours(1);
         }
       }
+
+      //気象データと時刻を初期化
+      sun.Update(dTime);
+      wetLoader.GetWeather(dTime, out double dbt2, out double hmd2, ref sun);
+      building.UpdateOutdoorCondition(dTime, sun, dbt2, 0.001 * hmd2, 0);
+
       building.TimeStep = tStep;
     }
 
@@ -323,57 +338,134 @@ namespace Shizuku2
         eConsumption += vrfs[i].ElectricityMeters.IntegratedValue * ELC_PRIM_RATE;
     }
 
-    private static DateTime lastOutput;
-
-    private static void outputStatus(StreamWriter sWriter, bool isTitleLine)
+    private static void outputStatus(
+      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swOcc, bool isTitleLine)
     {
+      //タイトル行
       if (isTitleLine)
       {
-        //初回にすぐに書き出すための調整
-        lastOutput = building.CurrentDateTime.AddMinutes(-1);
+        //一般の情報
+        swGen.Write("date,time");
+        swGen.WriteLine(",Outdoor drybulb temperature[C],Outdoor humidity ratio[g/kg],Global horizontal radiation [W/m2]");
 
-        sWriter.Write("date,time");
+        //ゾーンの情報
+        swZone.Write("date,time");
+        for (int i = 0; i < building.MultiRoom.Length; i++)
+        {
+          int znNum = building.MultiRoom[i].ZoneNumber / 2; //上部下部空間それぞれ書き出す
+          for (int j = 0; j < znNum; j++)
+          {
+            swZone.Write(
+              "," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature(High) [CDB]" +
+              "," + building.MultiRoom[i].Zones[j + znNum].Name + " drybulb temperature(Low) [CDB]" +
+              "," + building.MultiRoom[i].Zones[j].Name + " absolute humidity(High) [g/kg]" +
+              "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity(Low) [g/kg]"
+              );
+          }
+        }
+        swZone.WriteLine();
 
-        //部屋の温湿度・執務者数
-        for (int i = 0; i < building.MultiRoom.Length; i++)
-          for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
-            sWriter.Write("," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature [CDB]");
-        for (int i = 0; i < building.MultiRoom.Length; i++)
-          for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
-            sWriter.Write("," + building.MultiRoom[i].Zones[j].Name + " absolute humidity [kg/kg]");
-        for (int i = 0; i < building.MultiRoom.Length; i++)
-          for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
-            sWriter.Write("," + building.MultiRoom[i].Zones[j].Name + " number [occupants]");
-
-        //VRFのエネルギー
+        //VRFの情報
+        swVRF.Write("date,time");
         for (int i = 0; i < vrfs.Length; i++)
-          sWriter.Write(",VRF-" + (i+1) + " electricity [kW]");
+        {
+          int oHex = i + 1;
+          swVRF.Write(",VRF" + oHex + " electricity [kW]");
+          for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
+          {
+            string name = ",VRF" + oHex + "-" + (j + 1);
+            swVRF.Write(
+              name + " Mode" +
+              name + " Return temperature [C]" +
+              name + " Return humidity [g/kg]" +
+              name + " Supply temperature [C]" +
+              name + " Supply humidity [g/kg]" +
+              name + " Airflow rate [kg/s]"
+              );
+          }
+        }
+        swVRF.WriteLine();
 
-        sWriter.WriteLine();
+        //執務者情報
+        swOcc.Write("date,time");
+        for (int i = 0; i < tenants.Tenants.Length; i++)
+        {
+          for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+          {
+            ImmutableOccupant occ = tenants.Tenants[i].Occupants[j];
+            swOcc.Write(
+              "," + occ.FirstName + " " + occ.LastName + " Clo value [clo]" +
+              "," + occ.FirstName + " " + occ.LastName + " Thermal sensation [-]"
+              );
+          }
+        }
+        swOcc.WriteLine();
       }
 
-      //1minに1度書き出し
-      if (lastOutput.Minute == building.CurrentDateTime.Minute) return;
-      lastOutput = building.CurrentDateTime;
+      //ここから実際の値
+      string dtHeader = building.CurrentDateTime.ToString("MM/dd") + "," + building.CurrentDateTime.ToString("HH:mm:ss");
 
-      sWriter.Write(building.CurrentDateTime.ToString("MM/dd") + "," + building.CurrentDateTime.ToString("HH:mm:ss"));
+      //一般の情報
+      swGen.Write(dtHeader);
+      swGen.WriteLine(
+        "," + building.OutdoorTemperature.ToString("F1") + 
+        "," + (1000 * building.OutdoorHumidityRatio).ToString("F1") + 
+        "," + building.Sun.GlobalHorizontalRadiation.ToString("F1"));
 
-      //部屋の温湿度・執務者数
+      //ゾーンの情報
+      swZone.Write(dtHeader);
       for (int i = 0; i < building.MultiRoom.Length; i++)
-        for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
-          sWriter.Write("," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1"));
-      for (int i = 0; i < building.MultiRoom.Length; i++)
-        for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
-          sWriter.Write("," + building.MultiRoom[i].Zones[j].HumidityRatio.ToString("F4"));
-      for (int i = 0; i < building.MultiRoom.Length; i++)
-        for (int j = 0; j < building.MultiRoom[i].ZoneNumber / 2; j++)
-          sWriter.Write("," + tenants.GetOccupantNumber(building.MultiRoom[i].Zones[j]));
+      {
+        int znNum = building.MultiRoom[i].ZoneNumber / 2; //上部下部空間それぞれ書き出す
+        for (int j = 0; j < znNum; j++)
+        {
+          swZone.Write(
+            "," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1") +
+            "," + building.MultiRoom[i].Zones[j + znNum].Temperature.ToString("F1") +
+            "," + (1000 * building.MultiRoom[i].Zones[j].HumidityRatio).ToString("F1") +
+            "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F1")
+            );
+        }
+      }
+      swZone.WriteLine();
 
-      //VRFのエネルギー
+      //VRFの情報
+      swVRF.Write(dtHeader);
       for (int i = 0; i < vrfs.Length; i++)
-        sWriter.Write("," + vrfs[i].ElectricityMeters.InstantaneousValue.ToString("F2"));
+      {
+        swVRF.Write("," + vrfs[i].ElectricityMeters.InstantaneousValue.ToString("F2"));
+        for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
+        {
+          swVRF.Write(
+            "," + vrfs[i].IndoorUnitModes[j].ToString() + 
+            "," + vrfs[i].VRFSystem.IndoorUnits[j].InletAirTemperature.ToString("F1") +
+            "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].InletAirHumidityRatio).ToString("F1") +
+            "," + vrfs[i].VRFSystem.IndoorUnits[j].OutletAirTemperature.ToString("F1") +
+            "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F1") +
+            "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3")
+            );
+        }
+      }
+      swVRF.WriteLine();
 
-      sWriter.WriteLine();
+      //執務者情報
+      swOcc.Write(dtHeader);
+      for (int i = 0; i < tenants.Tenants.Length; i++)
+      {
+        for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+        {
+          ImmutableOccupant occ = tenants.Tenants[i].Occupants[j];
+          if (occ.Worker.StayInOffice)
+          {
+            swOcc.Write(
+              "," + occ.CloValue.ToString("F3") +
+              "," + occ.OCModel.Vote.ToString()
+              );
+          }
+          else swOcc.Write(",,");
+        }
+      }
+      swOcc.WriteLine();
     }
 
     #endregion
