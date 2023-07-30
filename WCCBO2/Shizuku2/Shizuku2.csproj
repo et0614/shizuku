@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Popolo" Version="2.3.1.61" />
+    <PackageReference Include="Popolo" Version="2.3.1.63" />
   </ItemGroup>
 
   <ItemGroup>

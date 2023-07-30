@@ -389,16 +389,12 @@ namespace Shizuku2
         //執務者情報
         swOcc.Write("date,time");
         for (int i = 0; i < tenants.Tenants.Length; i++)
-        {
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
-          {
-            ImmutableOccupant occ = tenants.Tenants[i].Occupants[j];
-            swOcc.Write(
-              "," + occ.FirstName + " " + occ.LastName + " Clo value [clo]" +
-              "," + occ.FirstName + " " + occ.LastName + " Thermal sensation [-]"
-              );
-          }
-        }
+            swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Clo value [clo]");
+
+        for (int i = 0; i < tenants.Tenants.Length; i++)
+          for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+            swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Thermal sensation [-]");
         swOcc.WriteLine();
       }
 
@@ -450,21 +446,16 @@ namespace Shizuku2
 
       //執務者情報
       swOcc.Write(dtHeader);
+      //Clo値
       for (int i = 0; i < tenants.Tenants.Length; i++)
-      {
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
-        {
-          ImmutableOccupant occ = tenants.Tenants[i].Occupants[j];
-          if (occ.Worker.StayInOffice)
-          {
-            swOcc.Write(
-              "," + occ.CloValue.ToString("F3") +
-              "," + occ.OCModel.Vote.ToString()
-              );
-          }
-          else swOcc.Write(",,");
-        }
-      }
+          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ? 
+            tenants.Tenants[i].Occupants[j].CloValue.ToString("F3") : ""));
+      //温冷感申告値
+      for (int i = 0; i < tenants.Tenants.Length; i++)
+        for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ? 
+            ((int)tenants.Tenants[i].Occupants[j].OCModel.Vote).ToString("F0") : ""));
       swOcc.WriteLine();
     }
 

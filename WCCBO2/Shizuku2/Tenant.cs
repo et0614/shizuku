@@ -266,8 +266,9 @@ namespace Shizuku.Models
     /// <param name="seed">乱数シード</param>
     public void ResetRandomSeed(uint seed)
     {
+      MersenneTwister rnd = new MersenneTwister(seed);
       foreach (OfficeTenant tnt in znTenants)
-        tnt.ResetRandomSeed(seed);
+        tnt.ResetRandomSeed(rnd.Next());
     }
 
     #endregion
