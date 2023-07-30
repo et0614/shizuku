@@ -165,8 +165,8 @@ namespace Shizuku.Models
             znOccupants[i][j].ThinkControllable = controllable;
 
           //制御方向を積算
-          if (znOccupants[i][j].TryToRaiseTemperatureSP) upNum++;
-          else if (znOccupants[i][j].TryToLowerTemperatureSP) dnNum++;
+          if (znOccupants[i][j].Worker.StayInOffice && znOccupants[i][j].TryToRaiseTemperatureSP) upNum++;
+          else if (znOccupants[i][j].Worker.StayInOffice && znOccupants[i][j].TryToLowerTemperatureSP) dnNum++;
         }
         if (upNum > dnNum)
         {

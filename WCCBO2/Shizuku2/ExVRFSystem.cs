@@ -19,6 +19,9 @@ namespace Shizuku2
     /// <summary>制御が変更できる時間間隔[sec]</summary>
     private const int CONTROL_INTERVAL = 300;
 
+    /// <summary>温度制御のゼロエナジーバンド</summary>
+    private const double ZERO_ENERGY_BAND = 0.5;
+
     #endregion
 
     #region 列挙型定義
@@ -134,42 +137,61 @@ namespace Shizuku2
         {
           ImmutableVRFUnit iUnit = VRFSystem.IndoorUnits[i];
 
-          //室外機が停止した場合には室内機も停止
-          if (
-            VRFSystem.CurrentMode == VRFSystem.Mode.ShutOff && 
-            iUnit.CurrentMode != VRFUnit.Mode.ShutOff)
+          //室外機運転モードに応じて
+          switch (VRFSystem.CurrentMode)
           {
-            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
-            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
-          }
+            //停止
+            case VRFSystem.Mode.ShutOff:
+              if (iUnit.CurrentMode != VRFUnit.Mode.ShutOff)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              break;
 
-          //室外機冷却の場合
-          else if (
-            VRFSystem.CurrentMode == VRFSystem.Mode.Cooling && 
-            spC[i] < VRFSystem.IndoorUnits[i].InletAirTemperature && 
-            iUnit.CurrentMode != VRFUnit.Mode.Cooling)
-          {
-            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
-            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
-          }
+            //サーモオフ
+            case VRFSystem.Mode.ThermoOff:
+              if (iUnit.CurrentMode != VRFUnit.Mode.ThermoOff)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              break;
 
-          //室外機加熱の場合
-          else if (
-            VRFSystem.CurrentMode == VRFSystem.Mode.Heating && 
-            VRFSystem.IndoorUnits[i].InletAirTemperature < spH[i] && 
-            iUnit.CurrentMode != VRFUnit.Mode.Heating)
-          {
-            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
-            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
-          }
+            //冷却
+            case VRFSystem.Mode.Cooling:
+              if (spC[i] + 0.5 * ZERO_ENERGY_BAND < VRFSystem.IndoorUnits[i].InletAirTemperature &&
+                iUnit.CurrentMode != VRFUnit.Mode.Cooling)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              else if (VRFSystem.IndoorUnits[i].InletAirTemperature < spC[i] - 0.5 * ZERO_ENERGY_BAND &&
+                iUnit.CurrentMode == VRFUnit.Mode.Cooling)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              break;
 
-          //室外機サーモオフの場合には室内機もサーモオフ
-          else if (
-            VRFSystem.CurrentMode == VRFSystem.Mode.ThermoOff &&
-            iUnit.CurrentMode != VRFUnit.Mode.ThermoOff)
-          {
-            VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
-            nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+            //加熱
+            case VRFSystem.Mode.Heating:
+              if (VRFSystem.IndoorUnits[i].InletAirTemperature < spH[i] - 0.5 * ZERO_ENERGY_BAND &&
+                iUnit.CurrentMode != VRFUnit.Mode.Heating)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              else if (spH[i] + 0.5 * ZERO_ENERGY_BAND < VRFSystem.IndoorUnits[i].InletAirTemperature &&
+                iUnit.CurrentMode == VRFUnit.Mode.Heating)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              break;
+
+            default:
+              break;
           }
         }
       }

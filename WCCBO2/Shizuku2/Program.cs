@@ -380,7 +380,9 @@ namespace Shizuku2
               name + " Return humidity [g/kg]" +
               name + " Supply temperature [C]" +
               name + " Supply humidity [g/kg]" +
-              name + " Airflow rate [kg/s]"
+              name + " Airflow rate [kg/s]" +
+              name + " Setpoint temperature (cooling) [C]" +
+              name + " Setpoint temperature (heating) [C]"
               );
           }
         }
@@ -433,12 +435,14 @@ namespace Shizuku2
         for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
         {
           swVRF.Write(
-            "," + vrfs[i].IndoorUnitModes[j].ToString() + 
+            "," + vrfs[i].VRFSystem.IndoorUnits[j].CurrentMode.ToString() + 
             "," + vrfs[i].VRFSystem.IndoorUnits[j].InletAirTemperature.ToString("F1") +
             "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].InletAirHumidityRatio).ToString("F1") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].OutletAirTemperature.ToString("F1") +
             "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F1") +
-            "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3")
+            "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3") +
+            "," + vrfs[i].GetSetpoint(j, true).ToString("F0") +
+            "," + vrfs[i].GetSetpoint(j, false).ToString("F0")
             );
         }
       }
