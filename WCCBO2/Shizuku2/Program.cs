@@ -152,13 +152,15 @@ namespace Shizuku2
       Console.WriteLine("Press \"Enter\" key to continue.");
       //Defaultコントローラ開始
       vrfSchedl?.StartService();
-      vrfSchedl?.Synchronize();
+      //vrfSchedl?.Synchronize();
       while (Console.ReadKey().Key != ConsoleKey.Enter) ;
 
       //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
+      dtCtrl.AccelerationRate = initSettings["accelerationRate"];
+      dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //基準現在時刻を更新
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
       List<BacnetValue> values = new List<BacnetValue>();
-      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, initSettings["accelerationRate"]));
+      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, dtCtrl.AccelerationRate));
       dtCtrl.Communicator.Client.WritePropertyRequest(
         new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString()), 
         boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);

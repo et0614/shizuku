@@ -67,7 +67,6 @@ namespace AccelerationController
 
     private void Client_OnCOVNotification(BacnetClient sender, BacnetAddress adr, byte invokeId, uint subscriberProcessIdentifier, BacnetObjectId initiatingDeviceIdentifier, BacnetObjectId monitoredObjectIdentifier, uint timeRemaining, bool needConfirm, ICollection<BacnetPropertyValue> values, BacnetMaxSegments maxSegments)
     {
-
       //â¡ë¨ìxÇ™ïœâªÇµÇΩèÍçá      
       UInt16 port = BitConverter.ToUInt16(new byte[] { adr.adr[5], adr.adr[4] });
       if (
