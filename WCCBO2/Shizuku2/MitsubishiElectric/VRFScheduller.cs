@@ -179,7 +179,7 @@ namespace Shizuku2.MitsubishiElectric
       BacnetObjectId initiatingDeviceIdentifier, BacnetObjectId monitoredObjectIdentifier,
       uint timeRemaining, bool needConfirm, ICollection<BacnetPropertyValue> values, BacnetMaxSegments maxSegments)
     {
-      //加速度が変化した場合
+      //加速度が変化した場合      
       UInt16 port = BitConverter.ToUInt16(new byte[] { adr.adr[5], adr.adr[4] });
       if (
         port == DateTimeController.EXCLUSIVE_PORT &&
@@ -191,13 +191,34 @@ namespace Shizuku2.MitsubishiElectric
         {
           if (value.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PRESENT_VALUE)
           {
-            dtAccl.AccelerationRate = (int)value.value[0].Value;
+            int acc = (int)value.value[0].Value;
+
+            BacnetObjectId boID;
+            //基準日時（加速時間）
+            //adr = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DTCTRL_PORT.ToString());
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseAcceleratedDateTime);
+            if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val1))
+            {
+              DateTime dt1 = (DateTime)val1[0].Value;
+              DateTime dt2 = (DateTime)val1[1].Value;
+              DateTime bAccDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+
+              //基準日時（現実時間）
+              boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseRealDateTime);
+              if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val2))
+              {
+                dt1 = (DateTime)val2[0].Value;
+                dt2 = (DateTime)val2[1].Value;
+                DateTime bRealDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+
+                //初期化
+                dtAccl.InitDateTime(acc, bRealDTime, bAccDTime);
+              }
+            }
+
             break;
           }
         }
-
-        //現在の日時を更新
-        updateDateTime();
       }
     }
 
