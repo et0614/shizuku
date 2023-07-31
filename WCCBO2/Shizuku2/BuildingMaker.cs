@@ -84,7 +84,7 @@ namespace Shizuku2
       znNs[28] = new Zone("N_Attic", nznASum * 1.5 * 1.2, nznASum);
 
       //壁体の作成***************************************************************************************
-      Wall[] walls = new Wall[131];
+      Wall[] walls = new Wall[135];
       const double WAL_HEIGHT = 0.7;
       const double WIN_HEIGHT_HIGH = 1.0;
       const double WIN_HEIGHT_LOW = 1.0;
@@ -234,6 +234,11 @@ namespace Shizuku2
       walls[128] = new Wall(50, inUDWL);
       walls[129] = new Wall(65, inUDWL);
       walls[130] = new Wall(65, inUDWL);
+      //テナント間間仕切り
+      walls[131] = new Wall(4.0 * CEL_HEIGHT, inWL); //南側事務室南
+      walls[132] = new Wall(10.0 * CEL_HEIGHT, inWL); //南側事務室北
+      walls[133] = new Wall(10.0 * CEL_HEIGHT, inWL); //北側事務室北
+      walls[134] = new Wall(4.0 * CEL_HEIGHT, inWL); //北側事務室南
 
       //壁の初期化
       for (int i = 0; i < walls.Length; i++)
@@ -319,12 +324,29 @@ namespace Shizuku2
       //多数室の作成************************************************************************************
       MultiRooms[] mRm = new MultiRooms[2];
       //北側事務室
-      mRm[0] = new MultiRooms(1, znSs, walls, winSs);
-      for (int i = 0; i < znSs.Length; i++) mRm[0].AddZone(0, i);
+      mRm[0] = new MultiRooms(2, znSs, walls, winSs);
+      for (int i = 0; i < 6; i++)
+      {
+        mRm[0].AddZone(0, i); //西側下部
+        mRm[0].AddZone(0, i + 12); //西側上部
+        mRm[0].AddZone(1, i + 6); //東側下部
+        mRm[0].AddZone(1, i + 18); //東側上部
+      }
 
       //南側事務室
-      mRm[1] = new MultiRooms(1, znNs, walls, winNs);
-      for (int i = 0; i < znNs.Length; i++) mRm[1].AddZone(0, i);
+      mRm[1] = new MultiRooms(2, znNs, walls, winNs);
+      for (int i = 0; i < 6; i++)
+      {
+        mRm[1].AddZone(0, i); //西側下部
+        mRm[1].AddZone(0, i + 14); //西側上部
+        mRm[1].AddZone(1, i + 6); //東側下部
+        mRm[1].AddZone(1, i + 20); //東側上部
+      }
+      //東側N12, N13
+      mRm[1].AddZone(1, 12);
+      mRm[1].AddZone(1, 13);
+      mRm[1].AddZone(1, 26);
+      mRm[1].AddZone(1, 27);
 
       //外壁を登録***************************************************************************************
       //南側
@@ -408,6 +430,11 @@ namespace Shizuku2
         mRm[1].AddWall(i + 14, 117 + i, true); //上下空間下層間仕切り
         mRm[1].AddWall(i, 117 + i, false); //上下空間下層間仕切り
       }
+      //テナント間仕切り
+      mRm[0].AddWall(2, 131, true); mRm[0].AddWall(6, 131, false); //南側事務室南
+      mRm[0].AddWall(5, 132, true); mRm[0].AddWall(9, 132, false); //南側事務室北
+      mRm[1].AddWall(2, 133, true); mRm[1].AddWall(6, 133, false); //北側事務室北
+      mRm[1].AddWall(5, 134, true); mRm[1].AddWall(9, 134, false); //北側事務室南
 
       //窓を登録***************************************************************************************
       mRm[0].AddWindow(0, 0);
@@ -514,7 +541,7 @@ namespace Shizuku2
       //南：下部空間
       bModel.SetCrossVentilation(0, 0, 0, 1, 4.0 * cvRate);
       bModel.SetCrossVentilation(0, 1, 0, 2, 4.0 * cvRate);
-      bModel.SetCrossVentilation(0, 2, 0, 6, 4.0 * cvRate);
+      //bModel.SetCrossVentilation(0, 2, 0, 6, 4.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(0, 6, 0, 7, 4.0 * cvRate);
       bModel.SetCrossVentilation(0, 7, 0, 8, 4.0 * cvRate);
       bModel.SetCrossVentilation(0, 0, 0, 3, 8.5 * cvRate);
@@ -525,14 +552,13 @@ namespace Shizuku2
       bModel.SetCrossVentilation(0, 8, 0, 11, 8.5 * cvRate);
       bModel.SetCrossVentilation(0, 3, 0, 4, 10.0 * cvRate);
       bModel.SetCrossVentilation(0, 4, 0, 5, 10.0 * cvRate);
-      bModel.SetCrossVentilation(0, 5, 0, 6, 10.0 * cvRate);
-      bModel.SetCrossVentilation(0, 6, 0, 9, 10.0 * cvRate);
+      //bModel.SetCrossVentilation(0, 5, 0, 9, 10.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(0, 9, 0, 10, 10.0 * cvRate);
       bModel.SetCrossVentilation(0, 10, 0, 11, 10.0 * cvRate);
       //南：上部空間
       bModel.SetCrossVentilation(0, 12, 0, 13, 4.0 * cvRate);
       bModel.SetCrossVentilation(0, 13, 0, 14, 4.0 * cvRate);
-      bModel.SetCrossVentilation(0, 14, 0, 18, 4.0 * cvRate);
+      //bModel.SetCrossVentilation(0, 14, 0, 18, 4.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(0, 18, 0, 19, 4.0 * cvRate);
       bModel.SetCrossVentilation(0, 19, 0, 20, 4.0 * cvRate);
       bModel.SetCrossVentilation(0, 12, 0, 15, 8.5 * cvRate);
@@ -543,14 +569,13 @@ namespace Shizuku2
       bModel.SetCrossVentilation(0, 20, 0, 23, 8.5 * cvRate);
       bModel.SetCrossVentilation(0, 15, 0, 16, 10.0 * cvRate);
       bModel.SetCrossVentilation(0, 16, 0, 17, 10.0 * cvRate);
-      bModel.SetCrossVentilation(0, 17, 0, 18, 10.0 * cvRate);
-      bModel.SetCrossVentilation(0, 18, 0, 21, 10.0 * cvRate);
+      //bModel.SetCrossVentilation(0, 17, 0, 21, 10.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(0, 21, 0, 22, 10.0 * cvRate);
       bModel.SetCrossVentilation(0, 22, 0, 23, 10.0 * cvRate);
       //北：下部空間
       bModel.SetCrossVentilation(1, 0, 1, 1, 4.0 * cvRate);
       bModel.SetCrossVentilation(1, 1, 1, 2, 4.0 * cvRate);
-      bModel.SetCrossVentilation(1, 2, 1, 6, 4.0 * cvRate);
+      //bModel.SetCrossVentilation(1, 2, 1, 6, 4.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(1, 6, 1, 7, 4.0 * cvRate);
       bModel.SetCrossVentilation(1, 7, 1, 8, 4.0 * cvRate);
       bModel.SetCrossVentilation(1, 8, 1, 9, 4.0 * cvRate);
@@ -563,15 +588,14 @@ namespace Shizuku2
       bModel.SetCrossVentilation(1, 9, 1, 13, 8.5 * cvRate);
       bModel.SetCrossVentilation(1, 3, 1, 4, 10.0 * cvRate);
       bModel.SetCrossVentilation(1, 4, 1, 5, 10.0 * cvRate);
-      bModel.SetCrossVentilation(1, 5, 1, 6, 10.0 * cvRate);
-      bModel.SetCrossVentilation(1, 6, 1, 10, 10.0 * cvRate);
+      //bModel.SetCrossVentilation(1, 5, 1, 10, 10.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(1, 10, 1, 11, 10.0 * cvRate);
       bModel.SetCrossVentilation(1, 11, 1, 12, 10.0 * cvRate);
       bModel.SetCrossVentilation(1, 12, 1, 13, 10.0 * cvRate);
       //北：上部空間
       bModel.SetCrossVentilation(1, 14, 1, 15, 4.0 * cvRate);
       bModel.SetCrossVentilation(1, 15, 1, 16, 4.0 * cvRate);
-      bModel.SetCrossVentilation(1, 16, 1, 20, 4.0 * cvRate);
+      //bModel.SetCrossVentilation(1, 16, 1, 20, 4.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(1, 20, 1, 21, 4.0 * cvRate);
       bModel.SetCrossVentilation(1, 21, 1, 22, 4.0 * cvRate);
       bModel.SetCrossVentilation(1, 22, 1, 23, 4.0 * cvRate);
@@ -584,8 +608,7 @@ namespace Shizuku2
       bModel.SetCrossVentilation(1, 23, 1, 27, 8.5 * cvRate);
       bModel.SetCrossVentilation(1, 17, 1, 18, 10.0 * cvRate);
       bModel.SetCrossVentilation(1, 18, 1, 19, 10.0 * cvRate);
-      bModel.SetCrossVentilation(1, 19, 1, 20, 10.0 * cvRate);
-      bModel.SetCrossVentilation(1, 20, 1, 24, 10.0 * cvRate);
+      //bModel.SetCrossVentilation(1, 19, 1, 24, 10.0 * cvRate); //テナント間のため、削除
       bModel.SetCrossVentilation(1, 24, 1, 25, 10.0 * cvRate);
       bModel.SetCrossVentilation(1, 25, 1, 26, 10.0 * cvRate);
       bModel.SetCrossVentilation(1, 26, 1, 27, 10.0 * cvRate);

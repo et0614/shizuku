@@ -357,10 +357,10 @@ namespace Shizuku2
           for (int j = 0; j < znNum; j++)
           {
             swZone.Write(
-              "," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature(High) [CDB]" +
-              "," + building.MultiRoom[i].Zones[j + znNum].Name + " drybulb temperature(Low) [CDB]" +
-              "," + building.MultiRoom[i].Zones[j].Name + " absolute humidity(High) [g/kg]" +
-              "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity(Low) [g/kg]"
+              "," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature [CDB]" +
+              "," + building.MultiRoom[i].Zones[j + znNum].Name + " drybulb temperature [CDB]" +
+              "," + building.MultiRoom[i].Zones[j].Name + " absolute humidity [g/kg]" +
+              "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity [g/kg]"
               );
           }
         }

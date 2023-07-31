@@ -7,6 +7,9 @@ namespace Shizuku2
 
     #region 定数宣言
 
+    /// <summary>最低でも一定割合は下層へ届くものとするならば0以外</summary>
+    private const double MINIMUM_LOWBLOW = 0.0;
+
     /// <summary>ルンゲクッタ法の刻み幅</summary>
     /// <remarks>最低でも0.01くらいじゃないと重い</remarks>
     private const double DELTA = 0.01;
@@ -59,6 +62,7 @@ namespace Shizuku2
     {
       calcBlowDown
         (false, supplyTemperature, ambientTemperature, velocity, dtdy, direction, out lowHRate, out velocityAtNeck, out tempAtNeck, out jetLengthAtNeck, out _, out _);
+      lowHRate = Math.Max(MINIMUM_LOWBLOW, lowHRate);
     }
 
     /// <summary>下方への吹き出し結果を計算する</summary>
@@ -78,6 +82,7 @@ namespace Shizuku2
     {
       calcBlowDown
         (true, supplyTemperature, ambientTemperature, velocity, dtdy, direction, out lowHRate, out velocityAtNeck, out tempAtNeck, out jetLengthAtNeck, out xPath, out yPath);
+      lowHRate = Math.Max(MINIMUM_LOWBLOW, lowHRate);
     }
 
     /// <summary>下方への吹き出し結果を計算する</summary>
@@ -286,7 +291,6 @@ namespace Shizuku2
 
     /// <summary>吹き出し後の気流を追跡する</summary>
     /// <param name="step">計算ステップ数</param>
-    /// <param name="kp">吹き出し定数[-]（スロット吹き出しの場合は4-5くらい）</param>
     /// <param name="supplyTemperature">給気温度[C]</param>
     /// <param name="ambientTemperature">周囲温度[C]</param>
     /// <param name="slotWidth">スロット幅[m]</param>
@@ -299,7 +303,7 @@ namespace Shizuku2
     /// <param name="u">速度[m/s]</param>
     /// <param name="t">温度[C]</param>
     public static void SimulateSlotType(
-      int step, double kp, double supplyTemperature, double ambientTemperature, double slotWidth, double velocity, double dtdy, double direction,
+      int step, double supplyTemperature, double ambientTemperature, double slotWidth, double velocity, double dtdy, double direction,
       out double[] x, out double[] y, out double[] s, out double[] u, out double[] t, out double[] ht)
     {
       //出力変数を用意
