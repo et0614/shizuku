@@ -145,7 +145,7 @@ namespace Shizuku2.Original
                   boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.AirflowDirection_Setting));
                   values = new List<BacnetValue>
                   {
-                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 3u) //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 1u) //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
                   };
                   communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
                 }

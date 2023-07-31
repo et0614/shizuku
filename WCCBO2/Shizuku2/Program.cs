@@ -383,7 +383,8 @@ namespace Shizuku2
               name + " Supply humidity [g/kg]" +
               name + " Airflow rate [kg/s]" +
               name + " Setpoint temperature (cooling) [C]" +
-              name + " Setpoint temperature (heating) [C]"
+              name + " Setpoint temperature (heating) [C]" +
+              name + " Low blow rate[-]"
               );
           }
         }
@@ -452,7 +453,8 @@ namespace Shizuku2
             "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F1") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3") +
             "," + vrfs[i].GetSetpoint(j, true).ToString("F0") +
-            "," + vrfs[i].GetSetpoint(j, false).ToString("F0")
+            "," + vrfs[i].GetSetpoint(j, false).ToString("F0") + 
+            "," + vrfs[i].LowZoneBlowRate[j].ToString("F3")
             );
         }
       }
@@ -522,33 +524,36 @@ namespace Shizuku2
         ImmutableZone znL = building.MultiRoom[0].Zones[i];
         ImmutableZone znU = building.MultiRoom[0].Zones[i + 12];
         vrfs[0].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
-        vrfs[0].VRFSystem.SetIndoorUnitInletAirState
+        vrfs[0].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        /*vrfs[0].VRFSystem.SetIndoorUnitInletAirState
           (i,
           znL.Temperature * vrfs[0].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[0].LowZoneBlowRate[i]),
           znL.HumidityRatio * vrfs[0].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[0].LowZoneBlowRate[i])
-          );
+          );*/
       }
       for (int i = 0; i < 6; i++)
       {
         ImmutableZone znL = building.MultiRoom[0].Zones[i + 6];
         ImmutableZone znU = building.MultiRoom[0].Zones[i + 18];
         vrfs[1].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
-        vrfs[1].VRFSystem.SetIndoorUnitInletAirState
+        vrfs[1].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        /*vrfs[1].VRFSystem.SetIndoorUnitInletAirState
           (i,
           znL.Temperature * vrfs[1].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[1].LowZoneBlowRate[i]),
           znL.HumidityRatio * vrfs[1].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[1].LowZoneBlowRate[i])
-          );
+          ); */
       }
       for (int i = 0; i < 6; i++)
       {
         ImmutableZone znL = building.MultiRoom[1].Zones[i];
         ImmutableZone znU = building.MultiRoom[1].Zones[i + 14];
         vrfs[2].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
-        vrfs[2].VRFSystem.SetIndoorUnitInletAirState
+        vrfs[2].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        /*vrfs[2].VRFSystem.SetIndoorUnitInletAirState
           (i,
           znL.Temperature * vrfs[2].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[2].LowZoneBlowRate[i]),
           znL.HumidityRatio * vrfs[2].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[2].LowZoneBlowRate[i])
-          );
+          ); */
 
         vrfs[2].VRFSystem.SetIndoorUnitInletAirState
           (i, building.MultiRoom[1].Zones[i].Temperature, building.MultiRoom[1].Zones[i].HumidityRatio);
@@ -558,11 +563,12 @@ namespace Shizuku2
         ImmutableZone znL = building.MultiRoom[1].Zones[i + 6];
         ImmutableZone znU = building.MultiRoom[1].Zones[i + 20];
         vrfs[3].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
-        vrfs[3].VRFSystem.SetIndoorUnitInletAirState
+        vrfs[3].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        /*vrfs[3].VRFSystem.SetIndoorUnitInletAirState
           (i,
           znL.Temperature * vrfs[3].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[3].LowZoneBlowRate[i]),
           znL.HumidityRatio * vrfs[3].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[3].LowZoneBlowRate[i])
-          );
+          ); */
       }
     }
 
@@ -573,25 +579,33 @@ namespace Shizuku2
       {
         ImmutableVRFUnit unt = vrfs[0].VRFSystem.IndoorUnits[i];
         building.SetSupplyAir(0, i, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[0].LowZoneBlowRate[i]);
-        building.SetSupplyAir(0, i + 12, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - vrfs[0].LowZoneBlowRate[i]));
+        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[0].LowZoneBlowRate[i]);
+        building.SetSupplyAir(0, i + 12, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
+        building.SetAirFlow(0, i, i + 12, lbFlow);
       }
       for (int i = 0; i < 6; i++)
       {
         ImmutableVRFUnit unt = vrfs[1].VRFSystem.IndoorUnits[i];
         building.SetSupplyAir(0, i + 6, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[1].LowZoneBlowRate[i]);
-        building.SetSupplyAir(0, i + 18, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - vrfs[1].LowZoneBlowRate[i]));
+        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[1].LowZoneBlowRate[i]);
+        building.SetSupplyAir(0, i + 18, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
+        building.SetAirFlow(0, i + 6, i + 18, lbFlow);
       }
       for (int i = 0; i < 6; i++)
       {
         ImmutableVRFUnit unt = vrfs[2].VRFSystem.IndoorUnits[i];
         building.SetSupplyAir(1, i, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[2].LowZoneBlowRate[i]);
-        building.SetSupplyAir(1, i + 14, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - vrfs[2].LowZoneBlowRate[i]));
+        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[2].LowZoneBlowRate[i]);
+        building.SetSupplyAir(1, i + 14, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
+        building.SetAirFlow(1, i, i + 14, lbFlow);
       }
       for (int i = 0; i < 8; i++)
       {
         ImmutableVRFUnit unt = vrfs[3].VRFSystem.IndoorUnits[i];
         building.SetSupplyAir(1, i + 6, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[3].LowZoneBlowRate[i]);
-        building.SetSupplyAir(1, i + 20, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * (1.0 - vrfs[3].LowZoneBlowRate[i]));
+        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[3].LowZoneBlowRate[i]);
+        building.SetSupplyAir(1, i + 20, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
+        building.SetAirFlow(1, i + 6, i + 20, lbFlow);
       }
     }
 

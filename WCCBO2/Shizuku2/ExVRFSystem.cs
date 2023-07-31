@@ -259,7 +259,6 @@ namespace Shizuku2
     /// <param name="iUnitIndex">室内機番号</param>
     /// <param name="isCoolingMode">冷却モードか否か</param>
     /// <returns>温度設定値[C]</returns>
-
     public double GetSetpoint(int iUnitIndex, bool isCoolingMode)
     {
       return isCoolingMode ? spC[iUnitIndex] : spH[iUnitIndex];
