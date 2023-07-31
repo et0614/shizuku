@@ -365,7 +365,7 @@ namespace Shizuku2.MitsubishiElectric
         int grpNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
-          ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          ExVRFSystem vrf = vrfSystems[i];
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             BacnetObjectId boID;

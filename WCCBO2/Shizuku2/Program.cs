@@ -110,6 +110,7 @@ namespace Shizuku2
       //テナントを生成//生成と行動で乱数シードを分ける
       tenants = new TenantList((uint)initSettings["rseed1"], building, vrfs);
       tenants.ResetRandomSeed((uint)initSettings["rseed2"]);
+      //tenants.OutputOccupantsInfo("occupants.csv");
 
       //日時コントローラを用意して助走計算
       Console.Write("Start precalculation...");
@@ -390,13 +391,22 @@ namespace Shizuku2
 
         //執務者情報
         swOcc.Write("date,time");
+        //着衣量
         for (int i = 0; i < tenants.Tenants.Length; i++)
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
             swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Clo value [clo]");
-
+        //温冷感申告値
         for (int i = 0; i < tenants.Tenants.Length; i++)
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
             swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Thermal sensation [-]");
+        //上昇要求
+        for (int i = 0; i < tenants.Tenants.Length; i++)
+          for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+            swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Raise request [-]");
+        //下降要求
+        for (int i = 0; i < tenants.Tenants.Length; i++)
+          for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+            swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Lower request [-]");
         swOcc.WriteLine();
       }
 
@@ -450,7 +460,7 @@ namespace Shizuku2
 
       //執務者情報
       swOcc.Write(dtHeader);
-      //Clo値
+      //着衣量
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
           swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ? 
@@ -458,8 +468,18 @@ namespace Shizuku2
       //温冷感申告値
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
-          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ? 
+          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
             ((int)tenants.Tenants[i].Occupants[j].OCModel.Vote).ToString("F0") : ""));
+      //上昇要求
+      for (int i = 0; i < tenants.Tenants.Length; i++)
+        for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
+            (tenants.Tenants[i].Occupants[j].TryToRaiseTemperatureSP ? "1" : "0" ) : ""));
+      //下降要求
+      for (int i = 0; i < tenants.Tenants.Length; i++)
+        for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
+          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
+            (tenants.Tenants[i].Occupants[j].TryToLowerTemperatureSP ? "1" : "0") : ""));
       swOcc.WriteLine();
     }
 

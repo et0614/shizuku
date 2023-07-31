@@ -472,7 +472,7 @@ namespace Shizuku2.Daikin
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
-          ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          ExVRFSystem vrf = vrfSystems[i];
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             BacnetObjectId boID;

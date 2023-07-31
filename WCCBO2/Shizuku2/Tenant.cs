@@ -156,28 +156,24 @@ namespace Shizuku.Models
       for (int i = 0; i < Zones.Length; i++)
       {
         bool controllable = vrf.ControlPermited(Zones[i]);
-        int upNum = 0;
-        int dnNum = 0;
+        int upDown = 0;
         for (int j = 0; j < znOccupants[i].Length; j++)
         {
-          //制御可能性を通達
+          //制御を試みた執務者には制御可能性を通達
           if(znOccupants[i][j].TryToRaiseTemperatureSP || znOccupants[i][j].TryToLowerTemperatureSP) 
             znOccupants[i][j].ThinkControllable = controllable;
 
           //制御方向を積算
-          if (znOccupants[i][j].Worker.StayInOffice && znOccupants[i][j].TryToRaiseTemperatureSP) upNum++;
-          else if (znOccupants[i][j].Worker.StayInOffice && znOccupants[i][j].TryToLowerTemperatureSP) dnNum++;
+          if (znOccupants[i][j].Worker.StayInOffice)
+          {
+            if (znOccupants[i][j].TryToRaiseTemperatureSP) upDown++;
+            else if (znOccupants[i][j].TryToLowerTemperatureSP) upDown--;
+          }
         }
-        if (upNum > dnNum)
-        {
-          vrf.SetSetpoint(vrf.GetSetpoint(i, true) + 1, i, true);
-          vrf.SetSetpoint(vrf.GetSetpoint(i, false) + 1, i, false);
-        }
-        else if (upNum < dnNum)
-        {
-          vrf.SetSetpoint(vrf.GetSetpoint(i, true) - 1, i, true);
-          vrf.SetSetpoint(vrf.GetSetpoint(i, false) - 1, i, false);
-        }
+        //制御の向きは多数決
+        int delta = Math.Sign(upDown);
+        vrf.SetSetpoint(vrf.GetSetpoint(i, true) + delta, i, true); //冷却
+        vrf.SetSetpoint(vrf.GetSetpoint(i, false) + delta, i, false); //加熱
       }
     }
 
@@ -271,6 +267,14 @@ namespace Shizuku.Models
         tnt.ResetRandomSeed(rnd.Next());
     }
 
+    /// <summary>あるゾーンの執務者一覧を取得する</summary>
+    /// <param name="zone">あるゾーン</param>
+    /// <returns>執務者一覧</returns>
+    public ImmutableOccupant[] GetOccupants(ImmutableZone zone)
+    {
+      return znOccupants[Array.IndexOf(Zones, zone)];
+    }
+
     #endregion
 
   }
@@ -302,6 +306,10 @@ namespace Shizuku.Models
     /// <param name="meanRadiantTemperature">平均放射温度[C]</param>
     void GetZoneInfo(ImmutableZone zone, out double drybulbTemperature, out double relativeHumidity, out double meanRadiantTemperature);
 
+    /// <summary>あるゾーンの執務者一覧を取得する</summary>
+    /// <param name="zone">あるゾーン</param>
+    /// <returns>執務者一覧</returns>
+    ImmutableOccupant[] GetOccupants(ImmutableZone zone);
   }
 
   #endregion

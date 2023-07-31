@@ -8,6 +8,7 @@ using Popolo.BuildingOccupant;
 using Popolo.ThermalLoad;
 using System.Reflection;
 using Shizuku2;
+using System.Formats.Tar;
 
 namespace Shizuku.Models
 {
@@ -219,6 +220,35 @@ namespace Shizuku.Models
       MersenneTwister rnd = new MersenneTwister(seed);
       foreach (Tenant tnt in tenants)
         tnt.ResetRandomSeed(rnd.Next());
+    }
+
+    public void OutputOccupantsInfo(string filePath)
+    {
+      using (StreamWriter sWriter = new StreamWriter(filePath))
+      {
+        sWriter.WriteLine("Tenant,Zone,First name,Last name,Age,Height,Weight,M/F,Job");
+        for (int i = 0; i < tenants.Length; i++)
+        {
+          for (int j = 0; j < tenants[i].Zones.Length; j++)
+          {
+            ImmutableOccupant[] occs = tenants[i].GetOccupants(tenants[i].Zones[j]);
+            for (int k = 0; k < occs.Length; k++)
+            {
+              ImmutableOccupant oc = occs[k];
+              sWriter.WriteLine(
+                tenants[i].Name + "," +
+                tenants[i].Zones[j].Name + "," +
+                oc.FirstName + "," +
+                oc.LastName + "," +
+                oc.Age + "," +
+                oc.Height + "," +
+                oc.Weight + "," +
+                (oc.IsMale ? "M" : "F") + "," +
+                oc.Worker.Job.ToString());
+            }
+          }
+        }
+      }
     }
 
     #endregion

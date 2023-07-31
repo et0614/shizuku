@@ -129,7 +129,7 @@ namespace Shizuku2.Original
                   boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
                   values = new List<BacnetValue>
                   {
-                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, isCooling ? 26d : 24d)
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, isCooling ? 26d : 22d)
                   };
                   communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 

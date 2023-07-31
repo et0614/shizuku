@@ -494,6 +494,12 @@ namespace Shizuku.Models
 
     /// <summary>Langevinによる温冷感モデル</summary>
     OccupantModel_Langevin OCModel { get; }
+
+    /// <summary>温度設定値を上げようとしているか否か</summary>
+    bool TryToRaiseTemperatureSP { get;  } 
+
+    /// <summary>温度設定値を下げようとしているか否か</summary>
+    bool TryToLowerTemperatureSP { get;  }
   }
 
   #endregion

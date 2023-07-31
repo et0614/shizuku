@@ -263,6 +263,7 @@ namespace Shizuku2.Original
             {
               vrf.SetSetpoint(tSpSet, j, true);
               vrf.SetSetpoint(tSpSet, j, false);
+              ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tSpSet;
             }
 
             //ファン風量*****************
@@ -346,7 +347,7 @@ namespace Shizuku2.Original
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
-          ExVRFSystem vrf = vrfSystems[vrfUnitIndices[i].OUnitIndex];
+          ExVRFSystem vrf = vrfSystems[i];
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             int bBase = 1000 * (i + 1) + 100 * (j + 1);
@@ -355,7 +356,7 @@ namespace Shizuku2.Original
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
             ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
-              vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) : vrf.GetSetpoint(j, true);
+              vrf.VRFSystem.CurrentMode == VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) : vrf.GetSetpoint(j, true);
 
             //吸い込み室温****************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
