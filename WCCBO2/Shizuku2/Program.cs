@@ -60,7 +60,7 @@ namespace Shizuku2
     private static IBACnetController vrfCtrl;
 
     /// <summary>VRFスケジューラ</summary>
-    private static IVRFScheduller? vrfSchedl;
+    private static IBACnetController? vrfSchedl;
 
     /// <summary>エネルギー消費量[MJ]</summary>
     private static double energyConsumption = 0.0;
@@ -152,7 +152,6 @@ namespace Shizuku2
       Console.WriteLine("Press \"Enter\" key to continue.");
       //Defaultコントローラ開始
       vrfSchedl?.StartService();
-      //vrfSchedl?.Synchronize();
       while (Console.ReadKey().Key != ConsoleKey.Enter) ;
 
       //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
