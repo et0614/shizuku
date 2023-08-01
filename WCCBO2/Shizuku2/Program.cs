@@ -11,6 +11,7 @@ using Shizuku.Models;
 using Popolo.Numerics;
 using PacketDotNet.Tcp;
 using Popolo.HVAC.HeatExchanger;
+using Popolo.ThermophysicalProperty;
 
 namespace Shizuku2
 {
@@ -18,6 +19,16 @@ namespace Shizuku2
   {
 
     #region 定数宣言
+
+    /// <summary>大気圧[kPa]（海抜0m）</summary>
+    private const double ATM = 101.325;
+
+    /// <summary>加湿風量[kg/s]</summary>
+    /// <remarks>
+    /// 冬季の必要加湿量:0.036 kg/h/m2, 
+    /// てんまい加湿器の風量:260 CMH/(kg/h)
+    /// 卓上式としては能力が大きすぎるか・・・</remarks>
+    private const double HMD_AFLOW = 0.036 * 260.0 * 1.2 / 3600;
 
     /// <summary>電力の一次エネルギー換算係数[GJ/kWh]</summary>
     private const double ELC_PRIM_RATE = 0.00976;
@@ -33,6 +44,12 @@ namespace Shizuku2
 
     /// <summary>バージョン（日付）</summary>
     private const string V_DATE = "2023.06.04";
+
+    /// <summary>機械換気開始時刻</summary>
+    private const int MECH_VENT_START = 8;
+
+    /// <summary>機械換気終了時刻</summary>
+    private const int MECH_VENT_END = 20;
 
     #endregion
 
@@ -83,9 +100,6 @@ namespace Shizuku2
         Console.WriteLine("Failed to load \"setting.ini\"");
         return;
       }
-
-      //結果書き出し
-      saveScore("result.szk", 1.0, 1.0);
 
       //建物モデルを作成
       building = BuildingMaker.Make();
@@ -493,17 +507,13 @@ namespace Shizuku2
     private static void setVentilationRate()
     {
       //機械換気の真偽
-      bool ventilate = !(
-        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Saturday |
-        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Sunday |
-        dtCtrl.CurrentDateTime.Hour < 8 |
-        20 < dtCtrl.CurrentDateTime.Hour);
+      bool mechVent = isVentilating();
 
-      //換気中は25CMH/人,0.2人/m2のため、5CMH/m2で上下高さで按分
+      //換気中は上下高さで按分
       //漏気はLEAK_RATE回/hから高さで計算
       double lowRate = BuildingMaker.L_ZONE_HEIGHT / (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT);
-      double vRateDwn = (ventilate ? 5 * lowRate : BuildingMaker.LEAK_RATE * 1.7) / 3600d;
-      double vRateUp = (ventilate ? 5 * (1.0 - lowRate) : BuildingMaker.LEAK_RATE * 1.0) / 3600d;
+      double vRateDwn = (mechVent ? BuildingMaker.VENT_RATE * lowRate : BuildingMaker.LEAK_RATE * 1.7) / 3600d;
+      double vRateUp = (mechVent ? BuildingMaker.VENT_RATE * (1.0 - lowRate) : BuildingMaker.LEAK_RATE * 1.0) / 3600d;
       for (int i = 0; i < 12; i++)
       {
         building.SetVentilationRate(0, i, building.MultiRoom[0].Zones[i].FloorArea * vRateDwn);
@@ -516,100 +526,120 @@ namespace Shizuku2
       }
     }
 
+    private static bool isVentilating()
+    {
+      return !(
+        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Saturday |
+        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Sunday |
+        dtCtrl.CurrentDateTime.Hour < MECH_VENT_START |
+        MECH_VENT_END <= dtCtrl.CurrentDateTime.Hour);
+    }
+
     #endregion
 
     #region VRFの制御
 
-    /// <summary>下部空間と上部空間の風量比を計算して還空気状態を求める</summary>
+    /// <summary>室内機の吸込空気を設定する</summary>
     private static void setVRFInletAir()
     {
       for (int i = 0; i < 6; i++)
       {
-        ImmutableZone znL = building.MultiRoom[0].Zones[i];
         ImmutableZone znU = building.MultiRoom[0].Zones[i + 12];
-        vrfs[0].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
         vrfs[0].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
-        /*vrfs[0].VRFSystem.SetIndoorUnitInletAirState
-          (i,
-          znL.Temperature * vrfs[0].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[0].LowZoneBlowRate[i]),
-          znL.HumidityRatio * vrfs[0].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[0].LowZoneBlowRate[i])
-          );*/
       }
       for (int i = 0; i < 6; i++)
       {
-        ImmutableZone znL = building.MultiRoom[0].Zones[i + 6];
         ImmutableZone znU = building.MultiRoom[0].Zones[i + 18];
-        vrfs[1].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
         vrfs[1].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
-        /*vrfs[1].VRFSystem.SetIndoorUnitInletAirState
-          (i,
-          znL.Temperature * vrfs[1].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[1].LowZoneBlowRate[i]),
-          znL.HumidityRatio * vrfs[1].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[1].LowZoneBlowRate[i])
-          ); */
       }
       for (int i = 0; i < 6; i++)
       {
-        ImmutableZone znL = building.MultiRoom[1].Zones[i];
         ImmutableZone znU = building.MultiRoom[1].Zones[i + 14];
-        vrfs[2].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
         vrfs[2].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
-        /*vrfs[2].VRFSystem.SetIndoorUnitInletAirState
-          (i,
-          znL.Temperature * vrfs[2].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[2].LowZoneBlowRate[i]),
-          znL.HumidityRatio * vrfs[2].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[2].LowZoneBlowRate[i])
-          ); */
-
-        vrfs[2].VRFSystem.SetIndoorUnitInletAirState
-          (i, building.MultiRoom[1].Zones[i].Temperature, building.MultiRoom[1].Zones[i].HumidityRatio);
       }
       for (int i = 0; i < 8; i++)
       {
-        ImmutableZone znL = building.MultiRoom[1].Zones[i + 6];
         ImmutableZone znU = building.MultiRoom[1].Zones[i + 20];
-        vrfs[3].UpdateBlowRate(i, znL.Temperature, znU.Temperature);
         vrfs[3].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
-        /*vrfs[3].VRFSystem.SetIndoorUnitInletAirState
-          (i,
-          znL.Temperature * vrfs[3].LowZoneBlowRate[i] + znU.Temperature * (1.0 - vrfs[3].LowZoneBlowRate[i]),
-          znL.HumidityRatio * vrfs[3].LowZoneBlowRate[i] + znU.HumidityRatio * (1.0 - vrfs[3].LowZoneBlowRate[i])
-          ); */
       }
     }
 
-    /// <summary>下部空間と上部空間へ給気する</summary>
+    /// <summary>下部空間と上部空間へ給気する（一括）</summary>
     private static void setVRFOutletAir()
     {
       for (int i = 0; i < 6; i++)
-      {
-        ImmutableVRFUnit unt = vrfs[0].VRFSystem.IndoorUnits[i];
-        building.SetSupplyAir(0, i, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[0].LowZoneBlowRate[i]);
-        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[0].LowZoneBlowRate[i]);
-        building.SetSupplyAir(0, i + 12, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
-        building.SetAirFlow(0, i, i + 12, lbFlow);
-      }
+        setVRFOutletAir(vrfs[0], i, 0, i, i + 12);
       for (int i = 0; i < 6; i++)
-      {
-        ImmutableVRFUnit unt = vrfs[1].VRFSystem.IndoorUnits[i];
-        building.SetSupplyAir(0, i + 6, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[1].LowZoneBlowRate[i]);
-        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[1].LowZoneBlowRate[i]);
-        building.SetSupplyAir(0, i + 18, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
-        building.SetAirFlow(0, i + 6, i + 18, lbFlow);
-      }
+        setVRFOutletAir(vrfs[1], i, 0, i + 6, i + 18);
       for (int i = 0; i < 6; i++)
-      {
-        ImmutableVRFUnit unt = vrfs[2].VRFSystem.IndoorUnits[i];
-        building.SetSupplyAir(1, i, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[2].LowZoneBlowRate[i]);
-        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[2].LowZoneBlowRate[i]);
-        building.SetSupplyAir(1, i + 14, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
-        building.SetAirFlow(1, i, i + 14, lbFlow);
-      }
+        setVRFOutletAir(vrfs[2], i, 1, i, i + 14);
       for (int i = 0; i < 8; i++)
+        setVRFOutletAir(vrfs[3], i, 1, i + 6, i + 20);
+    }
+
+    /// <summary>下部空間と上部空間へ給気する（室内機別）</summary>
+    /// <param name="vrf"></param>
+    /// <param name="untIndex"></param>
+    /// <param name="mrIndex"></param>
+    /// <param name="lwZnIndex"></param>
+    /// <param name="upZnIndex"></param>
+    private static void setVRFOutletAir(ExVRFSystem vrf, int untIndex, int mrIndex, int lwZnIndex, int upZnIndex)
+    {
+      //給気風量比を計算
+      ImmutableZone znL = building.MultiRoom[mrIndex].Zones[lwZnIndex];
+      ImmutableZone znU = building.MultiRoom[mrIndex].Zones[upZnIndex];
+      vrf.UpdateBlowRate(untIndex, znL.Temperature, znU.Temperature);
+
+      ImmutableVRFUnit unt = vrf.VRFSystem.IndoorUnits[untIndex];
+      //上部空間に給気
+      double upperBlow = unt.AirFlowRate * (1.0 - vrf.LowZoneBlowRate[untIndex]);
+      building.SetSupplyAir(mrIndex, upZnIndex, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, upperBlow);
+
+      //冬季は加湿運転判断
+      double saTmp = unt.OutletAirTemperature;
+      double saHmd = unt.OutletAirHumidityRatio;
+      double lowerBlow = unt.AirFlowRate * vrf.LowZoneBlowRate[untIndex];
+      if (initSettings["period"] == 1 && isVentilating())
       {
-        ImmutableVRFUnit unt = vrfs[3].VRFSystem.IndoorUnits[i];
-        building.SetSupplyAir(1, i + 6, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, unt.AirFlowRate * vrfs[3].LowZoneBlowRate[i]);
-        double lbFlow = unt.AirFlowRate * (1.0 - vrfs[3].LowZoneBlowRate[i]);
-        building.SetSupplyAir(1, i + 20, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, lbFlow);
-        building.SetAirFlow(1, i + 6, i + 20, lbFlow);
+        double rhmd = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
+        (znL.Temperature, znL.HumidityRatio, ATM);
+        //40%を下回ったら加湿
+        if (rhmd < 40)
+        {
+          double af = HMD_AFLOW * znL.FloorArea;
+          humidify(znL.Temperature, znL.HumidityRatio, out double saTmp2, out double saHmd2);
+          saTmp = (saTmp * lowerBlow + saTmp2 * af) / (lowerBlow + af);
+          saHmd = (saHmd * lowerBlow + saHmd2 * af) / (lowerBlow + af);
+          lowerBlow += af;
+        }
+      }
+      building.SetSupplyAir(mrIndex, lwZnIndex, saTmp, saHmd, lowerBlow);
+
+      //下部空間に吹き込まれた風量分は下部から上部へ移動する
+      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, unt.AirFlowRate - upperBlow); //これ、混ざる処理なので不正確。
+      //building.SetAirFlow(mrIndex, lwZnIndex, upZnIndex, unt.AirFlowRate - upperBlow);
+    }
+
+    /// <summary>水滴下で加湿する</summary>
+    /// <param name="inletTemp">入口乾球温度[C]</param>
+    /// <param name="inletHumid">入口絶対湿度[C]</param>
+    /// <param name="outletTemp">出口乾球温度[C]</param>
+    /// <param name="outletHumid">出口絶対湿度[C]</param>
+    private static void humidify(double inletTemp, double inletHumid, out double outletTemp, out double outletHumid)
+    {
+      const double MAX_HMD = 95;
+      double rhmd = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(inletTemp, inletHumid, ATM);
+
+      if (MAX_HMD <= rhmd)
+      {
+        outletTemp = inletTemp;
+        outletHumid = inletHumid;
+      }
+      else
+      {
+        double wb = MoistAir.GetWetBulbTemperatureFromDryBulbTemperatureAndHumidityRatio(inletTemp, inletHumid, ATM);
+        outletTemp = MoistAir.GetDryBulbTemperatureFromWetBulbTemperatureAndRelativeHumidity(wb, MAX_HMD, ATM);
+        outletHumid = MoistAir.GetHumidityRatioFromDryBulbTemperatureAndRelativeHumidity(outletTemp, MAX_HMD, ATM);
       }
     }
 

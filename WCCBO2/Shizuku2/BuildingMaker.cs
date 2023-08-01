@@ -13,6 +13,10 @@ namespace Shizuku2
 
     #region 定数宣言
 
+    /// <summary>換気量[CMH/m2]</summary>
+    /// <remarks>25CMH/人,0.2人/m2のため</remarks>
+    public const double VENT_RATE = 5.0;
+
     /// <summary>漏気量[回/h]</summary>
     public const double LEAK_RATE = 0.2;
 
