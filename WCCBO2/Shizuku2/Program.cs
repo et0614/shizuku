@@ -19,9 +19,6 @@ namespace Shizuku2
 
     #region 定数宣言
 
-    /// <summary>漏気量[回/h]</summary>
-    private const double LEAK_RATE = 0.2;
-
     /// <summary>電力の一次エネルギー換算係数[GJ/kWh]</summary>
     private const double ELC_PRIM_RATE = 0.00976;
 
@@ -502,8 +499,11 @@ namespace Shizuku2
         dtCtrl.CurrentDateTime.Hour < 8 |
         20 < dtCtrl.CurrentDateTime.Hour);
 
-      double vRateDwn = (ventilate ? 5 : LEAK_RATE * 1.7) / 3600d; //機械換気：5CMH/m2、漏気：天井高1.7m
-      double vRateUp = (ventilate ? 5 : LEAK_RATE * 1.0) / 3600d; //機械換気：5CMH/m2、漏気：天井高1.0m
+      //換気中は25CMH/人,0.2人/m2のため、5CMH/m2で上下高さで按分
+      //漏気はLEAK_RATE回/hから高さで計算
+      double lowRate = BuildingMaker.L_ZONE_HEIGHT / (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT);
+      double vRateDwn = (ventilate ? 5 * lowRate : BuildingMaker.LEAK_RATE * 1.7) / 3600d;
+      double vRateUp = (ventilate ? 5 * (1.0 - lowRate) : BuildingMaker.LEAK_RATE * 1.0) / 3600d;
       for (int i = 0; i < 12; i++)
       {
         building.SetVentilationRate(0, i, building.MultiRoom[0].Zones[i].FloorArea * vRateDwn);

@@ -14,7 +14,13 @@ namespace Shizuku2
     #region 定数宣言
 
     /// <summary>漏気量[回/h]</summary>
-    private const double LEAK_RATE = 0.2;
+    public const double LEAK_RATE = 0.2;
+
+    /// <summary>下部空間の高さ[m]</summary>
+    public const double L_ZONE_HEIGHT = 1.7;
+
+    /// <summary>上部空間の高さ[m]</summary>
+    public const double U_ZONE_HEIGHT = 1.0;
 
     #endregion
 
@@ -71,14 +77,14 @@ namespace Shizuku2
       for (int i = 0; i < SZN_AREAS.Length; i++)
       {
         sznASum += SZN_AREAS[i];
-        znSs[i] = new Zone("S" + i, SZN_AREAS[i] * 1.7 * 1.2, SZN_AREAS[i]);
-        znSs[i + 12] = new Zone("S" + i + "_Up", SZN_AREAS[i] * 1.7 * 1.2, SZN_AREAS[i]);
+        znSs[i] = new Zone("S" + i, SZN_AREAS[i] * L_ZONE_HEIGHT * 1.2, SZN_AREAS[i]);
+        znSs[i + 12] = new Zone("S" + i + "_Up", SZN_AREAS[i] * U_ZONE_HEIGHT * 1.2, SZN_AREAS[i]);
       }
       for (int i = 0; i < NZN_AREAS.Length; i++)
       {
         nznASum += NZN_AREAS[i];
-        znNs[i] = new Zone("N" + i, NZN_AREAS[i] * 1.7 * 1.2, NZN_AREAS[i]);
-        znNs[i + 14] = new Zone("N" + i + "_Up", NZN_AREAS[i] * 1.0 * 1.2, NZN_AREAS[i]);
+        znNs[i] = new Zone("N" + i, NZN_AREAS[i] * L_ZONE_HEIGHT * 1.2, NZN_AREAS[i]);
+        znNs[i + 14] = new Zone("N" + i + "_Up", NZN_AREAS[i] * U_ZONE_HEIGHT * 1.2, NZN_AREAS[i]);
       }
       znSs[24] = new Zone("S_Attic", sznASum * 1.5 * 1.2, sznASum);
       znNs[28] = new Zone("N_Attic", nznASum * 1.5 * 1.2, nznASum);
