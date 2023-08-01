@@ -87,6 +87,9 @@ namespace Shizuku2
         return;
       }
 
+      //結果書き出し
+      saveScore("result.szk", 1.0, 1.0);
+
       //建物モデルを作成
       building = BuildingMaker.Make();
       vrfs = makeVRFSystem(building);
@@ -672,13 +675,25 @@ namespace Shizuku2
       ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
 
       //暗号化
-      byte[] message = new byte[8 + 8 + 4 + 4 + 4 + 4];
-      Array.Copy(BitConverter.GetBytes(eConsumption), 0, message, 0, 8); //エネルギー消費
-      Array.Copy(BitConverter.GetBytes(aveDissatisfiedRate), 0, message, 8, 8); //平均不満足者率
-      Array.Copy(BitConverter.GetBytes(initSettings["userid"]), 0, message, 16, 4); //ユーザーID
-      Array.Copy(BitConverter.GetBytes(V_MAJOR), 0, message, 20, 4); //バージョン（メジャー）
-      Array.Copy(BitConverter.GetBytes(V_MINOR), 0, message, 24, 4); //バージョン（マイナー）
-      Array.Copy(BitConverter.GetBytes(V_REVISION), 0, message, 28, 4); //バージョン（リビジョン）
+      byte[][] data = new byte[][]
+      {
+        BitConverter.GetBytes(initSettings["period"]), //季節
+        BitConverter.GetBytes(eConsumption), //エネルギー消費
+        BitConverter.GetBytes(aveDissatisfiedRate), //平均不満足者率
+        BitConverter.GetBytes(initSettings["userid"]), //ユーザーID
+        BitConverter.GetBytes(V_MAJOR), //メジャーバージョン
+        BitConverter.GetBytes(V_MINOR), //マイナーバージョン
+        BitConverter.GetBytes(V_REVISION) //リビジョン
+      };
+      int tBytes = 0;
+      for (int i = 0; i < data.Length; i++) tBytes += data[i].Length;
+      byte[] message = new byte[tBytes];
+      tBytes = 0;
+      for (int i = 0; i < data.Length; i++)
+      {
+        Array.Copy(data[i], 0, message, tBytes, data[i].Length);
+        tBytes += data[i].Length;
+      }
 
       byte[] cipherText = new byte[message.Length];
       byte[] tag = new byte[16];
