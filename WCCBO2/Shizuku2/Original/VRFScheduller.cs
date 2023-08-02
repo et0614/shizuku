@@ -69,7 +69,7 @@ namespace Shizuku2.Original
     /// <summary>スケジュールを有効にする</summary>
     public bool EnableScheduling { get; set; } = false;
 
-    BacnetAddress targetBACAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + TARGET_EXCLUSIVE_PORT.ToString());
+    readonly BacnetAddress targetBACAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + TARGET_EXCLUSIVE_PORT.ToString());
 
     #endregion
 
@@ -161,7 +161,7 @@ namespace Shizuku2.Original
               {
                 for (int iHex = 0; iHex < vrfs[oHex].VRFSystem.IndoorUnitNumber; iHex++)
                 {
-                  int bBase = bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
+                  int bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
 
                   //On/Off
                   boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));

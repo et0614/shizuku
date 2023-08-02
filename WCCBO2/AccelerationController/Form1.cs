@@ -15,7 +15,7 @@ namespace AccelerationController
     const int DTCTRL_DEVICE_ID = 1;
 
     /// <summary>加速度制御コントローラのExclusiveポート</summary>
-    const int DTCTRL_EXPORT = 0xBAC0 + 1;
+    const int DTCTRL_EXPORT = 0xBAC0 + DTCTRL_DEVICE_ID;
 
     /// <summary>加速度制御コントローラのMeber Number</summary>
     public enum MemberNumber

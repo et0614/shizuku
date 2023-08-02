@@ -131,7 +131,7 @@ namespace Shizuku2
       DateTime dt =
         initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
         initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
-        new DateTime(1999, 4, 28, 0, 0, 0); //中間期
+        new DateTime(1999, 4, 28, 0, 0, 0); //中間期//未対応
       dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
       //初期化・周期定常化処理
@@ -446,8 +446,8 @@ namespace Shizuku2
           swZone.Write(
             "," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1") +
             "," + building.MultiRoom[i].Zones[j + znNum].Temperature.ToString("F1") +
-            "," + (1000 * building.MultiRoom[i].Zones[j].HumidityRatio).ToString("F1") +
-            "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F1")
+            "," + (1000 * building.MultiRoom[i].Zones[j].HumidityRatio).ToString("F2") +
+            "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F2")
             );
         }
       }
@@ -463,9 +463,9 @@ namespace Shizuku2
           swVRF.Write(
             "," + vrfs[i].VRFSystem.IndoorUnits[j].CurrentMode.ToString() + 
             "," + vrfs[i].VRFSystem.IndoorUnits[j].InletAirTemperature.ToString("F1") +
-            "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].InletAirHumidityRatio).ToString("F1") +
+            "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].InletAirHumidityRatio).ToString("F2") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].OutletAirTemperature.ToString("F1") +
-            "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F1") +
+            "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F2") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3") +
             "," + vrfs[i].GetSetpoint(j, true).ToString("F0") +
             "," + vrfs[i].GetSetpoint(j, false).ToString("F0") + 
