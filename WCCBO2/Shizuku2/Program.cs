@@ -51,6 +51,12 @@ namespace Shizuku2
     /// <summary>機械換気終了時刻</summary>
     private const int MECH_VENT_END = 20;
 
+    /// <summary>計算結果ファイル</summary>
+    private const string RESULT_FILE = "result.szk";
+
+    /// <summary>データ出力ディレクトリ</summary>
+    private const string OUTPUT_DIR = "data";
+
     #endregion
 
     #region クラス変数
@@ -76,7 +82,7 @@ namespace Shizuku2
     /// <summary>VRFスケジューラ</summary>
     private static IBACnetController? vrfSchedl;
 
-    /// <summary>エネルギー消費量[MJ]</summary>
+    /// <summary>エネルギー消費量[GJ]</summary>
     private static double energyConsumption = 0.0;
 
     /// <summary>平均不満足率[-]</summary>
@@ -93,6 +99,9 @@ namespace Shizuku2
     {
       //タイトル表示
       showTitle();
+
+      //出力ディレクトリを用意
+      if (!Directory.Exists(OUTPUT_DIR)) Directory.CreateDirectory(OUTPUT_DIR);
 
       //初期設定ファイル読み込み
       if (!loadInitFile())
@@ -200,7 +209,7 @@ namespace Shizuku2
         run(wetLoader, sun);
         finished = true;
         //結果書き出し
-        saveScore("result.szk", energyConsumption, averageDissatisfactionRate);
+        saveScore(energyConsumption, averageDissatisfactionRate);
 
         Console.WriteLine("Emulation finished. Press any key to exit.");
         Console.ReadLine();
@@ -225,11 +234,10 @@ namespace Shizuku2
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
       DateTime nextOutput = dtCtrl.CurrentDateTime;
       uint ttlOcNum = 0;
-      if (!Directory.Exists("data")) Directory.CreateDirectory("data");
-      using (StreamWriter swGen = new StreamWriter("data" + Path.DirectorySeparatorChar + "general.csv"))
-      using (StreamWriter swZone = new StreamWriter("data" + Path.DirectorySeparatorChar + "zone.csv"))
-      using (StreamWriter swVRF = new StreamWriter("data" + Path.DirectorySeparatorChar + "vrf.csv"))
-      using (StreamWriter swOcc = new StreamWriter("data" + Path.DirectorySeparatorChar + "occupant.csv"))
+      using (StreamWriter swGen = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "general.csv"))
+      using (StreamWriter swZone = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "zone.csv"))
+      using (StreamWriter swVRF = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "vrf.csv"))
+      using (StreamWriter swOcc = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "occupant.csv"))
       {
         //タイトル行書き出し
         outputStatus(swGen, swZone, swVRF, swOcc, true);
@@ -687,8 +695,19 @@ namespace Shizuku2
     }
 
     private static void saveScore
-      (string fileName, double eConsumption, double aveDissatisfiedRate)
+      (double eConsumption, double aveDissatisfiedRate)
     {
+      //テキストデータの書き出し********************************
+      using (StreamWriter sWriter = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "result.txt"))
+      {
+        sWriter.WriteLine("Period:" + (initSettings["period"] == 0 ? "Summer" : "Winter"));
+        sWriter.WriteLine("Energy consumption[GJ]:" + eConsumption);
+        sWriter.WriteLine("Average dissatisfied rate[-]:" + aveDissatisfiedRate);
+        sWriter.WriteLine("User ID:" + initSettings["userid"]);
+        sWriter.WriteLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
+      }
+
+      //暗号化ファイルの書き出し********************************
       //32byteの秘密鍵を生成（固定）
       MersenneTwister rnd1 = new MersenneTwister(19800614);
       byte[] key = new byte[32];
@@ -733,8 +752,9 @@ namespace Shizuku2
       for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
       for (int i = 0; i < cipherText.Length; i++) oBytes.Add(cipherText[i]);
 
-      if (File.Exists(fileName)) File.Delete(fileName);
-      using (FileStream fWriter = new FileStream("result.szk", FileMode.Create))
+      string path = OUTPUT_DIR + Path.DirectorySeparatorChar + RESULT_FILE;
+      if (File.Exists(path)) File.Delete(path);
+      using (FileStream fWriter = new FileStream(path, FileMode.Create))
       {
         fWriter.Write(oBytes.ToArray());
       }
