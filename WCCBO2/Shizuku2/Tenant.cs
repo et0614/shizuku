@@ -170,10 +170,15 @@ namespace Shizuku.Models
             else if (znOccupants[i][j].TryToLowerTemperatureSP) upDown--;
           }
         }
-        //制御の向きは多数決
-        int delta = Math.Sign(upDown);
-        vrf.SetSetpoint(vrf.GetSetpoint(i, true) + delta, i, true); //冷却
-        vrf.SetSetpoint(vrf.GetSetpoint(i, false) + delta, i, false); //加熱
+
+        //制御が許可されている場合
+        if (controllable)
+        {
+          //制御の向きは多数決
+          int delta = Math.Sign(upDown);
+          vrf.SetSetpoint(vrf.GetSetpoint(i, true) + delta, i, true); //冷却
+          vrf.SetSetpoint(vrf.GetSetpoint(i, false) + delta, i, false); //加熱
+        }
       }
     }
 

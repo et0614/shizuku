@@ -505,6 +505,7 @@ namespace Shizuku2
     {
       double dt = Math.Abs(ambientTemperature - supplyTemperature);
       double beta = 1.0 / (0.5 * (supplyTemperature + ambientTemperature) + 273.15);
+      if (Math.Abs(dtdy) < 0.01) dtdy = 0.01; //dtdy=0だと熱流が0になる。かなり疑問が残る回避。
 
       return Math.Sqrt(2.0 / (1.0 + LAMBDA) / GRAV / beta * Math.Pow(velocity / dt, 2) * dtdy);
     }
