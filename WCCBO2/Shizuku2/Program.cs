@@ -30,6 +30,9 @@ namespace Shizuku2
     /// 卓上式としては能力が大きすぎるか・・・</remarks>
     private const double HMD_AFLOW = 0.036 * 260.0 * 1.2 / 3600;
 
+    /// <summary>上下空間の噴流によらない空気循環[回/s]</summary>
+    private const double UPDOWN_VENT = 1.0 / 3600d;
+
     /// <summary>電力の一次エネルギー換算係数[GJ/kWh]</summary>
     private const double ELC_PRIM_RATE = 0.00976;
 
@@ -82,14 +85,23 @@ namespace Shizuku2
     /// <summary>VRFスケジューラ</summary>
     private static IBACnetController? vrfSchedl;
 
-    /// <summary>エネルギー消費量[GJ]</summary>
-    private static double energyConsumption = 0.0;
-
-    /// <summary>平均不満足率[-]</summary>
-    private static double averageDissatisfactionRate = 0.0;
-
     /// <summary>計算が遅れているか否か</summary>
     private static bool isDelayed = false;
+
+    /// <summary>平均不満足率（温冷感+ドラフト）</summary>
+    private static double averagedDissatisfactionRate = 0.0;
+
+    /// <summary>温冷感による不満足率[-]</summary>
+    private static double dissatisfactionRate_thermal = 0.0;
+
+    /// <summary>ドラフトによる不満足率[-]</summary>
+    private static double dissatisfactionRate_draft = 0.0;
+
+    /// <summary>積算エネルギー消費量[GJ]</summary>
+    private static double totalEnergyConsumption = 0.0;
+
+    /// <summary>瞬時エネルギー消費量[GJ/h]</summary>
+    private static double instantaneousEnergyConsumption = 0.0;
 
     #endregion
 
@@ -193,12 +205,15 @@ namespace Shizuku2
         //別スレッドで経過を表示
         Task.Run(() =>
         {
+          Console.WriteLine();
+          Console.WriteLine("Start emulation.");
+
           while (!finished)
           {
             Console.WriteLine(
               dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") +
-              "  " + energyConsumption.ToString("F4") +
-              "  " + averageDissatisfactionRate.ToString("F4") +
+              "  " + totalEnergyConsumption.ToString("F4") + " (" + instantaneousEnergyConsumption.ToString("F4") + ")" + 
+              "  " + averagedDissatisfactionRate.ToString("F4") + " (" + dissatisfactionRate_thermal.ToString("F4") + " , " + dissatisfactionRate_draft.ToString("F4") + ")" +
               "  " + (isDelayed ? "DELAYED" : "")
               );
             Thread.Sleep(1000);
@@ -209,7 +224,7 @@ namespace Shizuku2
         run(wetLoader, sun);
         finished = true;
         //結果書き出し
-        saveScore(energyConsumption, averageDissatisfactionRate);
+        saveScore();
 
         Console.WriteLine("Emulation finished. Press any key to exit.");
         Console.ReadLine();
@@ -292,7 +307,7 @@ namespace Shizuku2
             dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
 
             //成績を集計
-            getScore(ref ttlOcNum, ref averageDissatisfactionRate, out energyConsumption);
+            updateScore(ref ttlOcNum);
 
             //書き出し
             if (nextOutput <= building.CurrentDateTime)
@@ -347,19 +362,30 @@ namespace Shizuku2
 
     /// <summary>スコアを計算する</summary>
     /// <param name="totalOccupants">延執務者数[人]</param>
-    /// <param name="aveDisrate">平均不満足者率[-]</param>
+    /// <param name="aveDisTherm">平均不満足者率[-]</param>
     /// <param name="eConsumption">エネルギー消費量[GJ]</param>
-    private static void getScore( 
-      ref uint totalOccupants, ref double aveDisrate, out double eConsumption) 
+    private static void updateScore(ref uint totalOccupants) 
     {
-      tenants.GetDissatisfiedInfo(out uint noc, out double dis);
+      //不満足者率を更新
+      tenants.GetDissatisfiedInfo(vrfs, out uint noc, out dissatisfactionRate_thermal, out dissatisfactionRate_draft);
       uint tNum = noc + totalOccupants;
-      aveDisrate = (tNum == 0) ? 0 : (aveDisrate * totalOccupants + dis * noc) / tNum;
+      if (tNum != 0)
+      {
+        double disRate = dissatisfactionRate_thermal + dissatisfactionRate_draft;
+        averagedDissatisfactionRate = (averagedDissatisfactionRate * totalOccupants + disRate * noc) / tNum;
+      }
       totalOccupants = tNum;
 
-      eConsumption = 0;
-      for(int i=0;i<vrfs.Length;i++)
-        eConsumption += vrfs[i].ElectricityMeters.IntegratedValue * ELC_PRIM_RATE;
+      //エネルギー消費関連を更新
+      instantaneousEnergyConsumption = 0.0;
+      totalEnergyConsumption = 0.0;
+      for (int i = 0; i < vrfs.Length; i++)
+      {
+        instantaneousEnergyConsumption += vrfs[i].ElectricityMeters.InstantaneousValue;
+        totalEnergyConsumption += vrfs[i].ElectricityMeters.IntegratedValue;
+      }
+      instantaneousEnergyConsumption *= ELC_PRIM_RATE;
+      totalEnergyConsumption *= ELC_PRIM_RATE;
     }
 
     private static void outputStatus(
@@ -370,7 +396,10 @@ namespace Shizuku2
       {
         //一般の情報
         swGen.Write("date,time");
-        swGen.WriteLine(",Outdoor drybulb temperature[C],Outdoor humidity ratio[g/kg],Global horizontal radiation [W/m2]");
+        swGen.WriteLine(
+          ",Outdoor drybulb temperature[C],Outdoor humidity ratio[g/kg],Global horizontal radiation [W/m2]" +
+          ",Energy consumption (Total) [GJ],Energy consumption (Current) [GJ/h]" + 
+          ",Averaged dissatisfaction[-],Dissatisfaction rate (Thermal comfort)[-],Dissatisfaction rate (Draft)[-]");
 
         //ゾーンの情報
         swZone.Write("date,time");
@@ -386,6 +415,11 @@ namespace Shizuku2
               "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity [g/kg]"
               );
           }
+          //天井裏
+          swZone.Write(
+            "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Name + " drybulb temperature [CDB]" +
+            "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Name + " absolute humidity [g/kg]"
+              );
         }
         swZone.WriteLine();
 
@@ -442,7 +476,12 @@ namespace Shizuku2
       swGen.WriteLine(
         "," + building.OutdoorTemperature.ToString("F1") + 
         "," + (1000 * building.OutdoorHumidityRatio).ToString("F1") + 
-        "," + building.Sun.GlobalHorizontalRadiation.ToString("F1"));
+        "," + building.Sun.GlobalHorizontalRadiation.ToString("F1") +
+        "," + totalEnergyConsumption.ToString("F5") +
+        "," + instantaneousEnergyConsumption.ToString("F5") +
+        "," + averagedDissatisfactionRate.ToString("F4") +
+        "," + dissatisfactionRate_thermal.ToString("F4") +
+        "," + dissatisfactionRate_draft.ToString("F4"));
 
       //ゾーンの情報
       swZone.Write(dtHeader);
@@ -458,6 +497,11 @@ namespace Shizuku2
             "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F2")
             );
         }
+        //天井裏
+        swZone.Write(
+          "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Temperature.ToString("F1") +
+          "," + (1000 * building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].HumidityRatio).ToString("F2")
+          );
       }
       swZone.WriteLine();
 
@@ -599,14 +643,16 @@ namespace Shizuku2
       vrf.UpdateBlowRate(untIndex, znL.Temperature, znU.Temperature);
 
       ImmutableVRFUnit unt = vrf.VRFSystem.IndoorUnits[untIndex];
-      //上部空間に給気
+      double lowerBlow = unt.AirFlowRate * vrf.LowZoneBlowRate[untIndex];
       double upperBlow = unt.AirFlowRate * (1.0 - vrf.LowZoneBlowRate[untIndex]);
+
+      //上部空間に給気
       building.SetSupplyAir(mrIndex, upZnIndex, unt.OutletAirTemperature, unt.OutletAirHumidityRatio, upperBlow);
 
       //冬季は加湿運転判断
       double saTmp = unt.OutletAirTemperature;
       double saHmd = unt.OutletAirHumidityRatio;
-      double lowerBlow = unt.AirFlowRate * vrf.LowZoneBlowRate[untIndex];
+      double saFlow = lowerBlow;
       if (initSettings["period"] == 1 && isVentilating())
       {
         double rhmd = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
@@ -614,17 +660,20 @@ namespace Shizuku2
         //40%を下回ったら加湿
         if (rhmd < 40)
         {
-          double af = HMD_AFLOW * znL.FloorArea;
-          humidify(znL.Temperature, znL.HumidityRatio, out double saTmp2, out double saHmd2);
-          saTmp = (saTmp * lowerBlow + saTmp2 * af) / (lowerBlow + af);
-          saHmd = (saHmd * lowerBlow + saHmd2 * af) / (lowerBlow + af);
-          lowerBlow += af;
+          double hmdAFlow = HMD_AFLOW * znL.FloorArea;
+          saFlow = lowerBlow + hmdAFlow;
+          humidify(znL.Temperature, znL.HumidityRatio, out double hmdATmp, out double hmdAHmd);
+          saTmp = (saTmp * lowerBlow + hmdATmp * hmdAFlow) / saFlow;
+          saHmd = (saHmd * lowerBlow + hmdAHmd * hmdAFlow) / saFlow;
         }
       }
-      building.SetSupplyAir(mrIndex, lwZnIndex, saTmp, saHmd, lowerBlow);
+      building.SetSupplyAir(mrIndex, lwZnIndex, saTmp, saHmd, saFlow);
 
       //下部空間に吹き込まれた風量分は下部から上部へ移動する
-      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, unt.AirFlowRate - upperBlow); //これ、混ざる処理なので不正確。
+      double udVent = 1.2 * building.MultiRoom[mrIndex].Zones[lwZnIndex].FloorArea * 
+        (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT) * UPDOWN_VENT;
+      double vent = Math.Max(lowerBlow, udVent);
+      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, vent); //これ、混ざる処理なので不正確。
       //building.SetAirFlow(mrIndex, lwZnIndex, upZnIndex, unt.AirFlowRate - upperBlow);
     }
 
@@ -694,15 +743,14 @@ namespace Shizuku2
       else return false;
     }
 
-    private static void saveScore
-      (double eConsumption, double aveDissatisfiedRate)
+    private static void saveScore()
     {
       //テキストデータの書き出し********************************
       using (StreamWriter sWriter = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "result.txt"))
       {
         sWriter.WriteLine("Period:" + (initSettings["period"] == 0 ? "Summer" : "Winter"));
-        sWriter.WriteLine("Energy consumption[GJ]:" + eConsumption);
-        sWriter.WriteLine("Average dissatisfied rate[-]:" + aveDissatisfiedRate);
+        sWriter.WriteLine("Energy consumption[GJ]:" + totalEnergyConsumption);
+        sWriter.WriteLine("Average dissatisfied rate[-]:" + averagedDissatisfactionRate);
         sWriter.WriteLine("User ID:" + initSettings["userid"]);
         sWriter.WriteLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
       }
@@ -727,8 +775,8 @@ namespace Shizuku2
       byte[][] data = new byte[][]
       {
         BitConverter.GetBytes(initSettings["period"]), //季節
-        BitConverter.GetBytes(eConsumption), //エネルギー消費
-        BitConverter.GetBytes(aveDissatisfiedRate), //平均不満足者率
+        BitConverter.GetBytes(totalEnergyConsumption), //エネルギー消費
+        BitConverter.GetBytes(averagedDissatisfactionRate), //平均不満足者率
         BitConverter.GetBytes(initSettings["userid"]), //ユーザーID
         BitConverter.GetBytes(V_MAJOR), //メジャーバージョン
         BitConverter.GetBytes(V_MINOR), //マイナーバージョン

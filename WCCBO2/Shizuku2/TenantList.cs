@@ -175,24 +175,35 @@ namespace Shizuku.Models
 
     /// <summary>不満情報を取得する</summary>
     /// <param name="stayNumber">建物内執務者数</param>
-    /// <param name="averageUncomfortableProbability">平均不満足率</param>
-    public void GetDissatisfiedInfo(out uint stayNumber, out double averageUncomfortableProbability)
+    /// <param name="aveDissatisfaction_thermal">平均不満足率</param>
+    public void GetDissatisfiedInfo(
+      ExVRFSystem[] vrfs, out uint stayNumber, out double aveDissatisfaction_thermal, out double aveDissatisfaction_draft)
     {
       stayNumber = 0;
-      averageUncomfortableProbability = 0;
+      aveDissatisfaction_thermal = 0;
+      aveDissatisfaction_draft = 0;
 
-      foreach (Tenant tnt in tenants)
+      for (int i = 0; i < tenants.Length; i++)
       {
-        foreach (Occupant oc in tnt.Occupants)
+        int tntOcc = 0;
+        //温冷感による不満
+        foreach (Occupant oc in tenants[i].Occupants)
         {
           if (oc.Worker.StayInOffice)
           {
+            tntOcc++;
             stayNumber++;
-            averageUncomfortableProbability += oc.OCModel.UncomfortableProbability;
+            aveDissatisfaction_thermal += oc.OCModel.UncomfortableProbability;
           }
         }
+        //ドラフトによる不満を加算
+        aveDissatisfaction_draft += tntOcc * (tntOcc / (double)tenants[i].Occupants.Length) * vrfs[i].DissatisfiedRateByJet;
       }
-      if (stayNumber != 0) averageUncomfortableProbability /= stayNumber;
+      if (stayNumber != 0)
+      {
+        aveDissatisfaction_thermal /= stayNumber;
+        aveDissatisfaction_draft /= stayNumber;
+      }
     }
 
     /// <summary>ゾーンに滞在する人数を取得する</summary>

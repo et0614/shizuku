@@ -26,6 +26,9 @@ namespace Shizuku2
     /// <summary>上部空間の高さ[m]</summary>
     public const double U_ZONE_HEIGHT = 1.0;
 
+    /// <summary>家具の熱容量（空気の熱容量に対する倍数）[-]</summary>
+    public const double HCAP_FURNITURE = 10;
+
     #endregion
 
     public static BuildingThermalModel Make()
@@ -421,7 +424,7 @@ namespace Shizuku2
       mRm[1].AddWall(11, 50, true); mRm[1].UseAdjacentSpaceFactor(50, false, 0.5); //廊下
       mRm[1].AddWall(12, 51, true); mRm[1].UseAdjacentSpaceFactor(51, false, 0.5); //廊下
       mRm[1].AddWall(13, 52, true); mRm[1].UseAdjacentSpaceFactor(52, false, 0.5); //階段室
-      //床
+      //床・天井
       for (int i = 0; i < 12; i++)
       {
         mRm[0].AddWall(i, 53 + i, true); //床
@@ -537,7 +540,8 @@ namespace Shizuku2
         {
           zns[i].VentilationRate = zns[i].AirMass * LEAK_RATE / 3600d;
           zns[i].InitializeAirState(22, 0.0105);
-          zns[i].HeatCapacity = zns[i].AirMass * 1006 * (i < half ? 10 : 2); //下部空間は家具の熱容量を考慮
+          zns[i].HeatCapacity = zns[i].AirMass * 1006 * (
+            (i < half || i == zns.Length - 1 ) ? HCAP_FURNITURE : 3); //下部空間は家具の熱容量を考慮。天井裏も同等とみなす
         }
       }
       initZone(znNs);
