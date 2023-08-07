@@ -25,7 +25,8 @@ namespace Shizuku.Models
     private const double MAX_CLO = 1.30;
 
     /// <summary>最小着衣量[clo]</summary>
-    private const double MIN_CLO = 0.3;
+    /// <remarks>0.3に腕まくり分の0.08を加算</remarks>
+    private const double MIN_CLO = 0.38;
 
     /// <summary>温冷感計算の代謝量はオフィス作業（1.1）に固定</summary>
     private const double MET = 1.1;
