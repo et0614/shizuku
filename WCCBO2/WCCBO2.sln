@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BACnet", "BACnet\BACnet.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AccelerationController", "AccelerationController\AccelerationController.csproj", "{9505BCF0-8CAC-4DCC-AAD5-8CB1EC7E47E2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExcelController", "ExcelController\ExcelController.csproj", "{874D614A-BD04-4C61-BFAA-911D5A8EC363}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExcelController", "ExcelController\ExcelController.csproj", "{874D614A-BD04-4C61-BFAA-911D5A8EC363}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shizuku2Lib", "Shizuku2Lib\Shizuku2Lib.csproj", "{28349F19-DAAC-4989-8F16-BC4CA84B9D49}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{874D614A-BD04-4C61-BFAA-911D5A8EC363}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{874D614A-BD04-4C61-BFAA-911D5A8EC363}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{874D614A-BD04-4C61-BFAA-911D5A8EC363}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28349F19-DAAC-4989-8F16-BC4CA84B9D49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28349F19-DAAC-4989-8F16-BC4CA84B9D49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28349F19-DAAC-4989-8F16-BC4CA84B9D49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28349F19-DAAC-4989-8F16-BC4CA84B9D49}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

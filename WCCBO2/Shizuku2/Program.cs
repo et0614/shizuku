@@ -40,13 +40,13 @@ namespace Shizuku2
     private const int V_MAJOR = 0;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 2;
+    private const int V_MINOR = 3;
 
     /// <summary>バージョン（リビジョン）</summary>
     private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.06.04";
+    private const string V_DATE = "2023.08.12";
 
     /// <summary>機械換気開始時刻</summary>
     private const int MECH_VENT_START = 8;
@@ -151,12 +151,12 @@ namespace Shizuku2
       Console.Write("Start precalculation...");
       DateTime dt =
         initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
-        initSettings["period"] == 1 ? new DateTime(1999, 2, 10, 0, 0, 0) : //冬季
-        new DateTime(1999, 4, 28, 0, 0, 0); //中間期//未対応
+        new DateTime(1999, 2, 10, 0, 0, 0); //冬季
+      //  new DateTime(1999, 4, 28, 0, 0, 0); //中間期//未対応
       dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
       //初期化・周期定常化処理
-      preRun(dtCtrl.CurrentDateTime, sun, wetLoader);
+      preRun(wetLoader, sun);
       Console.WriteLine("Done." + Environment.NewLine);
 
       //VRFコントローラ用意
@@ -238,12 +238,15 @@ namespace Shizuku2
         }
 
         Console.WriteLine(e.ToString());
-        Console.WriteLine("Emulation aborted. Press any key to exit.");
+        Console.WriteLine("Emulation aborted. The errors were written out to \"error.log\".");
+        Console.WriteLine("Press any key to exit.");
         Console.ReadLine();
       }
     }
 
     /// <summary>期間計算を実行する</summary>
+    /// <param name="wetLoader">気象データ</param>
+    /// <param name="sun">太陽</param>
     private static void run(WeatherLoader wetLoader, Sun sun)
     {
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
@@ -324,11 +327,12 @@ namespace Shizuku2
     }
 
     /// <summary>助走計算する</summary>
-    /// <param name="dTime">日時</param>
-    /// <param name="sun">太陽</param>
     /// <param name="wetLoader">気象データ</param>
-    private static void preRun(DateTime dTime, Sun sun, WeatherLoader wetLoader)
+    /// <param name="sun">太陽</param>
+    private static void preRun(WeatherLoader wetLoader, Sun sun)
     {
+      DateTime dTime = building.CurrentDateTime;
+
       double tStep = building.TimeStep;
       building.TimeStep = 3600;
       for(int i = 0; i < 10; i++)
@@ -362,8 +366,6 @@ namespace Shizuku2
 
     /// <summary>スコアを計算する</summary>
     /// <param name="totalOccupants">延執務者数[人]</param>
-    /// <param name="aveDisTherm">平均不満足者率[-]</param>
-    /// <param name="eConsumption">エネルギー消費量[GJ]</param>
     private static void updateScore(ref uint totalOccupants) 
     {
       //不満足者率を更新
@@ -556,6 +558,7 @@ namespace Shizuku2
 
     #region 換気設定
 
+    /// <summary>換気量を更新する</summary>
     private static void setVentilationRate()
     {
       //機械換気の真偽
@@ -564,8 +567,8 @@ namespace Shizuku2
       //換気中は上下高さで按分
       //漏気はLEAK_RATE回/hから高さで計算
       double lowRate = BuildingMaker.L_ZONE_HEIGHT / (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT);
-      double vRateDwn = (mechVent ? BuildingMaker.VENT_RATE * lowRate : BuildingMaker.LEAK_RATE * 1.7) / 3600d;
-      double vRateUp = (mechVent ? BuildingMaker.VENT_RATE * (1.0 - lowRate) : BuildingMaker.LEAK_RATE * 1.0) / 3600d;
+      double vRateDwn = (mechVent ? BuildingMaker.VENT_RATE * lowRate : BuildingMaker.LEAK_RATE * BuildingMaker.L_ZONE_HEIGHT) / 3600d;
+      double vRateUp = (mechVent ? BuildingMaker.VENT_RATE * (1.0 - lowRate) : BuildingMaker.LEAK_RATE * BuildingMaker.U_ZONE_HEIGHT) / 3600d;
       for (int i = 0; i < 12; i++)
       {
         building.SetVentilationRate(0, i, building.MultiRoom[0].Zones[i].FloorArea * vRateDwn);
@@ -578,6 +581,8 @@ namespace Shizuku2
       }
     }
 
+    /// <summary>機械換気の有無を判定</summary>
+    /// <returns>機械換気有りか否か</returns>
     private static bool isVentilating()
     {
       return !(
@@ -719,6 +724,8 @@ namespace Shizuku2
       Console.WriteLine("\r\n");
     }
 
+    /// <summary>初期設定ファイルを読み込む</summary>
+    /// <returns>読み込み成功の真偽</returns>
     private static bool loadInitFile()
     {
       //初期設定ファイル読み込み
@@ -743,6 +750,7 @@ namespace Shizuku2
       else return false;
     }
 
+    /// <summary>スコアを暗号化して保存する</summary>
     private static void saveScore()
     {
       //テキストデータの書き出し********************************

@@ -1,8 +1,6 @@
 ﻿using BaCSharp;
 using System.IO.BACnet;
 using System.IO.BACnet.Base;
-using System.Runtime.InteropServices;
-using static Popolo.ThermophysicalProperty.Refrigerant;
 
 namespace Shizuku2.Original
 {

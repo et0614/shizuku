@@ -16,6 +16,7 @@ namespace Shizuku2.Original
 
     #region 定数宣言
 
+    /// <summary>デバイスID</summary>
     const uint DEVICE_ID = 2;
 
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
