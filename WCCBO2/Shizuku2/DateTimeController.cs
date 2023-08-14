@@ -111,7 +111,8 @@ namespace Shizuku2
       dObject.AddBacnetObject(new AnalogOutput<int>
         ((int)MemberNumber.AccerarationRate,
         "Acceraration rate",
-        "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS));
+        "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS)
+      { m_PROP_LOW_LIMIT = 0 });
 
       //加速の基準となる現実の日時
       BacnetDateTime dTime2 = new BacnetDateTime(
@@ -156,7 +157,7 @@ namespace Shizuku2
       BacnetObjectId boID;
 
       //加速度
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.AccerarationRate);
       AccelerationRate = ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
     }
 
@@ -170,15 +171,15 @@ namespace Shizuku2
       BacnetObjectId boID;
 
       //現在の日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.CurrentDateTimeInSimulation);
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.CurrentDateTimeInSimulation);
       ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = CurrentDateTime;
 
       //加速が開始された現実の日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseRealDateTime);
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.BaseRealDateTime);
       ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = dtAccelerator.BaseRealDateTime;
 
       //加速された日時における加速開始日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseAcceleratedDateTime);
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.BaseAcceleratedDateTime);
       ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = dtAccelerator.BaseAcceleratedDateTime;
     }
 

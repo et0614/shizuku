@@ -4,6 +4,7 @@ using BaCSharp;
 
 namespace Shizuku2.BACnet
 {
+  /// <summary>Shizuku2のVRFコントローラとの通信ユーティリティクラス</summary>
   public class VRFCommunicator
   {
 
@@ -16,7 +17,7 @@ namespace Shizuku2.BACnet
     public const int VRFCONTROLLER_EXCLUSIVE_PORT = 0xBAC0 + (int)VRFCONTROLLER_DEVICE_ID;
 
     /// <summary>VRFコントローラのBACnetアドレス</summary>
-    public static readonly BacnetAddress VRFCTRL_BACADD = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + VRFCONTROLLER_EXCLUSIVE_PORT.ToString());
+    private readonly BacnetAddress bacAddress;
 
     #endregion
 
@@ -104,6 +105,7 @@ namespace Shizuku2.BACnet
 
     #region インスタンス変数・プロパティ
 
+    /// <summary>BACnet通信用オブジェクト</summary>
     private BACnetCommunicator communicator;
 
     #endregion
@@ -111,12 +113,19 @@ namespace Shizuku2.BACnet
     #region コンストラクタ
 
     /// <summary>インスタンスを初期化する</summary>
-    /// <param name="deviceID">通信で使うBACnet DeviceのID</param>
-    public VRFCommunicator(uint deviceID)
+    /// <param name="id">通信に使うBACnet DeviceのID</param>
+    /// <param name="name">通信に使うBACnet Deviceの名前</param>
+    /// <param name="description">通信に使うBACnet Deviceの説明</param>
+    /// <param name="ipAddress">VRFコントローラのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+    public VRFCommunicator(uint id, string name, string description, string ipAddress = "127.0.0.1")
     {
-      DeviceObject dObject = new DeviceObject(deviceID, "VRF communicator", "VRF communicator", true);
-      communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + deviceID));
+      DeviceObject dObject = new DeviceObject(id, name, description, true);
+      communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
+      bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + VRFCONTROLLER_EXCLUSIVE_PORT.ToString());
       communicator.StartService();
+
+      //Who is送信
+      communicator.Client.WhoIs();
     }
 
     #endregion
@@ -133,7 +142,7 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OnOff_Setting));
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE) }
         );
@@ -149,7 +158,7 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OnOff_Setting));
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE) }
         );
@@ -166,7 +175,7 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OnOff_Status));
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (bool)val[0].Value;
@@ -191,7 +200,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OperationMode_Setting));
 
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, mode == Mode.Cooling ? 1u : 2u) } //1:冷房, 2:暖房
         );
@@ -208,7 +217,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OperationMode_Status));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         if ((uint)val[0].Value == 1) return Mode.Cooling;
@@ -235,7 +244,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.Setpoint_Setting));
 
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, setpointTemperature) }
         );
@@ -253,7 +262,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.Setpoint_Status));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (double)val[0].Value;
@@ -275,7 +284,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.MeasuredRoomTemperature));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (double)val[0].Value;
@@ -302,7 +311,7 @@ namespace Shizuku2.BACnet
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.FanSpeed_Setting));
 
       uint spd = speed == FanSpeed.Low ? 1u : speed == FanSpeed.Middle ? 2u : 3u;
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, spd) }
         );
@@ -320,7 +329,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.FanSpeed_Status));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         switch ((uint)val[0].Value)
@@ -359,7 +368,7 @@ namespace Shizuku2.BACnet
         direction == Direction.Degree_225 ? 2u :
         direction == Direction.Degree_450 ? 3u :
         direction == Direction.Degree_675 ? 4u : 5u;
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, dir) }
         );
@@ -377,7 +386,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.AirflowDirection_Status));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         switch ((uint)val[0].Value)
@@ -413,7 +422,7 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.RemoteControllerPermittion_Setpoint_Setting));
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE) }
         );
@@ -429,7 +438,7 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.RemoteControllerPermittion_Setpoint_Setting));
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE) }
         );
@@ -447,7 +456,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.RemoteControllerPermittion_Setpoint_Status));
       
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (bool)val[0].Value;
@@ -470,7 +479,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.ForcedRefrigerantTemperature_Setting));
 
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE) }
         );
@@ -485,7 +494,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.ForcedRefrigerantTemperature_Setting));
 
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE) }
         );
@@ -501,7 +510,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.ForcedRefrigerantTemperature_Setting));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (bool)val[0].Value;
@@ -526,7 +535,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.EvaporatingTemperatureSetpoint_Setting));
 
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, evaporatingTemperature) }
         );
@@ -542,7 +551,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.EvaporatingTemperatureSetpoint_Status));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (double)val[0].Value;
@@ -563,7 +572,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.CondensingTemperatureSetpoint_Setting));
 
-      succeeded = communicator.Client.WritePropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
+      succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
         { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, condensingTemperature) }
         );
@@ -579,7 +588,7 @@ namespace Shizuku2.BACnet
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.CondensingTemperatureSetpoint_Status));
 
-      if (communicator.Client.ReadPropertyRequest(VRFCTRL_BACADD, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (double)val[0].Value;

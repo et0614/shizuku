@@ -156,7 +156,7 @@ namespace Shizuku2
       dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
       //初期化・周期定常化処理
-      preRun(wetLoader, sun);
+      preRun(dt, wetLoader, sun);
       Console.WriteLine("Done." + Environment.NewLine);
 
       //VRFコントローラ用意
@@ -329,10 +329,8 @@ namespace Shizuku2
     /// <summary>助走計算する</summary>
     /// <param name="wetLoader">気象データ</param>
     /// <param name="sun">太陽</param>
-    private static void preRun(WeatherLoader wetLoader, Sun sun)
+    private static void preRun(DateTime dTime, WeatherLoader wetLoader, Sun sun)
     {
-      DateTime dTime = building.CurrentDateTime;
-
       double tStep = building.TimeStep;
       building.TimeStep = 3600;
       for(int i = 0; i < 10; i++)

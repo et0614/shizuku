@@ -1,12 +1,5 @@
-﻿using BaCSharp;
-using NPOI.SS.UserModel;
-using Org.BouncyCastle.Utilities.Encoders;
-using System;
-using System.IO.BACnet;
-using System.IO.BACnet.Base;
-
+﻿using NPOI.SS.UserModel;
 using Shizuku2.BACnet;
-using System.Security;
 
 namespace ExcelController
 {
@@ -15,7 +8,7 @@ namespace ExcelController
     #region 定数宣言
 
     /// <summary>自身のDevice ID</summary>
-    const int DEVICE_ID = 7001;
+    const int DEVICE_ID = 7000;
 
     const string FILE_NAME = "schedule.xlsx";
 
@@ -23,37 +16,9 @@ namespace ExcelController
 
     #endregion
 
-    #region 加速度制御コントローラ（DateTimeController）の情報
-
-    /// <summary>加速度制御コントローラのBACnet Device ID</summary>
-    const int DEVICE_ID_ACC = 1;
-
-    /// <summary>加速度制御コントローラのExclusiveポート</summary>
-    const int EXCLUSIVE_ACC = 0xBAC0 + DEVICE_ID_ACC;
-
-    /// <summary>加速度制御コントローラのMeber Number</summary>
-    public enum MemberNumber_Acc
-    {
-      CurrentDateTimeInSimulation = 1,
-      AccerarationRate = 2,
-      BaseRealDateTime = 3,
-      BaseAcceleratedDateTime = 4,
-    }
-
-    #endregion
-
-    private static BACnetCommunicator communicator;
-
-    private static DateTimeAccelerator dtAcc = new DateTimeAccelerator(0, DateTime.Now);
-
-    private static bool dtimeInitialized = false;
-
-
     static void Main(string[] args)
     {
       Console.WriteLine("Starting Excel controller.");
-
-      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID + 1);
 
       //制御値保持インスタンス生成
       vrfCtrl[] vrfCtrls = new vrfCtrl[4];
@@ -149,27 +114,17 @@ namespace ExcelController
       }
       Console.WriteLine(" done.");
 
-      //コントローラ起動
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, "Controller who send control signal from excel.", "Controller who send control signal from excel.", true);
-      communicator = new BACnetCommunicator(dObject, 0xBAC0 + DEVICE_ID);
-
-      communicator.StartService();
-      //COV通告登録処理
-      communicator.Client.OnCOVNotification += Client_OnCOVNotification;
-      BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + EXCLUSIVE_ACC.ToString());
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber_Acc.AccerarationRate);
-      communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)MemberNumber_Acc.AccerarationRate, false, false, 3600);
-
-      //Who is送信
-      communicator.Client.WhoIs();
+      //コントローラを用意
+      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID + 1, "Excel controller", "Controller who send control signal from excel data file.");
+      DateTimeCommunicator dtCom = new DateTimeCommunicator(DEVICE_ID + 2, "Excel controller (Date time ctrl.)", "Excel controller (Date time ctrl.)");
 
       //制御値更新ループ*************************************
       while (true)
       {
-        while (!dtimeInitialized) ; //日時が初期化されるまでは空ループ
+        while (!dtCom.DateTimeInitialized) ; //日時が初期化されるまでは空ループ
 
         bool success;
-        DateTime now = dtAcc.AcceleratedDateTime;
+        DateTime now = dtCom.CurrentDateTimeInSimulation;
         for (int i = 0; i < 4; i++)
         {
           vrfCtrl vc = vrfCtrls[i];
@@ -178,7 +133,7 @@ namespace ExcelController
           //冷媒温度設定
           if ((vc.refCtrlIndx < vc.refCtrl.Count) && (vc.refCtrl[vc.refCtrlIndx].Item1 < now))
           {
-            Console.Write("Sending Forced Refrigerant Temperature status of VRF" + (i + 1) + "...");
+            Console.Write("Sending Forced Refrigerant Temperature status of VRF" + oUnitIndx + "...");
 
             if(vc.refCtrl[vc.refCtrlIndx].Item2)
               vrfCom.EnableRefrigerantTemperatureControl(oUnitIndx, out success);
@@ -192,7 +147,7 @@ namespace ExcelController
           //蒸発温度設定
           if ((vc.evpTempIndx < vc.evpTemp.Count) && (vc.evpTemp[vc.evpTempIndx].Item1 < now))
           {
-            Console.Write("Sending Evaporating Temperature Setpoint of VRF" + (i + 1) + "...");
+            Console.Write("Sending Evaporating Temperature Setpoint of VRF" + oUnitIndx + "...");
 
             vrfCom.ChangeEvaporatingTemperature(oUnitIndx, vc.evpTemp[vc.evpTempIndx].Item2, out success);
             Console.WriteLine(success ? "succeeded." : "failed.");
@@ -203,7 +158,7 @@ namespace ExcelController
           //凝縮温度設定
           if ((vc.cndTempIndx < vc.cndTemp.Count) && (vc.cndTemp[vc.cndTempIndx].Item1 < now))
           {
-            Console.Write("Sending Condensing Temperature Setpoint of VRF" + (i + 1) + "...");
+            Console.Write("Sending Condensing Temperature Setpoint of VRF" + oUnitIndx + "...");
 
             vrfCom.ChangeCondensingTemperature(oUnitIndx, vc.cndTemp[vc.cndTempIndx].Item2, out success);
             Console.WriteLine(success ? "succeeded." : "failed.");
@@ -220,12 +175,16 @@ namespace ExcelController
             //On/off
             if ((ic.onOffIndx < ic.onOff.Count) && (ic.onOff[ic.onOffIndx].Item1 < now))
             {
-              Console.Write("Sending On/Off status of VRF" + (i + 1) + "-" + (j + 1) + "...");
-
-              if(ic.onOff[ic.onOffIndx].Item2)
+              if (ic.onOff[ic.onOffIndx].Item2)
+              {
+                Console.Write("Turning on VRF" + oUnitIndx + "-" + iUnitIndx + "...");
                 vrfCom.TurnOn(oUnitIndx, iUnitIndx, out success);
+              }
               else
+              {
+                Console.Write("Turning off VRF" + oUnitIndx + "-" + iUnitIndx + "...");
                 vrfCom.TurnOff(oUnitIndx, iUnitIndx, out success);
+              }
               Console.WriteLine(success ? "succeeded." : "failed.");
               
               ic.onOffIndx++;
@@ -234,7 +193,7 @@ namespace ExcelController
             //Mode
             if ((ic.modeIndx < ic.mode.Count) && (ic.mode[ic.modeIndx].Item1 < now))
             {
-              Console.Write("Sending Operation mode of VRF" + (i + 1) + "-" + (j + 1) + "...");
+              Console.Write("Sending Operation mode of VRF" + oUnitIndx + "-" + iUnitIndx + "...");
 
               vrfCom.ChangeMode(oUnitIndx, iUnitIndx, ic.mode[ic.modeIndx].Item2, out success);
               Console.WriteLine(success ? "succeeded." : "failed.");
@@ -245,7 +204,7 @@ namespace ExcelController
             //Setpoint
             if ((ic.spTempIndx < ic.spTemp.Count) && (ic.spTemp[ic.spTempIndx].Item1 < now))
             {
-              Console.Write("Sending setpoint temperature of VRF" + (i + 1) + "-" + (j + 1) + "...");
+              Console.Write("Sending setpoint temperature of VRF" + oUnitIndx + "-" + iUnitIndx + "...");
 
               vrfCom.ChangeSetpointTemperature(oUnitIndx, iUnitIndx, ic.spTemp[ic.spTempIndx].Item2, out success);
               Console.WriteLine(success ? "succeeded." : "failed.");
@@ -256,7 +215,7 @@ namespace ExcelController
             //Fan speed
             if ((ic.fanSpeedIndx < ic.fanSpeed.Count) && (ic.fanSpeed[ic.fanSpeedIndx].Item1 < now))
             {
-              Console.Write("Sending fan speed of VRF" + (i + 1) + "-" + (j + 1) + "...");
+              Console.Write("Sending fan speed of VRF" + oUnitIndx + "-" + iUnitIndx + "...");
 
               vrfCom.ChangeFanSpeed(oUnitIndx, iUnitIndx, ic.fanSpeed[ic.fanSpeedIndx].Item2, out success);
               Console.WriteLine(success ? "succeeded." : "failed.");
@@ -267,7 +226,7 @@ namespace ExcelController
             //Direction
             if ((ic.directionIndx < ic.direction.Count) && (ic.direction[ic.directionIndx].Item1 < now))
             {
-              Console.Write("Sending air flow direction of VRF" + (i + 1) + "-" + (j + 1) + "...");
+              Console.Write("Sending air flow direction of VRF" + oUnitIndx + "-" + iUnitIndx + "...");
 
               vrfCom.ChangeDirection(oUnitIndx, iUnitIndx, ic.direction[ic.directionIndx].Item2, out success);
               Console.WriteLine(success ? "succeeded." : "failed.");
@@ -278,7 +237,7 @@ namespace ExcelController
             //Permit control
             if ((ic.permitRCtrlIndx < ic.permitRCtrl.Count) && (ic.permitRCtrl[ic.permitRCtrlIndx].Item1 < now))
             {
-              Console.Write("Sending remote controller permittion status of VRF" + (i + 1) + "-" + (j + 1) + "...");
+              Console.Write("Sending remote controller permittion status of VRF" + oUnitIndx + "-" + iUnitIndx + "...");
 
               if (ic.permitRCtrl[ic.permitRCtrlIndx].Item2)
                 vrfCom.PermitLocalControl(oUnitIndx, iUnitIndx, out success);
@@ -294,53 +253,6 @@ namespace ExcelController
         Thread.Sleep(50);
       }
 
-    }
-
-
-    private static void Client_OnCOVNotification(BacnetClient sender, BacnetAddress adr, byte invokeId, uint subscriberProcessIdentifier, BacnetObjectId initiatingDeviceIdentifier, BacnetObjectId monitoredObjectIdentifier, uint timeRemaining, bool needConfirm, ICollection<BacnetPropertyValue> values, BacnetMaxSegments maxSegments)
-    {
-      //加速度が変化した場合      
-      UInt16 port = BitConverter.ToUInt16(new byte[] { adr.adr[5], adr.adr[4] });
-      if (
-        port == EXCLUSIVE_ACC &&
-        monitoredObjectIdentifier.type == BacnetObjectTypes.OBJECT_ANALOG_OUTPUT &&
-        monitoredObjectIdentifier.instance == (uint)MemberNumber_Acc.AccerarationRate)
-      {
-        //この処理は汚いが・・・
-        foreach (BacnetPropertyValue value in values)
-        {
-          if (value.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PRESENT_VALUE)
-          {
-            int acc = (int)value.value[0].Value;
-
-            BacnetObjectId boID;
-            //基準日時（加速時間）
-            //adr = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DTCTRL_PORT.ToString());
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber_Acc.BaseAcceleratedDateTime);
-            if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val1))
-            {
-              DateTime dt1 = (DateTime)val1[0].Value;
-              DateTime dt2 = (DateTime)val1[1].Value;
-              DateTime bAccDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
-
-              //基準日時（現実時間）
-              boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber_Acc.BaseRealDateTime);
-              if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val2))
-              {
-                dt1 = (DateTime)val2[0].Value;
-                dt2 = (DateTime)val2[1].Value;
-                DateTime bRealDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
-
-                //初期化
-                dtAcc.InitDateTime(acc, bRealDTime, bAccDTime);
-                dtimeInitialized = true;
-              }
-            }
-
-            break;
-          }
-        }
-      }
     }
 
     #region インナークラス定義
