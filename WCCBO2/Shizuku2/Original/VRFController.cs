@@ -2,6 +2,7 @@
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using System;
 using System.IO.BACnet;
+using static Popolo.ThermophysicalProperty.Refrigerant;
 
 namespace Shizuku2.Original
 {
@@ -33,25 +34,46 @@ namespace Shizuku2.Original
 
     private enum MemberNumber
     {
+      /// <summary>On/Offの設定</summary>
       OnOff_Setting = 1,
+      /// <summary>On/Offの状態</summary>
       OnOff_Status = 2,
+      /// <summary>運転モードの設定</summary>
       OperationMode_Setting = 3,
+      /// <summary>運転モードの状態</summary>
       OperationMode_Status = 4,
+      /// <summary>室温設定値の設定</summary>
       Setpoint_Setting = 5,
-      Setpoint_Status= 6,
+      /// <summary>室温設定値の状態</summary>
+      Setpoint_Status = 6,
+      /// <summary>還温度</summary>
       MeasuredRoomTemperature = 7,
+      /// <summary>ファン風量の設定</summary>
       FanSpeed_Setting = 8,
+      /// <summary>ファン風量の状態</summary>
       FanSpeed_Status = 9,
+      /// <summary>風向の設定</summary>
       AirflowDirection_Setting = 10,
+      /// <summary>風量の状態</summary>
       AirflowDirection_Status = 11,
+      /// <summary>手元リモコン操作許可の設定</summary>
       RemoteControllerPermittion_Setpoint_Setting = 12,
+      /// <summary>手元リモコン操作許可の状態</summary>
       RemoteControllerPermittion_Setpoint_Status = 13,
+      /// <summary>冷媒温度強制制御の設定</summary>
       ForcedRefrigerantTemperature_Setting = 14,
+      /// <summary>冷媒温度強制制御の状態</summary>
       ForcedRefrigerantTemperature_Status = 15,
+      /// <summary>冷媒蒸発温度設定値の設定</summary>
       EvaporatingTemperatureSetpoint_Setting = 16,
+      /// <summary>冷媒蒸発温度設定値の状態</summary>
       EvaporatingTemperatureSetpoint_Status = 17,
+      /// <summary>冷媒凝縮温度設定値の設定</summary>
       CondensingTemperatureSetpoint_Setting = 18,
-      CondensingTemperatureSetpoint_Status = 19
+      /// <summary>冷媒凝縮温度設定値の状態</summary>
+      CondensingTemperatureSetpoint_Status = 19,
+      /// <summary>消費電力</summary>
+      Electricity
     }
 
     #endregion
@@ -165,6 +187,11 @@ namespace Shizuku2.Original
           ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status),
           "RemoteControlStart_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor status of permit or prohibit the On/Off operation from the remote controller.", false));
+
+        dObject.AddBacnetObject(new AnalogInput<double>
+         ((int)(bBase + MemberNumber.Electricity),
+         "Electricity_" + vrfUnitIndices[iuNum].ToString(),
+         "This object is used to monitor the indoor unit's electric consumption.", 0, BacnetUnitsId.UNITS_KILOWATTS));
       }
 
       for (int ouNum = 0; ouNum < vrfSystems.Length; ouNum++)
@@ -204,6 +231,11 @@ namespace Shizuku2.Original
           "CndTempStatus",
           "This object is used to monitor the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 });
+
+        dObject.AddBacnetObject(new AnalogInput<double>
+          ((int)(bBase + MemberNumber.Electricity),
+          "Electricity",
+          "This object is used to monitor the outdoor unit's electric consumption (fans and compressors).", 0, BacnetUnitsId.UNITS_KILOWATTS));
       }
 
       return dObject;
@@ -349,19 +381,27 @@ namespace Shizuku2.Original
         for (int i = 0; i < vrfSystems.Length; i++)
         {
           ExVRFSystem vrf = vrfSystems[i];
+
+          //室外機消費電力*************
+          BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.Electricity));
+          ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity;
+
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             int bBase = 1000 * (i + 1) + 100 * (j + 1);
-            BacnetObjectId boID;
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
             ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
               vrf.VRFSystem.CurrentMode == VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) : vrf.GetSetpoint(j, true);
 
-            //吸い込み室温****************
+            //吸い込み室温***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
             ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
+
+            //室内機消費電力*************
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Electricity));
+            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].FanElectricity;
 
             iuNum++;
           }

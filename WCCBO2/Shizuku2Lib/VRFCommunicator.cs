@@ -63,7 +63,9 @@ namespace Shizuku2.BACnet
       /// <summary>冷媒凝縮温度設定値の設定</summary>
       CondensingTemperatureSetpoint_Setting = 18,
       /// <summary>冷媒凝縮温度設定値の状態</summary>
-      CondensingTemperatureSetpoint_Status = 19
+      CondensingTemperatureSetpoint_Status = 19,
+      /// <summary>消費電力</summary>
+      Electricity
     }
 
     /// <summary>運転モード</summary>
@@ -587,6 +589,51 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         GetInstanceNumber(oUnitIndex, VRFControllerMember.CondensingTemperatureSetpoint_Status));
+
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      {
+        succeeded = true;
+        return (double)val[0].Value;
+      }
+
+      succeeded = false;
+      return 0;
+    }
+
+    #endregion
+
+    #region 電力消費関連
+
+    /// <summary>室内機の消費電力[kW]を取得する</summary>
+    /// <param name="oUnitIndex">室外機番号（1～4）</param>
+    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>室内機の消費電力[kW]</returns>
+    public double GetElectricity(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
+    {
+      BacnetObjectId boID = new BacnetObjectId(
+        BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.Electricity));
+
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      {
+        succeeded = true;
+        return (double)val[0].Value;
+      }
+
+      succeeded = false;
+      return 0;
+    }
+
+    /// <summary>室外機の消費電力[kW]を取得する</summary>
+    /// <param name="oUnitIndex">室外機番号（1～4）</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>室外機の消費電力[kW]</returns>
+    public double GetElectricity(uint oUnitIndex, out bool succeeded)
+    {
+      BacnetObjectId boID = new BacnetObjectId(
+        BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+        GetInstanceNumber(oUnitIndex, VRFControllerMember.Electricity));
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {

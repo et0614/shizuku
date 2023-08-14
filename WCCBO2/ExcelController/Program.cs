@@ -5,6 +5,7 @@ namespace ExcelController
 {
   internal class Program
   {
+
     #region 定数宣言
 
     /// <summary>自身のDevice ID</summary>
