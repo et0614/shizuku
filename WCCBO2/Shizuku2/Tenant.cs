@@ -22,6 +22,9 @@ namespace Shizuku.Models
     /// <summary>テナント名称を取得する</summary>
     public string Name { get; private set; }
 
+    /// <summary>滞在している執務者数を取得する</summary>
+    public uint StayWorkerNumber { get; private set; }
+
     /// <summary>テナントが入居している建物を取得する</summary>
     public ImmutableBuildingThermalModel Building { private set; get; }
 
@@ -51,9 +54,6 @@ namespace Shizuku.Models
 
     /// <summary>入居ゾーンの平均放射温度リスト</summary>
     private double[] mrTemps;
-
-    /// <summary>オフィス不在の真偽</summary>
-    private bool nobodyStay = true;
 
     /// <summary>テナント用VRF</summary>
     private ExVRFSystem vrf;
@@ -138,11 +138,11 @@ namespace Shizuku.Models
     public void UpdateOccupants(DateTime dTime)
     {
       //在不在情報
-      nobodyStay = true;
+      StayWorkerNumber = 0;
       foreach (OfficeTenant tnt in znTenants)
       {
         tnt.UpdateStatus(dTime);
-        if (tnt.StayWorkerNumber != 0) nobodyStay = false;
+        StayWorkerNumber += tnt.StayWorkerNumber;
       }
 
       //ゾーン間移動と温冷感の更新
@@ -258,7 +258,7 @@ namespace Shizuku.Models
         sensibleHeat += number * pcLoad + zone.FloorArea * Math.Min(30, Math.Max(0, (3 + 5 * nRnd.NextDouble_Standard())));
 
         //照明負荷//営業時間内か誰かが残っている場合には点灯
-        if (znTenants[0].IsBuisinessHours(zone.MultiRoom.CurrentDateTime) || !nobodyStay)
+        if (znTenants[0].IsBuisinessHours(zone.MultiRoom.CurrentDateTime) || (StayWorkerNumber != 0))
           sensibleHeat += 7.1 * zone.FloorArea; //7.1W/m2
       }
     }
@@ -291,6 +291,9 @@ namespace Shizuku.Models
   {
     /// <summary>テナント名称を取得する</summary>
     string Name { get; }
+
+    /// <summary>滞在している執務者数を取得する</summary>
+    uint StayWorkerNumber { get; }
 
     /// <summary>テナントが入居している建物を取得する</summary>
     ImmutableBuildingThermalModel Building { get; }

@@ -19,6 +19,18 @@ namespace ExcelController
 
     static void Main(string[] args)
     {
+      /*OccupantCommunicator cm = new OccupantCommunicator(999, "", "");
+      while (true)
+      {
+        int ocNum = cm.GetOccupantNumber(OccupantCommunicator.Tenant.SouthEast, out bool s1);
+        bool stay = cm.IsOccupantStayInOffice(OccupantCommunicator.Tenant.SouthEast, 1, out bool s2);
+        OccupantCommunicator.ThermalSensation ss = cm.GetThermalSensation(OccupantCommunicator.Tenant.SouthWest, 1, out bool s3);
+
+        Console.WriteLine(ocNum.ToString("F0") + ", " + (stay ? "Available" : "Vacant") + ", " + ss.ToString());
+
+        Thread.Sleep(1000);
+      }*/
+
       Console.WriteLine("Starting Excel controller.");
 
       //制御値保持インスタンス生成

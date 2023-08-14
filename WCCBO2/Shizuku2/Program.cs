@@ -6,16 +6,14 @@ using Popolo.Weather;
 using System.Security.Cryptography;
 
 using System.IO.BACnet;
-using System.Collections.Generic;
 using Shizuku.Models;
 using Popolo.Numerics;
-using PacketDotNet.Tcp;
-using Popolo.HVAC.HeatExchanger;
 using Popolo.ThermophysicalProperty;
+using Shizuku2.BACnet;
 
 namespace Shizuku2
 {
-  internal class Program
+    internal class Program
   {
 
     #region 定数宣言
@@ -81,6 +79,12 @@ namespace Shizuku2
 
     /// <summary>VRFコントローラ</summary>
     private static IBACnetController vrfCtrl;
+
+    /// <summary>外気モニタ</summary>
+    private static WeatherMonitor wetMntr;
+
+    /// <summary>執務者モニタ</summary>
+    private static OccupantMonitor ocMntr;
 
     /// <summary>VRFスケジューラ</summary>
     private static IBACnetController? vrfSchedl;
@@ -163,24 +167,32 @@ namespace Shizuku2
       switch (initSettings["controller"])
       {
         case 0:
-          vrfCtrl = new Original.VRFController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new Original.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          vrfCtrl = new BACnet.Original.VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new BACnet.Original.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         case 1:
-          vrfCtrl = new Daikin.VRFController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          vrfCtrl = new BACnet.Daikin.VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new BACnet.Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         case 2:
-          vrfCtrl = new MitsubishiElectric.VRFController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new MitsubishiElectric.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          vrfCtrl = new BACnet.MitsubishiElectric.VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new BACnet.MitsubishiElectric.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         default:
           throw new Exception("VRF controller number not supported.");
       }
 
-      //VRF controller開始
+      //外気モニタ
+      wetMntr = new WeatherMonitor(building);
+
+      //執務者モニタ
+      ocMntr = new OccupantMonitor(tenants);
+
+      //コントローラ起動
       dtCtrl.StartService();
       vrfCtrl.StartService();
+      wetMntr.StartService();
+      ocMntr.StartService();
 
       //BACnet controllerの登録を待つ
       Console.WriteLine("Waiting for BACnet controller registration.");
@@ -308,6 +320,8 @@ namespace Shizuku2
             //機器やセンサの検出値を取得
             vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
             dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            wetMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            ocMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
 
             //成績を集計
             updateScore(ref ttlOcNum);

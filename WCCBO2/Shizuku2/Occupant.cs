@@ -365,8 +365,7 @@ namespace Shizuku.Models
         lastOCcalc = dTime; //最終の更新日時を保存
 
         //出社中のみ計算する
-        if ((DeskZone.MultiRoom.CurrentDateTime < Worker.ArriveTime) ||
-          (Worker.LeaveTime < DeskZone.MultiRoom.CurrentDateTime)) return;
+        if (!Worker.StayInOffice) return;
 
         //熱環境情報を取得
         Tenant.GetZoneInfo

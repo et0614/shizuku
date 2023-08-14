@@ -1,14 +1,13 @@
 ﻿using BaCSharp;
 using Popolo.HVAC.MultiplePackagedHeatPump;
-using System;
 using System.IO.BACnet;
-using static Popolo.ThermophysicalProperty.Refrigerant;
 
-namespace Shizuku2.Original
+namespace Shizuku2.BACnet.Original
 {
   /// <summary>オリジナルVRFコントローラ</summary>
   public class VRFController : IBACnetController
   {
+
     //BACnet Object IDは以下のルールで付与
     //1000*室外機番号 + 100*室内機番号 + Member Number
     //Ex. VRF 3-2 Setpoint_Setting(5)  ->  1000*3+100*2+5=3205
@@ -263,7 +262,7 @@ namespace Shizuku2.Original
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             bBase = 1000 * (i + 1) + 100 * (j + 1);
-            
+
             //On/off******************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));
             bool isIUonSet = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
@@ -320,14 +319,14 @@ namespace Shizuku2.Original
             uint afDirStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
               ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
-            vrf.Direction[j] = (Math.PI / 180d) * Math.Max(5, Math.Min(90, (afDirSet - 1) * 22.5)); //水平でも5degはあることにする
+            vrf.Direction[j] = Math.PI / 180d * Math.Max(5, Math.Min(90, (afDirSet - 1) * 22.5)); //水平でも5degはあることにする
 
             //リモコン手元操作許可禁止*****
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting));
             bool rmtPmtSPSet = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status));
             bool rmtPmtSPStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
-            if(rmtPmtSPSet != rmtPmtSPStt)
+            if (rmtPmtSPSet != rmtPmtSPStt)
               vrf.PermitSPControl[j] = rmtPmtSPSet;
 
             iuNum++;
