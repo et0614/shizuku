@@ -160,12 +160,12 @@ namespace Shizuku2.BACnet.Daikin
                   "AirFlowRateStatus_" + vrfUnitIndices[iuNum].ToString(),
                   "This object is used to monitor the indoor unit’s fan speed.", 4, 2, false));
 
-                dObject.AddBacnetObject(new AnalogInput<double>
+                dObject.AddBacnetObject(new AnalogInput<float>
                   (getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.MeasuredRoomTemperature),
                   "RoomTemp_" + vrfUnitIndices[iuNum].ToString(),
                   "This object is used to monitor the room temperature detected by the indoor unit return air sensor, remote sensor, or remote controller sensor.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
 
-                dObject.AddBacnetObject(new AnalogValue<double>
+                dObject.AddBacnetObject(new AnalogValue<float>
                   (getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint),
                   "TempAdjest_" + vrfUnitIndices[iuNum].ToString(),
                   "This object is used to set the indoor unit’s setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
@@ -201,12 +201,12 @@ namespace Shizuku2.BACnet.Daikin
                   "CL_Rejection_X" + vrfUnitIndices[iuNum].ToString(),
                   "This object is used to disable or enable control by the Daikin Centralized Controllers which includes the Intelligent Touch Controller used on each DIII-Net system (up to 4 DIII-Net system can be connected to the Interface for use in BACnet).", false, false));
 
-                dObject.AddBacnetObject(new Accumulator<double>
+                dObject.AddBacnetObject(new Accumulator<float>
                   (getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedGas),
                   "GasTotalPower_" + vrfUnitIndices[iuNum].ToString(),
                   "No description.", 0, BacnetUnitsId.UNITS_CUBIC_METERS));
 
-                dObject.AddBacnetObject(new Accumulator<double>
+                dObject.AddBacnetObject(new Accumulator<float>
                   (getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedPower),
                   "ElecTotalPower_" + vrfUnitIndices[iuNum].ToString(),
                   "No description.", 0, BacnetUnitsId.UNITS_KILOWATT_HOURS));
@@ -360,7 +360,7 @@ namespace Shizuku2.BACnet.Daikin
 
                         //室内温度設定***************
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
-                        double tSp = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            float tSp = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
                         //ダイキンの設定温度は冷暖で5度の偏差を持つ
                         vrf.SetSetpoint(tSp, j, true);
                         vrf.SetSetpoint(tSp - 5, j, false);
@@ -491,8 +491,8 @@ namespace Shizuku2.BACnet.Daikin
 
                         //室内温度設定***************
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)getInstanceNumber(ObjectNumber.AnalogValue, iuNum, MemberNumber.Setpoint));
-                        ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
-                          vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) + 5 : vrf.GetSetpoint(j, true);
+                        ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
+                          (float)(vrf.VRFSystem.CurrentMode == Popolo.HVAC.MultiplePackagedHeatPump.VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) + 5 : vrf.GetSetpoint(j, true));
 
                         //フィルタサイン***************
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
@@ -503,17 +503,17 @@ namespace Shizuku2.BACnet.Daikin
                         //吸い込み室温****************
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
                           (uint)getInstanceNumber(ObjectNumber.AnalogInput, iuNum, MemberNumber.MeasuredRoomTemperature));
-                        ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
+                        ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
 
                         //ガス消費（EHPのため0固定）****
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR,
                           (uint)getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedGas));
-                        ((Accumulator<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0;
+                        ((Accumulator<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = 0;
 
                         //電力消費********************
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ACCUMULATOR,
                           (uint)getInstanceNumber(ObjectNumber.Accumulator, iuNum, MemberNumber.AccumulatedPower));
-                        ((Accumulator<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE += vrf.VRFSystem.IndoorUnits[j].FanElectricity;
+                        ((Accumulator<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE += (float)vrf.VRFSystem.IndoorUnits[j].FanElectricity;
 
                         //通信状況********************
                         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,

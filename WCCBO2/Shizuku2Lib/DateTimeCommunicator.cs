@@ -82,7 +82,7 @@ namespace Shizuku2.BACnet
     /// <summary>加速度を変更する</summary>
     /// <param name="accRate">加速度</param>
     /// <param name="succeeded">通信が成功したか否か</param>
-    public void ChangeAccerarationRate(double accRate, out bool succeeded)
+    public void ChangeAccerarationRate(int accRate, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate);
 
@@ -95,14 +95,14 @@ namespace Shizuku2.BACnet
     /// <summary>加速度を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>加速度</returns>
-    public double GetAccerarationRate(out bool succeeded)
+    public int GetAccerarationRate(out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate);
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (int)val[0].Value;
       }
 
       succeeded = false;

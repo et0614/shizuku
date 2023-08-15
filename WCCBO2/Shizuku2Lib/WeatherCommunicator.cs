@@ -68,14 +68,14 @@ namespace Shizuku2.BACnet
     /// <summary>乾球温度[C]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>乾球温度[C]</returns>
-    public double GetDrybulbTemperature(out bool succeeded)
+    public float GetDrybulbTemperature(out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.DrybulbTemperature);
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -85,14 +85,14 @@ namespace Shizuku2.BACnet
     /// <summary>相対湿度[%]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>相対湿度[%]</returns>
-    public double GetRelativeHumidity(out bool succeeded)
+    public float GetRelativeHumidity(out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.RelativeHumdity);
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -102,14 +102,14 @@ namespace Shizuku2.BACnet
     /// <summary>水平面全天日射[W/m2]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>水平面全天日射[W/m2]</returns>
-    public double GetGlobalHorizontalRadiation(out bool succeeded)
+    public float GetGlobalHorizontalRadiation(out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.GlobalHorizontalRadiation);
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;

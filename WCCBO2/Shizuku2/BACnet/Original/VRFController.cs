@@ -140,19 +140,19 @@ namespace Shizuku2.BACnet.Original
           "ModeStatus_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor an indoor unit's operation mode. 1:cool, 2:heat, 3:fan", 3, 3, false));
 
-        dObject.AddBacnetObject(new AnalogValue<double>
+        dObject.AddBacnetObject(new AnalogValue<float>
           ((int)(bBase + MemberNumber.Setpoint_Setting),
           "TempSPSetting_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to set the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
         { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<float>
          ((int)(bBase + MemberNumber.Setpoint_Status),
          "TempSPStatus_" + vrfUnitIndices[iuNum].ToString(),
          "This object is used to monitor the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.MeasuredRoomTemperature),
           "RoomTemp_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor the room temperature detected by the indoor unit return air sensor.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
@@ -187,7 +187,7 @@ namespace Shizuku2.BACnet.Original
           "RemoteControlStart_" + vrfUnitIndices[iuNum].ToString(),
           "This object is used to monitor status of permit or prohibit the On/Off operation from the remote controller.", false));
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<float>
          ((int)(bBase + MemberNumber.Electricity),
          "Electricity_" + vrfUnitIndices[iuNum].ToString(),
          "This object is used to monitor the indoor unit's electric consumption.", 0, BacnetUnitsId.UNITS_KILOWATTS));
@@ -207,31 +207,31 @@ namespace Shizuku2.BACnet.Original
           "RefrigerantTempCtrlStatus",
           "This object is used to monitor the forced evaporating/condensing control of VRF system..", false));
 
-        dObject.AddBacnetObject(new AnalogValue<double>
+        dObject.AddBacnetObject(new AnalogValue<float>
           ((int)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting),
           "EvpTempSetting",
           "This object is used to set the evaporating temperature of VRF system.", 10, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
         { m_PROP_HIGH_LIMIT = 15, m_PROP_LOW_LIMIT = 2 });
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status),
           "EvpTempStatus",
           "This object is used to monitor the evaporating temperature of VRF system.", 10, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 15, m_PROP_LOW_LIMIT = 2 });
 
-        dObject.AddBacnetObject(new AnalogValue<double>
+        dObject.AddBacnetObject(new AnalogValue<float>
           ((int)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting),
           "CndTempSetting",
           "This object is used to set the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
         { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 }); //これ、適当
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status),
           "CndTempStatus",
           "This object is used to monitor the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 });
 
-        dObject.AddBacnetObject(new AnalogInput<double>
+        dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.Electricity),
           "Electricity",
           "This object is used to monitor the outdoor unit's electric consumption (fans and compressors).", 0, BacnetUnitsId.UNITS_KILOWATTS));
@@ -288,14 +288,14 @@ namespace Shizuku2.BACnet.Original
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
-            double tSpSet = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            float tSpSet = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Setpoint_Status));
-            double tSpStt = ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            float tSpStt = ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (tSpSet != tSpStt) //設定!=状態の場合には更新処理
             {
               vrf.SetSetpoint(tSpSet, j, true);
               vrf.SetSetpoint(tSpSet, j, false);
-              ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tSpSet;
+              ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tSpSet;
             }
 
             //ファン風量*****************
@@ -344,19 +344,19 @@ namespace Shizuku2.BACnet.Original
 
           //蒸発温度設定***************
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting));
-          double tEvpSet = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+          float tEvpSet = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status));
-          double tEvpStt = ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+          float tEvpStt = ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
           if (tEvpSet != tEvpStt) //設定!=状態の場合には更新処理
-            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tEvpSet;
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tEvpSet;
 
           //凝縮温度設定***************
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting));
-          double tCndSet = ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+          float tCndSet = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status));
-          double tCndStt = ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+          float tCndStt = ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
           if (tCndSet != tCndStt) //設定!=状態の場合には更新処理
-            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tCndSet;
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tCndSet;
 
           //蒸発・凝縮温度反映
           vrfSystems[i].VRFSystem.TargetEvaporatingTemperature
@@ -383,7 +383,7 @@ namespace Shizuku2.BACnet.Original
 
           //室外機消費電力*************
           BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.Electricity));
-          ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity;
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)(vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity);
 
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
@@ -391,16 +391,16 @@ namespace Shizuku2.BACnet.Original
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
-            ((AnalogValue<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
-              vrf.VRFSystem.CurrentMode == VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) : vrf.GetSetpoint(j, true);
+            ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
+              (float)(vrf.VRFSystem.CurrentMode == VRFSystem.Mode.Heating ? vrf.GetSetpoint(j, false) : vrf.GetSetpoint(j, true));
 
             //吸い込み室温***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
-            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
 
             //室内機消費電力*************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Electricity));
-            ((AnalogInput<double>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = vrf.VRFSystem.IndoorUnits[j].FanElectricity;
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)vrf.VRFSystem.IndoorUnits[j].FanElectricity;
 
             iuNum++;
           }

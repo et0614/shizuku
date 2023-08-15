@@ -240,7 +240,7 @@ namespace Shizuku2.BACnet
     /// <param name="setpointTemperature">室温設定値[C]</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeSetpointTemperature
-      (uint oUnitIndex, uint iUnitIndex, double setpointTemperature, out bool succeeded) 
+      (uint oUnitIndex, uint iUnitIndex, float setpointTemperature, out bool succeeded) 
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
@@ -248,7 +248,7 @@ namespace Shizuku2.BACnet
 
       succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
-        { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, setpointTemperature) }
+        { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, setpointTemperature) }
         );
     }
 
@@ -257,7 +257,7 @@ namespace Shizuku2.BACnet
     /// <param name="iUnitIndex">室内機番号（1～8）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>室温設定値[C]</returns>
-    public double GetSetpointTemperature
+    public float GetSetpointTemperature
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
@@ -267,7 +267,7 @@ namespace Shizuku2.BACnet
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -279,7 +279,7 @@ namespace Shizuku2.BACnet
     /// <param name="iUnitIndex">室内機番号（1～8）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>室温[C]</returns>
-    public double GetRoomTemperature
+    public float GetRoomTemperature
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
@@ -289,7 +289,7 @@ namespace Shizuku2.BACnet
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -531,7 +531,7 @@ namespace Shizuku2.BACnet
     /// <param name="evaporatingTemperature">蒸発温度設定値[C]</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeEvaporatingTemperature
-      (uint oUnitIndex, double evaporatingTemperature, out bool succeeded)
+      (uint oUnitIndex, float evaporatingTemperature, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
@@ -539,7 +539,7 @@ namespace Shizuku2.BACnet
 
       succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
-        { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, evaporatingTemperature) }
+        { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, evaporatingTemperature) }
         );
     }
 
@@ -547,7 +547,7 @@ namespace Shizuku2.BACnet
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>蒸発温度設定値[C]</returns>
-    public double GetEvaporatingTemperature(uint oUnitIndex, out bool succeeded)
+    public float GetEvaporatingTemperature(uint oUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
@@ -556,7 +556,7 @@ namespace Shizuku2.BACnet
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -568,7 +568,7 @@ namespace Shizuku2.BACnet
     /// <param name="condensingTemperature">凝縮温度設定値[C]</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeCondensingTemperature
-      (uint oUnitIndex, double condensingTemperature, out bool succeeded)
+      (uint oUnitIndex, float condensingTemperature, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
@@ -576,7 +576,7 @@ namespace Shizuku2.BACnet
 
       succeeded = communicator.Client.WritePropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE,
         new List<BacnetValue>
-        { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DOUBLE, condensingTemperature) }
+        { new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, condensingTemperature) }
         );
     }
 
@@ -584,7 +584,7 @@ namespace Shizuku2.BACnet
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>凝縮温度設定値[C]</returns>
-    public double GetCondensingTemperature(uint oUnitIndex, out bool succeeded)
+    public float GetCondensingTemperature(uint oUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
@@ -593,7 +593,7 @@ namespace Shizuku2.BACnet
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -609,7 +609,7 @@ namespace Shizuku2.BACnet
     /// <param name="iUnitIndex">室内機番号（1～8）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>室内機の消費電力[kW]</returns>
-    public double GetElectricity(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
+    public float GetElectricity(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
@@ -618,7 +618,7 @@ namespace Shizuku2.BACnet
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;
@@ -629,7 +629,7 @@ namespace Shizuku2.BACnet
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>室外機の消費電力[kW]</returns>
-    public double GetElectricity(uint oUnitIndex, out bool succeeded)
+    public float GetElectricity(uint oUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
@@ -638,7 +638,7 @@ namespace Shizuku2.BACnet
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
-        return (double)val[0].Value;
+        return (float)val[0].Value;
       }
 
       succeeded = false;

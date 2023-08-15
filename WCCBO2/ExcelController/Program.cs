@@ -67,12 +67,12 @@ namespace ExcelController
             vc.refCtrl.Add(Tuple.Create(dTime, refCtrl));
 
           //蒸発温度
-          double evpTemp = wSheet.GetRow(line).GetCell(2 + 1 + i * 39).NumericCellValue;
+          float evpTemp = (float)wSheet.GetRow(line).GetCell(2 + 1 + i * 39).NumericCellValue;
           if (line == 3 || vc.evpTemp[vc.evpTemp.Count - 1].Item2 != evpTemp)
             vc.evpTemp.Add(Tuple.Create(dTime, evpTemp));
 
           //凝縮温度
-          double cndTemp = wSheet.GetRow(line).GetCell(2 + 2 + i * 39).NumericCellValue;
+          float cndTemp = (float)wSheet.GetRow(line).GetCell(2 + 2 + i * 39).NumericCellValue;
           if (line == 3 || vc.cndTemp[vc.cndTemp.Count - 1].Item2 != cndTemp)
             vc.cndTemp.Add(Tuple.Create(dTime, cndTemp));
 
@@ -94,7 +94,7 @@ namespace ExcelController
               ic.mode.Add(Tuple.Create(dTime, mode));
 
             //Setpoint
-            double sp = wSheet.GetRow(line).GetCell(2 + 5 + i * 39 + j * 6).NumericCellValue;
+            float sp = (float)wSheet.GetRow(line).GetCell(2 + 5 + i * 39 + j * 6).NumericCellValue;
             if (line == 3 || ic.spTemp[ic.spTemp.Count - 1].Item2 != sp)
               ic.spTemp.Add(Tuple.Create(dTime, sp));
 
@@ -276,10 +276,10 @@ namespace ExcelController
       public List<Tuple<DateTime, bool>> refCtrl = new List<Tuple<DateTime, bool>>();
 
       /// <summary>蒸発温度設定値</summary>
-      public List<Tuple<DateTime, double>> evpTemp = new List<Tuple<DateTime, double>>();
+      public List<Tuple<DateTime, float>> evpTemp = new List<Tuple<DateTime, float>>();
 
       /// <summary>凝縮温度設定値</summary>
-      public List<Tuple<DateTime, double>> cndTemp = new List<Tuple<DateTime, double>>();
+      public List<Tuple<DateTime, float>> cndTemp = new List<Tuple<DateTime, float>>();
 
       public int refCtrlIndx = 0;
 
@@ -297,7 +297,7 @@ namespace ExcelController
       public List<Tuple<DateTime, VRFCommunicator.Mode>> mode = new List<Tuple<DateTime, VRFCommunicator.Mode>>();
 
       /// <summary>温度設定値</summary>
-      public List<Tuple<DateTime, double>> spTemp = new List<Tuple<DateTime, double>>();
+      public List<Tuple<DateTime, float>> spTemp = new List<Tuple<DateTime, float>>();
 
       /// <summary>ファン風量</summary>
       public List<Tuple<DateTime, VRFCommunicator.FanSpeed>> fanSpeed = new List<Tuple<DateTime, VRFCommunicator.FanSpeed>>();
