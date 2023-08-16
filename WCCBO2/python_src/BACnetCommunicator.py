@@ -32,6 +32,7 @@ class BACnetCommunicator():
             vendorIdentifier=15,
             )
         self.id = id
+        # idが0 (47808)以外だとWhoisが効かない。修正必要。
         self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + id))
 
         # launch the core lib
@@ -42,6 +43,8 @@ class BACnetCommunicator():
         time.sleep(1)
 
     def start_service(self):
+        """BACnet通信を開始する
+        """        
         self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + self.id))
 
         # launch the core lib
@@ -53,6 +56,8 @@ class BACnetCommunicator():
         self.app.who_is()
 
     def end_service(self):
+        """BACnet通信を終了する
+        """        
         stop()
 
     def who_is(self):

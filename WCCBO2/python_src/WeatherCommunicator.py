@@ -28,6 +28,16 @@ class WeatherCommunicator():
         self.target_ip = target_ip + ':' + str(self.WEATHERMONITOR_EXCLUSIVE_PORT)
         self.comm = BACnetCommunicator.BACnetCommunicator(id,name)
 
+    def start_service(self):
+        """BACnet通信を開始する
+        """
+        self.comm.start_service()
+
+    def end_service(self):
+        """BACnet通信を終了する
+        """        
+        self.comm.end_service()
+
     def get_drybulb_temperature(self):
         """外気乾球温度[C]を取得する
 
@@ -55,3 +65,22 @@ class WeatherCommunicator():
         val = self.comm.read_present_value(self.target_ip,'analogInput:' + str(WeatherMonitorMember.GlobalHorizontalRadiation.value),Real)
         return val
 
+
+def main():
+    wCom = WeatherCommunicator(999, 'wetherCom')
+
+    val = wCom.get_drybulb_temperature()
+    print('乾球温度= ' + str(val[1]) + ' C')
+
+    val = wCom.get_relative_humidity()
+    print('相対湿度= ' + str(val[1]) + ' %')
+
+    val = wCom.get_global_horizontal_radiation()
+    print('水平面全天日射= ' + str(val[1]) + ' W/m2')
+
+    # 無限ループで待機
+    while True:
+        pass
+
+if __name__ == "__main__":
+    main()
