@@ -290,8 +290,8 @@ namespace Shizuku2
 
             //気象データを建物モデルに反映
             sun.Update(dtCtrl.CurrentDateTime);
-            wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, ref sun);
-            building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, 0);
+            wetLoader.GetWeather(dtCtrl.CurrentDateTime, out double dbt, out double hmd, out double nocRad, ref sun);
+            building.UpdateOutdoorCondition(dtCtrl.CurrentDateTime, sun, dbt, 0.001 * hmd, nocRad);
 
             //テナントを更新（内部発熱もここで更新される）
             tenants.Update(dtCtrl.CurrentDateTime);
@@ -354,8 +354,8 @@ namespace Shizuku2
         {
           //気象データを建物モデルに反映
           sun.Update(dt);
-          wetLoader.GetWeather(dt, out double dbt, out double hmd, ref sun);
-          building.UpdateOutdoorCondition(dt, sun, dbt, 0.001 * hmd, 0);
+          wetLoader.GetWeather(dt, out double dbt, out double hmd, out double nocRad, ref sun);
+          building.UpdateOutdoorCondition(dt, sun, dbt, 0.001 * hmd, nocRad);
           //換気量を更新
           setVentilationRate();
 
@@ -370,8 +370,8 @@ namespace Shizuku2
 
       //気象データと時刻を初期化
       sun.Update(dTime);
-      wetLoader.GetWeather(dTime, out double dbt2, out double hmd2, ref sun);
-      building.UpdateOutdoorCondition(dTime, sun, dbt2, 0.001 * hmd2, 0);
+      wetLoader.GetWeather(dTime, out double dbt2, out double hmd2, out double nocRad2, ref sun);
+      building.UpdateOutdoorCondition(dTime, sun, dbt2, 0.001 * hmd2, nocRad2);
 
       building.TimeStep = tStep;
     }
