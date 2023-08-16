@@ -15,18 +15,22 @@ class BACnetCommunicator():
     """BACnet通信用クラス
     """  
 
-    def __init__(self):
+    def __init__(self, id, name):
         """インスタンスを初期化する
+
+        Args:
+            id (int): 通信用のDeviceのID
+            name (str): 通信用のDeviceの名前
         """
             
         this_device = LocalDeviceObject(
-            objectName="MyDevice",
-            objectIdentifier=512,
+            objectName=name,
+            objectIdentifier=id,
             maxApduLengthAccepted=1024,
             segmentationSupported='segmentedBoth',
             vendorIdentifier=15,
             )
-        self.app = BIPSimpleApplication(this_device, '127.0.0.1:47808')
+        self.app = BIPSimpleApplication(this_device, '127.0.0.1:' + str(0xBAC0 + id))
 
         # launch the core lib
         self.core = threading.Thread(target = run, daemon=True)
@@ -49,7 +53,7 @@ class BACnetCommunicator():
             data_type (bacpypes.primitivedata): データの種別
 
         Returns:
-            list: Present value, 読み取り成功の真偽
+            list: 読み取り成功の真偽, Present value
         """
 
         request = self._make_request(addr, obj_id, True)
@@ -189,6 +193,7 @@ class BACnetCommunicator():
                 propertyValue = Any(),
                 )
 
+"""
 def main():
     master = BACnetCommunicator()
 
@@ -242,3 +247,4 @@ def my_call_back_write(addr, obj_id, success, value):
 
 if __name__ == "__main__":
     main()
+"""
