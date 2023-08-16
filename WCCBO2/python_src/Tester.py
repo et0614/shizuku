@@ -1,3 +1,4 @@
+import time
 import BACnetCommunicator
 import WeatherCommunicator
 
@@ -7,7 +8,8 @@ from bacpypes.basetypes import DateTime
 BACNET_DEVICE_ID = 999
 
 def main():
-    test_WeatherCommunicator()
+    test_BACnetCommunicator()
+    # test_WeatherCommunicator()
 
 def test_WeatherCommunicator():
     wCom = WeatherCommunicator.WeatherCommunicator(BACNET_DEVICE_ID, 'wetherCom')
@@ -26,7 +28,11 @@ def test_WeatherCommunicator():
         pass
 
 def test_BACnetCommunicator():
+    print('make device')
     master = BACnetCommunicator.BACnetCommunicator(BACNET_DEVICE_ID, 'myDevice')
+    #time.sleep(1)
+    #print('start device')
+    #master.start_service()
 
     # Who is送信
     master.who_is()

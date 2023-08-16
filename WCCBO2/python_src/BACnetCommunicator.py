@@ -1,7 +1,8 @@
 import threading
+import time
 
-from bacpypes.core import run, deferred
-from bacpypes.pdu import Address
+from bacpypes.core import run, deferred, stop
+from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
@@ -23,26 +24,41 @@ class BACnetCommunicator():
             name (str): 通信用のDeviceの名前
         """
             
-        this_device = LocalDeviceObject(
+        self.this_device = LocalDeviceObject(
             objectName=name,
             objectIdentifier=id,
             maxApduLengthAccepted=1024,
             segmentationSupported='segmentedBoth',
             vendorIdentifier=15,
             )
-        self.app = BIPSimpleApplication(this_device, '127.0.0.1:' + str(0xBAC0 + id))
+        self.id = id
+        self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + id))
 
         # launch the core lib
         self.core = threading.Thread(target = run, daemon=True)
         self.core.start()
 
         # Wait the lib launching
-        # time.sleep(1)
+        time.sleep(1)
+
+    def start_service(self):
+        self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + self.id))
+
+        # launch the core lib
+        self.core = threading.Thread(target = run, daemon=True)
+        self.core.start()
+
+        # Wait the lib launching
+        time.sleep(1)
+        self.app.who_is()
+
+    def end_service(self):
+        stop()
 
     def who_is(self):
         """Who isコマンドを送る（ブロードキャスト）
         """        
-        self.app.who_is()
+        self.app.who_is(None, None, GlobalBroadcast())
 
     def read_present_value(self, addr, obj_id, data_type):
         """Read property requestでPresent valueを読み取る（同期処理）
@@ -193,9 +209,8 @@ class BACnetCommunicator():
                 propertyValue = Any(),
                 )
 
-"""
 def main():
-    master = BACnetCommunicator()
+    master = BACnetCommunicator(999, 'myDevice')
 
     # Who is送信
     master.who_is()
@@ -247,4 +262,3 @@ def my_call_back_write(addr, obj_id, success, value):
 
 if __name__ == "__main__":
     main()
-"""
