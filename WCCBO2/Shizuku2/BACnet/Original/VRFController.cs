@@ -1,6 +1,7 @@
 ﻿using BaCSharp;
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.ThermophysicalProperty;
+using System;
 using System.IO.BACnet;
 
 namespace Shizuku2.BACnet.Original
@@ -87,13 +88,6 @@ namespace Shizuku2.BACnet.Original
 
     private BACnetCommunicator communicator;
 
-    /// <summary>室内機の台数を取得する</summary>
-    public int NumberOfIndoorUnits
-    { get { return vrfUnitIndices.Length; } }
-
-    /// <summary>各系統の室内機の台数</summary>
-    private readonly VRFUnitIndex[] vrfUnitIndices;
-
     private readonly ExVRFSystem[] vrfSystems;
 
     private DateTime nextSignalApply = new DateTime(1980, 1, 1, 0, 0, 0);
@@ -107,12 +101,6 @@ namespace Shizuku2.BACnet.Original
     {
       vrfSystems = vrfs;
 
-      List<VRFUnitIndex> vrfInd = new List<VRFUnitIndex>();
-      for (int i = 0; i < vrfs.Length; i++)
-        for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
-          vrfInd.Add(new VRFUnitIndex(i, j));
-      vrfUnitIndices = vrfInd.ToArray();
-
       communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
     }
@@ -122,131 +110,135 @@ namespace Shizuku2.BACnet.Original
     {
       DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
 
-      for (int iuNum = 0; iuNum < NumberOfIndoorUnits; iuNum++)
+      for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)
       {
-        int bBase = 1000 * (1 + vrfUnitIndices[iuNum].OUnitIndex) + 100 * (1 + vrfUnitIndices[iuNum].IUnitIndex);
-
-        dObject.AddBacnetObject(new BinaryOutput
-          ((int)(bBase + MemberNumber.OnOff_Setting),
-          "OnOffCommand_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to start (On)/stop (Off) the indoor unit.", false));
-
-        dObject.AddBacnetObject(new BinaryInput
-          ((int)(bBase + MemberNumber.OnOff_Status),
-          "OnOffStatus_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor the indoor unit's On/Off status.", false));
-
-        dObject.AddBacnetObject(new MultiStateOutput
-          ((int)(bBase + MemberNumber.OperationMode_Setting),
-          "ModeCommand_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to set an indoor unit's operation mode. 1:cool, 2:heat, 3:fan", 3, 3));
-
-        dObject.AddBacnetObject(new MultiStateInput
-          ((int)(bBase + MemberNumber.OperationMode_Status),
-          "ModeStatus_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor an indoor unit's operation mode. 1:cool, 2:heat, 3:fan", 3, 3, false));
-
-        dObject.AddBacnetObject(new AnalogValue<float>
-          ((int)(bBase + MemberNumber.Setpoint_Setting),
-          "TempSPSetting_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to set the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
-        { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
-
-        dObject.AddBacnetObject(new AnalogInput<float>
-         ((int)(bBase + MemberNumber.Setpoint_Status),
-         "TempSPStatus_" + vrfUnitIndices[iuNum].ToString(),
-         "This object is used to monitor the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
-        { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
-
-        dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.MeasuredRoomTemperature),
-          "RoomTemp_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor the room dry-bulb temperature detected by the indoor unit return air sensor.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
-
-        dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.MeasuredRelativeHumidity),
-          "RoomRHmid_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor the room relative humidity detected by the indoor unit return air sensor.", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
-        { m_PROP_HIGH_LIMIT = 100, m_PROP_LOW_LIMIT = 0 });
-
-        dObject.AddBacnetObject(new MultiStateOutput
-          ((int)(bBase + MemberNumber.FanSpeed_Setting),
-          "AirFlowRateCommand_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to set an indoor unit's fan speed. 1:Low, 2:Middle, 3:High", 2, 3));
-
-        dObject.AddBacnetObject(new MultiStateInput
-          ((int)(bBase + MemberNumber.FanSpeed_Status),
-          "AirFlowRateStatus_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor the indoor unit's fan speed. 1:Low, 2:Middle, 3:High", 3, 2, false));
-
-        dObject.AddBacnetObject(new MultiStateOutput
-          ((int)(bBase + MemberNumber.AirflowDirection_Setting),
-          "AirDirectionCommand_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to change the indoor unit's airflow direction. 1:Horizontal, 2:22.5deg, 3:45deg, 4:67.5deg, 5:Vertical", 5, 5));
-
-        dObject.AddBacnetObject(new MultiStateInput
-          ((int)(bBase + MemberNumber.AirflowDirection_Status),
-          "AirDirectionStatus_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor the indoor unit's airflow direction setting. 1:Horizontal, 2:22.5deg, 3:45deg, 4:67.5deg, 5:Vertical", 5, 5, false));
-
-        dObject.AddBacnetObject(new BinaryValue
-          ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting),
-          "RemoteControlStart_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to permit or prohibit the On/Off operation from the remote controller.", false, false));
-
-        dObject.AddBacnetObject(new BinaryInput
-          ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status),
-          "RemoteControlStart_" + vrfUnitIndices[iuNum].ToString(),
-          "This object is used to monitor status of permit or prohibit the On/Off operation from the remote controller.", false));
-
-        dObject.AddBacnetObject(new AnalogInput<float>
-         ((int)(bBase + MemberNumber.Electricity),
-         "Electricity_" + vrfUnitIndices[iuNum].ToString(),
-         "This object is used to monitor the indoor unit's electric consumption.", 0, BacnetUnitsId.UNITS_KILOWATTS));
-      }
-
-      for (int ouNum = 0; ouNum < vrfSystems.Length; ouNum++)
-      {
-        int bBase = 1000 * (1 + ouNum);
+        //室外機別の項目
+        int bBase = 1000 * (1 + ouIndx);
+        string vrfName = "VRF" + (1 + ouIndx);
 
         dObject.AddBacnetObject(new BinaryValue
           ((int)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting),
-          "RefrigerantTempCtrlSetting",
+          "RefrigerantTempCtrlSetting_" + vrfName,
           "This object is used to change the forced evaporating/condensing control of VRF system.", false, false));
 
         dObject.AddBacnetObject(new BinaryInput
           ((int)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status),
-          "RefrigerantTempCtrlStatus",
+          "RefrigerantTempCtrlStatus_" + vrfName,
           "This object is used to monitor the forced evaporating/condensing control of VRF system..", false));
 
         dObject.AddBacnetObject(new AnalogValue<float>
           ((int)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting),
-          "EvpTempSetting",
+          "EvpTempSetting_" + vrfName,
           "This object is used to set the evaporating temperature of VRF system.", 10, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
         { m_PROP_HIGH_LIMIT = 15, m_PROP_LOW_LIMIT = 2 });
 
         dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status),
-          "EvpTempStatus",
+          "EvpTempStatus_" + vrfName,
           "This object is used to monitor the evaporating temperature of VRF system.", 10, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 15, m_PROP_LOW_LIMIT = 2 });
 
         dObject.AddBacnetObject(new AnalogValue<float>
           ((int)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting),
-          "CndTempSetting",
+          "CndTempSetting_" + vrfName,
           "This object is used to set the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
         { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 }); //これ、適当
 
         dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status),
-          "CndTempStatus",
+          "CndTempStatus_" + vrfName,
           "This object is used to monitor the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
         { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 });
 
         dObject.AddBacnetObject(new AnalogInput<float>
           ((int)(bBase + MemberNumber.Electricity),
-          "Electricity",
+          "Electricity_" + vrfName,
           "This object is used to monitor the outdoor unit's electric consumption (fans and compressors).", 0, BacnetUnitsId.UNITS_KILOWATTS));
+
+        for (int iuIndx = 0; iuIndx < vrfSystems[ouIndx].IndoorUnitModes.Length; iuIndx++)
+        {
+          //室内機ごとの情報
+          bBase = 1000 * (1 + ouIndx) + 100 * (1 + iuIndx);
+          vrfName += "-" + (1 + iuIndx);
+
+          dObject.AddBacnetObject(new BinaryOutput
+          ((int)(bBase + MemberNumber.OnOff_Setting),
+          "OnOffCommand_" + vrfName.ToString(),
+          "This object is used to start (On)/stop (Off) the indoor unit.", false));
+
+          dObject.AddBacnetObject(new BinaryInput
+            ((int)(bBase + MemberNumber.OnOff_Status),
+            "OnOffStatus_" + vrfName.ToString(),
+            "This object is used to monitor the indoor unit's On/Off status.", false));
+
+          dObject.AddBacnetObject(new MultiStateOutput
+            ((int)(bBase + MemberNumber.OperationMode_Setting),
+            "ModeCommand_" + vrfName.ToString(),
+            "This object is used to set an indoor unit's operation mode. 1:cool, 2:heat, 3:fan", 3, 3));
+
+          dObject.AddBacnetObject(new MultiStateInput
+            ((int)(bBase + MemberNumber.OperationMode_Status),
+            "ModeStatus_" + vrfName.ToString(),
+            "This object is used to monitor an indoor unit's operation mode. 1:cool, 2:heat, 3:fan", 3, 3, false));
+
+          dObject.AddBacnetObject(new AnalogValue<float>
+            ((int)(bBase + MemberNumber.Setpoint_Setting),
+            "TempSPSetting_" + vrfName.ToString(),
+            "This object is used to set the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
+          { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
+
+          dObject.AddBacnetObject(new AnalogInput<float>
+           ((int)(bBase + MemberNumber.Setpoint_Status),
+           "TempSPStatus_" + vrfName.ToString(),
+           "This object is used to monitor the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
+          { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
+
+          dObject.AddBacnetObject(new AnalogInput<float>
+            ((int)(bBase + MemberNumber.MeasuredRoomTemperature),
+            "RoomTemp_" + vrfName.ToString(),
+            "This object is used to monitor the room dry-bulb temperature detected by the indoor unit return air sensor.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
+
+          dObject.AddBacnetObject(new AnalogInput<float>
+            ((int)(bBase + MemberNumber.MeasuredRelativeHumidity),
+            "RoomRHmid_" + vrfName.ToString(),
+            "This object is used to monitor the room relative humidity detected by the indoor unit return air sensor.", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
+          { m_PROP_HIGH_LIMIT = 100, m_PROP_LOW_LIMIT = 0 });
+
+          dObject.AddBacnetObject(new MultiStateOutput
+            ((int)(bBase + MemberNumber.FanSpeed_Setting),
+            "AirFlowRateCommand_" + vrfName.ToString(),
+            "This object is used to set an indoor unit's fan speed. 1:Low, 2:Middle, 3:High", 2, 3));
+
+          dObject.AddBacnetObject(new MultiStateInput
+            ((int)(bBase + MemberNumber.FanSpeed_Status),
+            "AirFlowRateStatus_" + vrfName.ToString(),
+            "This object is used to monitor the indoor unit's fan speed. 1:Low, 2:Middle, 3:High", 3, 2, false));
+
+          dObject.AddBacnetObject(new MultiStateOutput
+            ((int)(bBase + MemberNumber.AirflowDirection_Setting),
+            "AirDirectionCommand_" + vrfName.ToString(),
+            "This object is used to change the indoor unit's airflow direction. 1:Horizontal, 2:22.5deg, 3:45deg, 4:67.5deg, 5:Vertical", 5, 5));
+
+          dObject.AddBacnetObject(new MultiStateInput
+            ((int)(bBase + MemberNumber.AirflowDirection_Status),
+            "AirDirectionStatus_" + vrfName.ToString(),
+            "This object is used to monitor the indoor unit's airflow direction setting. 1:Horizontal, 2:22.5deg, 3:45deg, 4:67.5deg, 5:Vertical", 5, 5, false));
+
+          dObject.AddBacnetObject(new BinaryValue
+            ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting),
+            "RemoteControlStart_" + vrfName.ToString(),
+            "This object is used to permit or prohibit the On/Off operation from the remote controller.", false, false));
+
+          dObject.AddBacnetObject(new BinaryInput
+            ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status),
+            "RemoteControlStart_" + vrfName.ToString(),
+            "This object is used to monitor status of permit or prohibit the On/Off operation from the remote controller.", false));
+
+          dObject.AddBacnetObject(new AnalogInput<float>
+           ((int)(bBase + MemberNumber.Electricity),
+           "Electricity_" + vrfName.ToString(),
+           "This object is used to monitor the indoor unit's electric consumption.", 0, BacnetUnitsId.UNITS_KILOWATTS));
+        }
       }
 
       return dObject;
@@ -436,30 +428,6 @@ namespace Shizuku2.BACnet.Original
     public void EndService()
     {
       communicator.EndService();
-    }
-
-
-    #endregion
-
-    #region 構造体定義
-
-    /// <summary>室外機と室内機の番号を保持する</summary>
-    private struct VRFUnitIndex
-    {
-      public string ToString()
-      {
-        return (OUnitIndex + 1).ToString() + "-" + (IUnitIndex + 1).ToString();
-      }
-
-      public int OUnitIndex { get; private set; }
-
-      public int IUnitIndex { get; private set; }
-
-      public VRFUnitIndex(int oUnitIndex, int iUnitIndex)
-      {
-        OUnitIndex = oUnitIndex;
-        IUnitIndex = iUnitIndex;
-      }
     }
 
     #endregion
