@@ -64,6 +64,15 @@ namespace Shizuku2.BACnet
       DeviceObject dObject = new DeviceObject(id, name, description, true);
       communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + DATETIMECONTROLLER_EXCLUSIVE_PORT.ToString());
+    }
+
+    #endregion
+
+    #region インスタンスメソッド
+
+    /// <summary>サービスを開始する</summary>
+    public void StartService()
+    {
       communicator.StartService();
 
       //加速度の変更を監視
@@ -75,9 +84,11 @@ namespace Shizuku2.BACnet
       communicator.Client.WhoIs();
     }
 
-    #endregion
-
-    #region インスタンスメソッド
+    /// <summary>リソースを解放する</summary>
+    public void EndService()
+    {
+      communicator.EndService();
+    }
 
     /// <summary>加速度を変更する</summary>
     /// <param name="accRate">加速度</param>

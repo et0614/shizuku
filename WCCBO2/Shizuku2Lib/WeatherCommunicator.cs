@@ -55,15 +55,24 @@ namespace Shizuku2.BACnet
       DeviceObject dObject = new DeviceObject(id, name, description, true);
       communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + WEATHERMONITOR_EXCLUSIVE_PORT.ToString());
-      communicator.StartService();
-
-      //Who is送信
-      communicator.Client.WhoIs();
     }
 
     #endregion
 
     #region インスタンスメソッド
+
+    /// <summary>サービスを開始する</summary>
+    public void StartService()
+    {
+      communicator.StartService();
+      communicator.Client.WhoIs();
+    }
+
+    /// <summary>リソースを解放する</summary>
+    public void EndService()
+    {
+      communicator.EndService();
+    }
 
     /// <summary>乾球温度[C]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>

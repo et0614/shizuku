@@ -87,15 +87,24 @@ namespace Shizuku2.BACnet
       DeviceObject dObject = new DeviceObject(id, name, description, true);
       communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + OCCUPANTMONITOR_EXCLUSIVE_PORT.ToString());
-      communicator.StartService();
-
-      //Who is送信
-      communicator.Client.WhoIs();
     }
 
     #endregion
 
     #region インスタンスメソッド
+
+    /// <summary>サービスを開始する</summary>
+    public void StartService()
+    {
+      communicator.StartService();
+      communicator.Client.WhoIs();
+    }
+
+    /// <summary>リソースを解放する</summary>
+    public void EndService()
+    {
+      communicator.EndService();
+    }
 
     /// <summary>在室している執務者数を取得する</summary>
     /// <param name="tenant">テナント</param>

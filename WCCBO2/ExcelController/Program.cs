@@ -20,6 +20,7 @@ namespace ExcelController
     static void Main(string[] args)
     {
       /*OccupantCommunicator cm = new OccupantCommunicator(999, "", "");
+      cm.StartService();
       while (true)
       {
         int ocNum = cm.GetOccupantNumber(OccupantCommunicator.Tenant.SouthEast, out bool s1);
@@ -127,9 +128,11 @@ namespace ExcelController
       }
       Console.WriteLine(" done.");
 
-      //コントローラを用意
+      //コントローラを用意して開始
       VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID + 1, "Excel controller", "Controller who send control signal from excel data file.");
       DateTimeCommunicator dtCom = new DateTimeCommunicator(DEVICE_ID + 2, "Excel controller (Date time ctrl.)", "Excel controller (Date time ctrl.)");
+      vrfCom.StartService();
+      dtCom.StartService();
 
       //制御値更新ループ*************************************
       while (true)
