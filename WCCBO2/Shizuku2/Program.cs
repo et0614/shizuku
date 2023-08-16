@@ -81,7 +81,7 @@ namespace Shizuku2
     private static IBACnetController vrfCtrl;
 
     /// <summary>外気モニタ</summary>
-    private static WeatherMonitor wetMntr;
+    private static EnvironmentMonitor wetMntr;
 
     /// <summary>執務者モニタ</summary>
     private static OccupantMonitor ocMntr;
@@ -183,7 +183,7 @@ namespace Shizuku2
       }
 
       //外気モニタ
-      wetMntr = new WeatherMonitor(building);
+      wetMntr = new EnvironmentMonitor(building, vrfs);
 
       //執務者モニタ
       ocMntr = new OccupantMonitor(tenants);

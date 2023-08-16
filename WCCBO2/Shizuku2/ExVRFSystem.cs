@@ -58,7 +58,7 @@ namespace Shizuku2
     public double[] LowZoneBlowRate { get; private set; }
 
     /// <summary>電力量計</summary>
-    private Accumulator　eMeters = new Accumulator(3600, 2, 1);
+    private Accumulator eMeters = new Accumulator(3600, 2, 1);
 
     /// <summary>電力量計を取得する</summary>
     public ImmutableAccumulator ElectricityMeters { get { return eMeters; } }
@@ -272,6 +272,22 @@ namespace Shizuku2
     {
       if (isCoolingMode) spC[iUnitIndex] = Math.Max(16, Math.Min(32, setpoint));
       else spH[iUnitIndex] = Math.Max(16, Math.Min(32, setpoint));
+    }
+
+    /// <summary>給気対象の下部空間の乾球温度[C]を取得する</summary>
+    /// <param name="iUnitIndex">室内機番号</param>
+    /// <returns>給気対象の下部空間の乾球温度[C]</returns>
+    public double GetLowerZoneTemperature(int iUnitIndex)
+    {
+      return lowerZones[iUnitIndex].Temperature;
+    }
+
+    /// <summary>給気対象の下部空間の絶対湿度[kg/kg]を取得する</summary>
+    /// <param name="iUnitIndex">室内機番号</param>
+    /// <returns>給気対象の下部空間の絶対湿度[kg/kg]</returns>
+    public double GetLowerZoneAbsoluteHumidity(int iUnitIndex)
+    {
+      return lowerZones[iUnitIndex].HumidityRatio;
     }
 
   }

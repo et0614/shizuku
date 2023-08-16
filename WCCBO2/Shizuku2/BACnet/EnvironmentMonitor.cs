@@ -5,8 +5,13 @@ using Popolo.ThermophysicalProperty;
 
 namespace Shizuku2.BACnet
 {
-  internal class WeatherMonitor : IBACnetController
+  internal class EnvironmentMonitor : IBACnetController
   {
+
+    //BACnet Object IDは以下のルールで付与
+    //外界情報はMember Number
+    //ゾーンの温湿度は
+    //1000*室外機番号 + 100*室内機番号 + Member Number
 
     #region 定数宣言
 
@@ -35,11 +40,15 @@ namespace Shizuku2.BACnet
       RelativeHumdity = 2,
       /// <summary>水平面全天日射</summary>
       GlobalHorizontalRadiation = 3,
+      /// <summary>夜間放射</summary>
+      NocturnalRadiation = 4
     }
 
     #endregion
 
     #region インスタンス変数・プロパティ
+
+    private readonly ExVRFSystem[] vrfSystems;
 
     /// <summary>BACnet通信用オブジェクト</summary>
     public BACnetCommunicator Communicator;
@@ -51,9 +60,10 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public WeatherMonitor(ImmutableBuildingThermalModel model)
+    public EnvironmentMonitor(ImmutableBuildingThermalModel model, ExVRFSystem[] vrfs)
     {
-      building = model;
+      this.building = model;
+      this.vrfSystems = vrfs;
 
       Communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
@@ -83,6 +93,35 @@ namespace Shizuku2.BACnet
         "Global horizontal radiation",
         "Global horizontal radiation.", 0, BacnetUnitsId.UNITS_WATTS_PER_SQUARE_METER));
 
+      //夜間放射
+      dObject.AddBacnetObject(new AnalogInput<float>
+        ((int)MemberNumber.NocturnalRadiation,
+        "Nocturnal radiation",
+        "Nocturnal radiation.", 0, BacnetUnitsId.UNITS_WATTS_PER_SQUARE_METER));
+
+      for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)
+      {
+        for (int iuIndx = 0; iuIndx < vrfSystems[ouIndx].IndoorUnitModes.Length; iuIndx++)
+        {
+          //室内機ごとの情報
+          int bBase = 1000 * (1 + ouIndx) + 100 * (1 + iuIndx);
+          string vrfName = "VRF" + (1 + ouIndx) + "-" + (1 + iuIndx);
+
+          //乾球温度
+          dObject.AddBacnetObject(new AnalogInput<float>
+            ((int)(bBase + MemberNumber.DrybulbTemperature),
+            "Dry-bulb temperature (" + vrfName + ")",
+            "Dry-bulb temperature.", 25, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
+
+          //相対湿度
+          dObject.AddBacnetObject(new AnalogInput<float>
+            ((int)(bBase + MemberNumber.RelativeHumdity),
+            "Relative humidity (" + vrfName + ")",
+            "Relative humidity.", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
+          { PROP_LOW_LIMIT = 0, PROP_HIGH_LIMIT = 100 });
+        }
+      }
+
       return dObject;
     }
 
@@ -111,9 +150,33 @@ namespace Shizuku2.BACnet
       boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.RelativeHumdity);
       ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = rhmd;
 
-      //水平面全天日射量
+      //水平面全天日射
       boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.GlobalHorizontalRadiation);
       ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)building.Sun.GlobalHorizontalRadiation;
+
+      //夜間放射
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NocturnalRadiation);
+      ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)building.NocturnalRadiation;
+
+      for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)
+      {
+        for (int iuIndx = 0; iuIndx < vrfSystems[ouIndx].IndoorUnitModes.Length; iuIndx++)
+        {
+          //室内機ごとの情報
+          int bBase = 1000 * (1 + ouIndx) + 100 * (1 + iuIndx);
+
+          //乾球温度
+          float dbt = (float)vrfSystems[ouIndx].GetLowerZoneTemperature(iuIndx);
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.DrybulbTemperature));
+          ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = dbt;
+
+          //相対湿度
+          float rhmd2 = (float)MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
+            (dbt, (float)vrfSystems[ouIndx].GetLowerZoneAbsoluteHumidity(iuIndx), 101.325);
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.RelativeHumdity));
+          ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = rhmd2;
+        }
+      }
 
     }
 
