@@ -33,14 +33,14 @@ class BACnetCommunicator():
             )
         self.id = id
         # idが0 (47808)以外だとWhoisが効かない。修正必要。
-        self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + id))
+        # self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + id))
 
         # launch the core lib
-        self.core = threading.Thread(target = run, daemon=True)
-        self.core.start()
+        # self.core = threading.Thread(target = run, daemon=True)
+        # self.core.start()
 
         # Wait the lib launching
-        time.sleep(1)
+        # time.sleep(1)
 
     def start_service(self):
         """BACnet通信を開始する
@@ -119,15 +119,16 @@ class BACnetCommunicator():
         deferred(self.app.request_io, iocb)
         
     def _complete_read_present_value_async(self, iocb, data_type, addr, obj_id, call_back_fnc):
+        if(call_back_fnc == None):
+            return
+        
         if iocb.ioResponse:
             apdu = iocb.ioResponse
-            if(call_back_fnc != None):
-                call_back_fnc(addr, obj_id, True, apdu.propertyValue.cast_out(data_type))
+            call_back_fnc(addr, obj_id, True, apdu.propertyValue.cast_out(data_type))
             return
 
         if iocb.ioError:
-            if(call_back_fnc != None):
-                call_back_fnc(addr, obj_id, False, str(iocb.ioError))
+            call_back_fnc(addr, obj_id, False, str(iocb.ioError))
             return
         
     def write_present_value(self, addr, obj_id, value):
@@ -182,6 +183,9 @@ class BACnetCommunicator():
         deferred(self.app.request_io, iocb)
         
     def _complete_write_present_value_async(self, iocb, addr, obj_id, call_back_fnc):
+        if(call_back_fnc == None) :
+            return
+        
         if iocb.ioResponse:
             call_back_fnc(addr, obj_id, True, None)
             return
@@ -214,8 +218,11 @@ class BACnetCommunicator():
                 propertyValue = Any(),
                 )
 
+# region サンプル
+
 def main():
     master = BACnetCommunicator(999, 'myDevice')
+    master.start_service()
 
     # Who is送信
     master.who_is()
@@ -267,3 +274,5 @@ def my_call_back_write(addr, obj_id, success, value):
 
 if __name__ == "__main__":
     main()
+
+# endregion
