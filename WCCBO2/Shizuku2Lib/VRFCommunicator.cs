@@ -145,7 +145,7 @@ namespace Shizuku2.BACnet
 
     #region 発停関連
 
-    /// <summary>起動する</summary>
+    /// <summary>室内機を起動する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
     /// <param name="iUnitIndex">室内機番号（1～8）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
@@ -161,7 +161,7 @@ namespace Shizuku2.BACnet
         );
     }
 
-    /// <summary>停止する</summary>
+    /// <summary>室内機を停止する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
     /// <param name="iUnitIndex">室内機番号（1～8）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
@@ -285,17 +285,39 @@ namespace Shizuku2.BACnet
       return 0;
     }
 
-    /// <summary>室温[C]を取得する</summary>
+    /// <summary>還空気の温度[C]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
     /// <param name="iUnitIndex">室内機番号（1～8）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
-    /// <returns>室温[C]</returns>
-    public float GetRoomTemperature
+    /// <returns>還空気の温度[C]</returns>
+    public float GetReturnAirTemperature
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.MeasuredRoomTemperature));
+
+      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      {
+        succeeded = true;
+        return (float)val[0].Value;
+      }
+
+      succeeded = false;
+      return 0;
+    }
+
+    /// <summary>還空気の相対湿度[%]を取得する</summary>
+    /// <param name="oUnitIndex">室外機番号（1～4）</param>
+    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>還空気の相対湿度[%]</returns>
+    public float GetReturnAirRelativeHumidity
+      (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
+    {
+      BacnetObjectId boID = new BacnetObjectId(
+          BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.MeasuredRelativeHumidity));
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {

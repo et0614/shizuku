@@ -160,7 +160,7 @@ namespace Shizuku2.BACnet
     public float GetZoneDrybulbTemperature(int oUnitIndex, int iUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        (uint)(1000 * (1 + oUnitIndex) + 100 * (1 + iUnitIndex) + WeatherMonitorMember.DrybulbTemperature));
+        (uint)(1000 * oUnitIndex + 100 * iUnitIndex + WeatherMonitorMember.DrybulbTemperature));
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
@@ -180,7 +180,7 @@ namespace Shizuku2.BACnet
     public float GetZoneRelativeHumidity(int oUnitIndex, int iUnitIndex, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        (uint)(1000 * (1 + oUnitIndex) + 100 * (1 + iUnitIndex) + WeatherMonitorMember.RelativeHumdity));
+        (uint)(1000 * oUnitIndex + 100 * iUnitIndex + WeatherMonitorMember.RelativeHumdity));
 
       if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
