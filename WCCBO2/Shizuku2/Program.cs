@@ -188,11 +188,15 @@ namespace Shizuku2
       //執務者モニタ
       ocMntr = new OccupantMonitor(tenants);
 
+      //ダミーデバイス
+      DummyDevice dummyDv = new DummyDevice();
+
       //コントローラ起動
       dtCtrl.StartService();
       vrfCtrl.StartService();
       wetMntr.StartService();
       ocMntr.StartService();
+      dummyDv.StartService();
 
       //BACnet controllerの登録を待つ
       Console.WriteLine("Waiting for BACnet controller registration.");

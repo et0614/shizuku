@@ -81,19 +81,6 @@ namespace Shizuku2.BACnet
 
       Communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
-
-      Communicator.Client.OnIam += Client_OnIam;
-      Communicator.Client.OnWhoIs += Client_OnWhoIs;
-    }
-
-    private void Client_OnWhoIs(BacnetClient sender, BacnetAddress adr, int lowLimit, int highLimit)
-    {
-      Console.WriteLine("Recieve \"Who is\" request from, Address =" + adr.ToString());
-    }
-
-    private void Client_OnIam(BacnetClient sender, BacnetAddress adr, uint deviceId, uint maxAPDU, BacnetSegmentations segmentation, ushort vendorId)
-    {
-      //Console.WriteLine("Recieve \"I am\" request from, Address =" + adr.ToString() +" : Device ID = " + deviceId);
     }
 
     /// <summary>BACnet Deviceを作成する</summary>

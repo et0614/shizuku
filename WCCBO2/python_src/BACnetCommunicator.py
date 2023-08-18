@@ -1,9 +1,11 @@
 import threading
 import time
 
+from datetime import datetime
+
 from bacpypes.core import run, deferred, stop
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest
+from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest, ReadPropertyACK
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
 from bacpypes.primitivedata import ObjectIdentifier, Enumerated, Real, Integer, BitString, Boolean, Unsigned
@@ -32,19 +34,11 @@ class BACnetCommunicator():
             vendorIdentifier=15,
             )
         self.id = id
-        # idが0 (47808)以外だとWhoisが効かない。修正必要。
-        # self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + id))
-
-        # launch the core lib
-        # self.core = threading.Thread(target = run, daemon=True)
-        # self.core.start()
-
-        # Wait the lib launching
-        # time.sleep(1)
 
     def start_service(self):
         """BACnet通信を開始する
         """        
+        # idが0 (47808)以外だとWhoisが効かない。修正必要。
         self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + self.id))
 
         # launch the core lib
@@ -80,10 +74,17 @@ class BACnetCommunicator():
         request = self._make_request(addr, obj_id, True)
 
         iocb = IOCB(request)
+        # iocb.set_timeout(0.1, err=TimeoutError)
+        # print('X:' + str(iocb.ioState))
+        # self.app.request_io(iocb)
         deferred(self.app.request_io, iocb)
-
+        # print('A: ' + datetime.now().strftime("%H:%M:%S.%f"))
         # wait for it to complete
+        # print('Y:' + str(iocb.ioState))
+        # time.sleep(1.0)
         iocb.wait()
+        # print('Z:' + str(iocb.ioState))
+        # print('B: ' + datetime.now().strftime("%H:%M:%S.%f"))
 
         # do something for error/reject/abort
         if iocb.ioError:
@@ -116,6 +117,7 @@ class BACnetCommunicator():
  
         iocb = IOCB(request)
         iocb.add_callback(self._complete_read_present_value_async, data_type, addr, obj_id, call_back_fnc)
+        
         deferred(self.app.request_io, iocb)
         
     def _complete_read_present_value_async(self, iocb, data_type, addr, obj_id, call_back_fnc):
@@ -223,6 +225,10 @@ class BACnetCommunicator():
 def main():
     master = BACnetCommunicator(999, 'myDevice')
     master.start_service()
+
+    while True:
+        x = master.read_present_value('127.0.0.1:47809', 'analogOutput:2', Integer)
+        print(x)
 
     # Who is送信
     master.who_is()

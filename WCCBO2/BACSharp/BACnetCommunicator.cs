@@ -1,5 +1,4 @@
-﻿using BaCSharp;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.BACnet;
 
 namespace BaCSharp
@@ -9,6 +8,9 @@ namespace BaCSharp
   {
 
     #region インスタンス変数・プロパティの定義
+
+    /// <summary>通信を出力するか否か</summary>
+    private readonly bool outputMessage;
 
     /// <summary>BACnetClient</summary>
     [NonSerialized]
@@ -83,8 +85,9 @@ namespace BaCSharp
     #region コンストラクタ
 
     public BACnetCommunicator
-      (DeviceObject device, int exclusivePort)
+      (DeviceObject device, int exclusivePort, bool outputMessage = false)
     {
+      this.outputMessage = outputMessage;
       this.BACnetDevice = device;
 
       BacnetIpUdpProtocolTransport bUDP = new BacnetIpUdpProtocolTransport(0xBAC0, exclusivePort);
@@ -136,6 +139,8 @@ namespace BaCSharp
     /// <param name="vendor_id"></param>
     private void client_OnIam(BacnetClient sender, BacnetAddress adr, uint device_id, uint max_apdu, BacnetSegmentations segmentation, ushort vendor_id)
     {
+      if (outputMessage) Console.WriteLine("Receive 'I am' message from device_" + device_id + " on " + adr.ToString());
+
       BACnetDevice.ReceivedIam(sender, adr, device_id);
     }
 
@@ -148,6 +153,8 @@ namespace BaCSharp
     /// <param name="objName"></param>
     private void client_OnWhoHas(BacnetClient sender, BacnetAddress adr, int lowLimit, int highLimit, BacnetObjectId? objId, string objName)
     {
+      if (outputMessage) Console.WriteLine("Receive 'Who has' message from " + adr.ToString());
+      
       if (lowLimit != -1 && DeviceID < lowLimit) return;
       else if (highLimit != -1 && DeviceID > highLimit) return;
 
@@ -169,6 +176,8 @@ namespace BaCSharp
     /// <param name="high_limit"></param>
     private void client_OnWhoIs(BacnetClient sender, BacnetAddress adr, int low_limit, int high_limit)
     {
+      if (outputMessage) Console.WriteLine("Receive 'Who is' message from " + adr.ToString());
+
       if (low_limit != -1 && DeviceID < low_limit) return;
       else if (high_limit != -1 && DeviceID > high_limit) return;
       sender.Iam(DeviceID, BacnetSegmentations.SEGMENTATION_BOTH);
@@ -185,6 +194,8 @@ namespace BaCSharp
       (BacnetClient sender, BacnetAddress adr, byte invoke_id,
       BacnetObjectId object_id, BacnetPropertyReference property, BacnetMaxSegments max_segments)
     {
+      if (outputMessage) Console.WriteLine("Receive 'Read property' request from " + adr.ToString());
+
       lock (BACnetDevice)
       {
         BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(object_id);
@@ -217,6 +228,8 @@ namespace BaCSharp
       (BacnetClient sender, BacnetAddress adr, byte invoke_id,
       BacnetObjectId object_id, BacnetPropertyValue value, BacnetMaxSegments max_segments)
     {
+      if (outputMessage) Console.WriteLine("Receive 'Write property' request from " + adr.ToString());
+
       lock (BACnetDevice)
       {
         BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(object_id);
@@ -254,6 +267,8 @@ namespace BaCSharp
     private void client_OnReadPropertyMultipleRequest
       (BacnetClient sender, BacnetAddress adr, byte invoke_id, IList<BacnetReadAccessSpecification> properties, BacnetMaxSegments max_segments)
     {
+      if (outputMessage) Console.WriteLine("Receive 'Read property multiple' request from " + adr.ToString());
+
       lock (BACnetDevice)
       {
         try
@@ -298,6 +313,8 @@ namespace BaCSharp
     private void Client_OnWritePropertyMultipleRequest
       (BacnetClient sender, BacnetAddress adr, byte invoke_id, BacnetObjectId object_id, ICollection<BacnetPropertyValue> values, BacnetMaxSegments maxSegments)
     {
+      if (outputMessage) Console.WriteLine("Receive 'Write property multiple' request from " + adr.ToString());
+
       lock (BACnetDevice)
       {
         BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(object_id);
@@ -347,6 +364,8 @@ namespace BaCSharp
       (BacnetClient sender, BacnetAddress adr, byte invokeId, uint subscriberProcessIdentifier,
       BacnetObjectId monitoredObjectIdentifier, bool cancellationRequest, bool issueConfirmedNotifications, uint lifetime, BacnetMaxSegments maxSegments)
     {
+      if (outputMessage) Console.WriteLine("Receive 'COV subscribe' request from " + adr.ToString());
+
       lock (BACnetDevice)
       {
         try
