@@ -1,6 +1,7 @@
 import threading
 import time
 
+from datetime import datetime
 from bacpypes.core import run, deferred
 from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest
@@ -22,8 +23,8 @@ class BACnetCommunicator():
         """インスタンスを初期化する
 
         Args:
-            id (int): 通信用のDeviceのID
-            name (str): 通信用のDeviceの名前
+            id (int): 通信に使うDeviceのID
+            name (str): 通信に使うDeviceの名前
         """
             
         this_device = LocalDeviceObject(
@@ -34,18 +35,19 @@ class BACnetCommunicator():
             vendorIdentifier=15,
             )
 
-        # launch the core lib
+        # 別スレッドでBACnet通信を処理
         self.core = threading.Thread(target = run, daemon=True)
         self.core.start()
 
-        # idが0 (47808)以外だとWhoisが効かない。修正必要。
+        # BACnetコントローラを用意して起動まで待機
         self.app = BIPSimpleApplication(this_device, '127.0.0.1:' + str(0xBAC0 + id))
-
-        # Wait the lib launching
         time.sleep(1)
+
+        # idが0 (47808)以外だとWhoisが効かない。修正必要。
         self.app.who_is()
 
         # 具体的な処理はわからんが、これでiocb.waite()が高速化する
+        # おそらく通信処理の合間に待機する処理が有効になるのだろう
         enable_sleeping()
 
     def who_is(self):
@@ -59,7 +61,7 @@ class BACnetCommunicator():
         Args:
             addr (string): 通信先のBACnet Deviceのアドレス（xxx.xxx.xxx.xxx:port）
             obj_id (string): 通信先のBACnet DeviceのオブジェクトID
-            data_type (bacpypes.primitivedata): データの種別
+            data_type (Union[Real,Boolean,Integer,DateTime,str]): データの種別(bacpypes.primitivedata)
 
         Returns:
             list: 読み取り成功の真偽, Present value
@@ -71,22 +73,28 @@ class BACnetCommunicator():
         # iocb.set_timeout(0.1, err=TimeoutError)
         deferred(self.app.request_io, iocb)
 
-        # wait for it to complete
+        # 通信完了まで待機
         iocb.wait()
 
-        # do something for error/reject/abort
+        # 通信失敗
         if iocb.ioError:
-            print(iocb.ioError)
-            return False, None
+            return False, str(iocb.ioError)
 
-        # do something for success
+        # 通信成功
         elif iocb.ioResponse:
             apdu = iocb.ioResponse
-            # 型変換
-            return True, apdu.propertyValue.cast_out(data_type)
-        # do something with nothing?
-        else:
-            return False, None
+            # 型変換して出力
+            val = apdu.propertyValue.cast_out(data_type)
+            if (isinstance(val, DateTime)):
+                return True, datetime(
+                    year=val.year,
+                    month=val.month,
+                    day=val.day,
+                    hour=val.hour,
+                    minute=val.minute,
+                    second=val.second)
+            else:
+                return True, val
         
     def read_present_value_async(self, addr, obj_id, data_type, call_back_fnc):
         """Read property requestでPresent valueを読み取る（非同期処理）
@@ -139,15 +147,14 @@ class BACnetCommunicator():
         # iocb.set_timeout(0.1, err=TimeoutError)
         deferred(self.app.request_io, iocb)
 
-        # wait for it to complete
+        # 通信完了まで待機
         iocb.wait()
 
-        # do something for error/reject/abort
+        # 通信失敗
         if iocb.ioError:
-            print(iocb.ioError)
-            return False
+            return False, str(iocb.ioError)
 
-        # do something for success
+        # 通信成功
         elif iocb.ioResponse:
             return True
         
@@ -215,13 +222,43 @@ def main():
     # Who is送信
     master.who_is()
     
-    # 非同期でread property
-    pValue = master.read_present_value_async('127.0.0.1:47809', 'analogOutput:2', Integer, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47810', 'binaryOutput:1101', Enumerated, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47810', 'multiStateOutput:1103', Unsigned, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47810', 'analogValue:1105', Real, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47812', 'analogInput:1', Real, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47809', 'datetimeValue:1', DateTime, my_call_back_read)
+    # 同期でread property
+    pValue = master.read_present_value('127.0.0.1:47817', 'analogValue:1', Integer)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'analogOutput:2', Integer)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'analogInput:3', Integer)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'analogValue:4', Real)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'analogOutput:5', Real)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'analogInput:6', Real)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'binaryValue:7', Enumerated)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'binaryOutput:8', Enumerated)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'binaryInput:9', Enumerated)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'multiStateValue:10', Unsigned)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'multiStateOutput:11', Unsigned)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'multiStateInput:12', Unsigned)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+    pValue = master.read_present_value('127.0.0.1:47817', 'datetimeValue:13', DateTime)
+    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
+
+    while True:
+        pass
+
+    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogValue:1', Integer, my_call_back_read)
+    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogOutput:2', Enumerated, my_call_back_read)
+    pValue = master.read_present_value_async('127.0.0.1:47817', 'multiStateOutput:1103', Unsigned, my_call_back_read)
+    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogValue:1105', Real, my_call_back_read)
+    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogInput:1', Real, my_call_back_read)
+    pValue = master.read_present_value_async('127.0.0.1:47817', 'datetimeValue:1', DateTime, my_call_back_read)
 
     # 同期でread property
     pValue = master.read_present_value('127.0.0.1:47809', 'analogOutput:2', Integer)

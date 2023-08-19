@@ -70,30 +70,30 @@ namespace Shizuku2.BACnet
       dObject.AddBacnetObject(new AnalogOutput<int>
        ((int)MemberNumber.AnalogOutputInt,
        "Analog output (int)",
-       "Dummy object to test communication of analog output (int).", 1, BacnetUnitsId.UNITS_NO_UNITS));
+       "Dummy object to test communication of analog output (int).", 2, BacnetUnitsId.UNITS_NO_UNITS));
 
       dObject.AddBacnetObject(new AnalogInput<int>
        ((int)MemberNumber.AnalogInputInt,
        "Analog input (int)",
-       "Dummy object to test communication of analog input (int).", 1, BacnetUnitsId.UNITS_NO_UNITS));
+       "Dummy object to test communication of analog input (int).", 3, BacnetUnitsId.UNITS_NO_UNITS));
 
       dObject.AddBacnetObject(new AnalogValue<float>
         ((int)MemberNumber.AnalogValueReal,
         "Analog value (float)",
-        "Dummy object to test communication of analog value (real).", 1f, BacnetUnitsId.UNITS_NO_UNITS, false));
+        "Dummy object to test communication of analog value (real).", 4f, BacnetUnitsId.UNITS_NO_UNITS, false));
 
       dObject.AddBacnetObject(new AnalogOutput<float>
        ((int)MemberNumber.AnalogOutputReal,
        "Analog output (float)",
-       "Dummy object to test communication of analog output (real).", 1f, BacnetUnitsId.UNITS_NO_UNITS));
+       "Dummy object to test communication of analog output (real).", 5f, BacnetUnitsId.UNITS_NO_UNITS));
 
       dObject.AddBacnetObject(new AnalogInput<float>
        ((int)MemberNumber.AnalogInputReal,
        "Analog input (float)",
-       "Dummy object to test communication of analog input (real).", 1f, BacnetUnitsId.UNITS_NO_UNITS));
+       "Dummy object to test communication of analog input (real).", 6f, BacnetUnitsId.UNITS_NO_UNITS));
 
       dObject.AddBacnetObject(new BinaryValue
-       ((int)MemberNumber.BinaryOutput,
+       ((int)MemberNumber.BinaryValue,
        "Binary value",
        "Dummy object to test communication of binary value.", false, false));
 
@@ -115,12 +115,12 @@ namespace Shizuku2.BACnet
       dObject.AddBacnetObject(new MultiStateOutput
        ((int)MemberNumber.MultiStateOutput,
        "Multistate output",
-       "Dummy object to test communication of multistate output.", 1u, 5));
+       "Dummy object to test communication of multistate output.", 2u, 5));
 
       dObject.AddBacnetObject(new MultiStateInput
        ((int)MemberNumber.MultiStateInput,
        "Multistate input",
-       "Dummy object to test communication of multistate input.", 1u, 5, false));
+       "Dummy object to test communication of multistate input.", 5, 3u, false));
 
       BacnetDateTime dTime1 = new BacnetDateTime(
         (int)MemberNumber.DateTime,
