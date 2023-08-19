@@ -1,11 +1,9 @@
 import threading
 import time
 
-from datetime import datetime
-
-from bacpypes.core import run, deferred, stop
+from bacpypes.core import run, deferred
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest, ReadPropertyACK
+from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
 from bacpypes.primitivedata import ObjectIdentifier, Enumerated, Real, Integer, BitString, Boolean, Unsigned
@@ -13,6 +11,8 @@ from bacpypes.object import get_datatype
 from bacpypes.iocb import IOCB
 from bacpypes.basetypes import DateTime
 from bacpypes.constructeddata import Any
+
+from bacpypes.core import enable_sleeping
 
 class BACnetCommunicator():
     """BACnet通信用クラス
@@ -26,33 +26,27 @@ class BACnetCommunicator():
             name (str): 通信用のDeviceの名前
         """
             
-        self.this_device = LocalDeviceObject(
+        this_device = LocalDeviceObject(
             objectName=name,
             objectIdentifier=id,
             maxApduLengthAccepted=1024,
             segmentationSupported='segmentedBoth',
             vendorIdentifier=15,
             )
-        self.id = id
-
-    def start_service(self):
-        """BACnet通信を開始する
-        """        
-        # idが0 (47808)以外だとWhoisが効かない。修正必要。
-        self.app = BIPSimpleApplication(self.this_device, '127.0.0.1:' + str(0xBAC0 + self.id))
 
         # launch the core lib
         self.core = threading.Thread(target = run, daemon=True)
         self.core.start()
 
+        # idが0 (47808)以外だとWhoisが効かない。修正必要。
+        self.app = BIPSimpleApplication(this_device, '127.0.0.1:' + str(0xBAC0 + id))
+
         # Wait the lib launching
         time.sleep(1)
         self.app.who_is()
 
-    def end_service(self):
-        """BACnet通信を終了する
-        """        
-        stop()
+        # 具体的な処理はわからんが、これでiocb.waite()が高速化する
+        enable_sleeping()
 
     def who_is(self):
         """Who isコマンドを送る（ブロードキャスト）
@@ -75,16 +69,10 @@ class BACnetCommunicator():
 
         iocb = IOCB(request)
         # iocb.set_timeout(0.1, err=TimeoutError)
-        # print('X:' + str(iocb.ioState))
-        # self.app.request_io(iocb)
         deferred(self.app.request_io, iocb)
-        # print('A: ' + datetime.now().strftime("%H:%M:%S.%f"))
+
         # wait for it to complete
-        # print('Y:' + str(iocb.ioState))
-        # time.sleep(1.0)
         iocb.wait()
-        # print('Z:' + str(iocb.ioState))
-        # print('B: ' + datetime.now().strftime("%H:%M:%S.%f"))
 
         # do something for error/reject/abort
         if iocb.ioError:
@@ -150,7 +138,6 @@ class BACnetCommunicator():
         iocb = IOCB(request)
         # iocb.set_timeout(0.1, err=TimeoutError)
         deferred(self.app.request_io, iocb)
-        # self.app.request_io(iocb)
 
         # wait for it to complete
         iocb.wait()
@@ -224,11 +211,6 @@ class BACnetCommunicator():
 
 def main():
     master = BACnetCommunicator(999, 'myDevice')
-    master.start_service()
-
-    while True:
-        x = master.read_present_value('127.0.0.1:47809', 'analogOutput:2', Integer)
-        print(x)
 
     # Who is送信
     master.who_is()
@@ -266,9 +248,9 @@ def main():
 
 def my_call_back_read(addr, obj_id, success, value):
     if(success):
-        print('success asynchronously writing ' + str(addr) + ' : ' + str(obj_id) + ', value=' + str(value))
+        print('success asynchronously reading ' + str(addr) + ' : ' + str(obj_id) + ', value=' + str(value))
     else:
-        print('failed asynchronously writing ' + str(addr) + ' : ' + str(obj_id) + ', ' + str(value))
+        print('failed asynchronously reading ' + str(addr) + ' : ' + str(obj_id) + ', ' + str(value))
     return
 
 def my_call_back_write(addr, obj_id, success, value):

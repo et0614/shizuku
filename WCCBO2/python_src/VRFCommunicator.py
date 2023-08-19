@@ -100,16 +100,6 @@ class VRFCommunicator():
         self.target_ip = target_ip + ':' + str(self.VRFCTRL_EXCLUSIVE_PORT)
         self.comm = BACnetCommunicator.BACnetCommunicator(id,name)
 
-    def start_service(self):
-        """BACnet通信を開始する
-        """
-        self.comm.start_service()
-
-    def end_service(self):
-        """BACnet通信を終了する
-        """        
-        self.comm.end_service()
-
 # region 発停関連
 
     def turn_on(self, oUnitIndex, iUnitIndex):
@@ -426,7 +416,6 @@ class VRFCommunicator():
 
 def main():
     vrfCom = VRFCommunicator(999)
-    vrfCom.start_service()
 
     vrfCom.turn_on(1,1)
     val = vrfCom.is_turned_on(1,1)

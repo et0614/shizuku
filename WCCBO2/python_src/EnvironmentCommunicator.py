@@ -38,16 +38,6 @@ class EnvironmentCommunicator():
         self.target_ip = target_ip + ':' + str(self.ENVIRONMENTMONITOR_EXCLUSIVE_PORT)
         self.comm = BACnetCommunicator.BACnetCommunicator(id,name)
 
-    def start_service(self):
-        """BACnet通信を開始する
-        """
-        self.comm.start_service()
-
-    def end_service(self):
-        """BACnet通信を終了する
-        """        
-        self.comm.end_service()
-
     def get_drybulb_temperature(self):
         """外気乾球温度[C]を取得する
 
@@ -106,7 +96,6 @@ class EnvironmentCommunicator():
 
 def main():
     wCom = EnvironmentCommunicator(999)
-    wCom.start_service()
 
     while True:
         val = wCom.get_drybulb_temperature()
