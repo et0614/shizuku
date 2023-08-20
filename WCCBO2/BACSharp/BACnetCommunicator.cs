@@ -102,6 +102,7 @@ namespace BaCSharp
       Client.OnWritePropertyRequest += client_OnWritePropertyRequest;
       Client.OnWritePropertyMultipleRequest += Client_OnWritePropertyMultipleRequest;
       Client.OnSubscribeCOV += Client_OnSubscribeCOV;
+      Client.OnSubscribeCOVProperty += Client_OnSubscribeCOVProperty;
 
       //Device IDとポート番号対応表に追加
       if (BACnetDevicePortList.ContainsKey(DeviceID)) BACnetDevicePortList[DeviceID] = exclusivePort;
@@ -456,6 +457,45 @@ namespace BaCSharp
       sub.start = DateTime.Now;
 
       return sub;
+    }
+
+    private void Client_OnSubscribeCOVProperty(BacnetClient sender, BacnetAddress adr, byte invoke_id, uint subscriberProcessIdentifier, BacnetObjectId monitoredObjectIdentifier, BacnetPropertyReference monitoredProperty, bool cancellationRequest, bool issueConfirmedNotifications, uint lifetime, float covIncrement, BacnetMaxSegments maxSegments)
+    {
+      if (outputMessage) Console.WriteLine("Receive 'COV property subscribe' request from " + adr.ToString());
+
+      lock (BACnetDevice)
+      {
+        BaCSharpObject bacobj = BACnetDevice.FindBacnetObject(monitoredObjectIdentifier);
+        if (bacobj != null)
+        {
+          //create 
+          Subscription sub = 
+            HandleSubscriptionRequest(sender, adr, invoke_id, subscriberProcessIdentifier, monitoredObjectIdentifier, monitoredProperty.propertyIdentifier, cancellationRequest, issueConfirmedNotifications, lifetime, covIncrement);
+
+          //send confirm
+          sender.SimpleAckResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_SUBSCRIBE_COV_PROPERTY, invoke_id);
+
+          //also send first values
+          if (!cancellationRequest)
+          {
+            System.Threading.ThreadPool.QueueUserWorkItem((o) =>
+            {
+              IList<BacnetValue> _values;
+              bacobj.ReadPropertyValue(sender, adr, monitoredProperty, out _values);
+
+              List<BacnetPropertyValue> values = new List<BacnetPropertyValue>();
+              BacnetPropertyValue tmp = new BacnetPropertyValue();
+              tmp.property = sub.monitoredProperty;
+              tmp.value = _values;
+              values.Add(tmp);
+
+              sender.Notify(adr, sub.subscriberProcessIdentifier, DeviceID, sub.monitoredObjectIdentifier, (uint)sub.GetTimeRemaining(), sub.issueConfirmedNotifications, values);
+            }, null);
+          }
+        }
+        else
+          sender.ErrorResponse(adr, BacnetConfirmedServices.SERVICE_CONFIRMED_SUBSCRIBE_COV_PROPERTY, invoke_id, BacnetErrorClasses.ERROR_CLASS_DEVICE, BacnetErrorCodes.ERROR_CODE_OTHER);
+      }
     }
 
     private void RemoveOldSubscriptions()
