@@ -258,18 +258,18 @@ class BACnetCommunicator(BIPSimpleApplication):
             apdu.monitoredObjectIdentifier == ("analogOutput",2) and
             apdu.listOfValues[0].propertyIdentifier == 'presentValue'):
                 # 別スレッドで日時を更新
-                print('AA')
                 thread = threading.Thread(target=self.update_date_time, args=(self.mon_id,))
                 thread.start()
 
     def update_date_time(self, dt_ip_address):
-        enable_sleeping()
         val = self.read_present_value(dt_ip_address, 'analogOutput:2', Integer)
         self.acc_rate = val[1] if val[0] else 0
         print(self.acc_rate)
+        time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(dt_ip_address, 'datetimeValue:3', DateTime)
         self.base_real_datetime = val[1] if val[0] else val[1] #None
         print(self.base_real_datetime)
+        time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(dt_ip_address, 'datetimeValue:4', DateTime)
         self.base_sim_datetime = val[1] if val[0] else val[1] #None
         print(self.base_sim_datetime)
@@ -290,15 +290,13 @@ def confirmation(self, apdu):
 
 def main():
     master = BACnetCommunicator(999, 'myDevice')
-    # master.update_date_time('127.0.0.1:47809')
 
     # Who is送信
-    # master.who_is()
+    master.who_is()
 
-    # print('Subscribe COV: ' + str(master.subscribe_date_time_cov('127.0.0.1:47809')))    
-    # while True:
-    #    master.update_date_time('127.0.0.1:47809')
-        #pass
+    print('Subscribe COV: ' + str(master.subscribe_date_time_cov('127.0.0.1:47809')))    
+    while True:
+        pass
 
     # 同期でread property
     pValue = master.read_present_value('127.0.0.1:47817', 'analogValue:1', Integer)
