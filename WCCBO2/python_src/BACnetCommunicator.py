@@ -4,28 +4,37 @@ import time
 from datetime import datetime
 from bacpypes.core import run, deferred
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest
+from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest, SubscribeCOVPropertyRequest
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
 from bacpypes.primitivedata import ObjectIdentifier, Enumerated, Real, Integer, BitString, Boolean, Unsigned
-from bacpypes.object import get_datatype
+from bacpypes.object import get_datatype, AnalogOutputObject
 from bacpypes.iocb import IOCB
-from bacpypes.basetypes import DateTime, Date, Time
+from bacpypes.basetypes import DateTime, Date, Time, PropertyReference
 from bacpypes.constructeddata import Any
 
 from bacpypes.core import enable_sleeping
 
-class BACnetCommunicator():
+class BACnetCommunicator(BIPSimpleApplication):
     """BACnet通信用クラス
     """  
 
-    def __init__(self, id, name):
+    def __init__(self, id, name, time_out_sec = 1.0):
         """インスタンスを初期化する
 
         Args:
             id (int): 通信に使うDeviceのID
             name (str): 通信に使うDeviceの名前
         """
+
+        # タイムアウトまでの時間
+        self.time_out = time_out_sec
+
+        # idを保存
+        self.id = id
+
+        # DateTimeのCOV登録状況
+        self.dtcov_scribed = False
             
         this_device = LocalDeviceObject(
             objectName=name,
@@ -40,20 +49,15 @@ class BACnetCommunicator():
         self.core.start()
 
         # BACnetコントローラを用意して起動まで待機
-        self.app = BIPSimpleApplication(this_device, '127.0.0.1:' + str(0xBAC0 + id))
+        BIPSimpleApplication.__init__(self, this_device, '127.0.0.1:' + str(0xBAC0 + id))
         time.sleep(1)
 
         # idが0 (47808)以外だとWhoisが効かない。修正必要。
-        self.app.who_is()
+        self.who_is()
 
         # 具体的な処理はわからんが、これでiocb.waite()が高速化する
         # おそらく通信処理の合間に待機する処理が有効になるのだろう
         enable_sleeping()
-
-    def who_is(self):
-        """Who isコマンドを送る（ブロードキャスト）
-        """        
-        self.app.who_is(None, None, GlobalBroadcast())
 
     def read_present_value(self, addr, obj_id, data_type):
         """Read property requestでPresent valueを読み取る（同期処理）
@@ -70,8 +74,8 @@ class BACnetCommunicator():
         request = self._make_request(addr, obj_id, True)
 
         iocb = IOCB(request)
-        # iocb.set_timeout(0.1, err=TimeoutError)
-        deferred(self.app.request_io, iocb)
+        iocb.set_timeout(self.time_out, err=TimeoutError)
+        deferred(self.request_io, iocb)
 
         # 通信完了まで待機
         iocb.wait()
@@ -84,6 +88,7 @@ class BACnetCommunicator():
         elif iocb.ioResponse:
             apdu = iocb.ioResponse
             # 型変換して出力
+            print("DEBUG " + str(apdu))
             val = apdu.propertyValue.cast_out(data_type)
             if (isinstance(val, DateTime)):
                 return True, datetime(
@@ -114,7 +119,7 @@ class BACnetCommunicator():
         iocb = IOCB(request)
         iocb.add_callback(self._complete_read_present_value_async, data_type, addr, obj_id, call_back_fnc)
         
-        deferred(self.app.request_io, iocb)
+        deferred(self.request_io, iocb)
         
     def _complete_read_present_value_async(self, iocb, data_type, addr, obj_id, call_back_fnc):
         if(call_back_fnc == None):
@@ -144,8 +149,8 @@ class BACnetCommunicator():
         request.propertyValue.cast_in(value)
 
         iocb = IOCB(request)
-        # iocb.set_timeout(0.1, err=TimeoutError)
-        deferred(self.app.request_io, iocb)
+        iocb.set_timeout(self.time_out, err=TimeoutError)
+        deferred(self.request_io, iocb)
 
         # 通信完了まで待機
         iocb.wait()
@@ -176,7 +181,7 @@ class BACnetCommunicator():
 
         iocb = IOCB(request)
         iocb.add_callback(self._complete_write_present_value_async, addr, obj_id, call_back_fnc)
-        deferred(self.app.request_io, iocb)
+        deferred(self.request_io, iocb)
         
     def _complete_write_present_value_async(self, iocb, addr, obj_id, call_back_fnc):
         if(call_back_fnc == None) :
@@ -214,14 +219,87 @@ class BACnetCommunicator():
                 propertyValue = Any(),
                 )
 
+    def subscribe_date_time_cov(self, monitored_ip):
+        # 既に登録されている場合には二重登録を回避
+        if self.dtcov_scribed:
+            return
+                        
+        request = SubscribeCOVPropertyRequest(
+            subscriberProcessIdentifier=self.id,
+            monitoredObjectIdentifier=("analogOutput",2), # 加速度
+            monitoredPropertyIdentifier=PropertyReference(propertyIdentifier='presentValue'),
+            covIncrement=0,
+        )
+        request.pduDestination = Address(monitored_ip)
+        self.mon_id = monitored_ip # 監視IPアドレスを保存
+
+        iocb = IOCB(request)
+        # iocb.set_timeout(self.time_out, err=TimeoutError)
+        deferred(self.request_io, iocb)
+
+        # 通信完了まで待機
+        iocb.wait()
+
+        # 通信失敗
+        if iocb.ioError:
+            return False
+
+        # 通信成功
+        elif iocb.ioResponse:
+            self.dtcov_scribed = True
+            return True
+
+    def do_ConfirmedCOVNotificationRequest(self, apdu):
+        print('receieve ConfirmedCOVNotificationRequest')
+
+    def do_UnconfirmedCOVNotificationRequest(self, apdu):
+        if(
+            apdu.pduSource == self.mon_id and
+            apdu.monitoredObjectIdentifier == ("analogOutput",2) and
+            apdu.listOfValues[0].propertyIdentifier == 'presentValue'):
+                # 別スレッドで日時を更新
+                print('AA')
+                thread = threading.Thread(target=self.update_date_time, args=(self.mon_id,))
+                thread.start()
+
+    def update_date_time(self, dt_ip_address):
+        enable_sleeping()
+        val = self.read_present_value(dt_ip_address, 'analogOutput:2', Integer)
+        self.acc_rate = val[1] if val[0] else 0
+        print(self.acc_rate)
+        val = self.read_present_value(dt_ip_address, 'datetimeValue:3', DateTime)
+        self.base_real_datetime = val[1] if val[0] else val[1] #None
+        print(self.base_real_datetime)
+        val = self.read_present_value(dt_ip_address, 'datetimeValue:4', DateTime)
+        self.base_sim_datetime = val[1] if val[0] else val[1] #None
+        print(self.base_sim_datetime)
+
+def request(self, apdu):
+    BIPSimpleApplication.request(self, apdu)
+
+def indication(self, apdu):
+    BIPSimpleApplication.indication(self, apdu)
+
+def response(self, apdu):
+    BIPSimpleApplication.response(self, apdu)
+
+def confirmation(self, apdu):
+    BIPSimpleApplication.confirmation(self, apdu)
+
 # region サンプル
 
 def main():
     master = BACnetCommunicator(999, 'myDevice')
+    # master.update_date_time('127.0.0.1:47809')
 
     # Who is送信
-    master.who_is()
-    
+    # master.who_is()
+
+    # print('Subscribe COV: ' + str(master.subscribe_date_time_cov('127.0.0.1:47809')))    
+    # while True:
+    #    master.update_date_time('127.0.0.1:47809')
+        #pass
+
     # 同期でread property
     pValue = master.read_present_value('127.0.0.1:47817', 'analogValue:1', Integer)
     print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))

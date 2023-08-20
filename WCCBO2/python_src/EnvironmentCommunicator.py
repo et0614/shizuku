@@ -1,4 +1,5 @@
 import BACnetCommunicator
+import time
 
 from enum import Enum
 from bacpypes.primitivedata import ObjectIdentifier, Enumerated, Real, Integer, BitString, Boolean, Unsigned
@@ -27,7 +28,7 @@ class EnvironmentCommunicator():
 
 # endregion
 
-    def __init__(self, id, name='envComm', target_ip='127.0.0.1'):
+    def __init__(self, id, name='envComm', target_ip='127.0.0.1', time_out_sec=0.5):
         """インスタンスを初期化する
 
         Args:
@@ -36,7 +37,7 @@ class EnvironmentCommunicator():
             ip_address (str): Environment MonitorのIP Address（xxx.xxx.xxx.xxx:port）
         """
         self.target_ip = target_ip + ':' + str(self.ENVIRONMENTMONITOR_EXCLUSIVE_PORT)
-        self.comm = BACnetCommunicator.BACnetCommunicator(id,name)
+        self.comm = BACnetCommunicator.BACnetCommunicator(id,name,time_out_sec)
 
     def get_drybulb_temperature(self):
         """外気乾球温度[C]を取得する
@@ -99,26 +100,24 @@ def main():
 
     while True:
         val = wCom.get_drybulb_temperature()
-        print('乾球温度= ' + '{:.1f}'.format(val[1]) + ' C')
+        print('乾球温度' + ('= ' + '{:.1f}'.format(val[1]) + ' C' if val[0] else ' 通信失敗'))
 
         val = wCom.get_relative_humidity()
-        print('相対湿度= ' + '{:.1f}'.format(val[1]) + ' %')
+        print('相対湿度' + ('= ' + '{:.1f}'.format(val[1]) + ' %' if val[0] else ' 通信失敗'))
 
         val = wCom.get_global_horizontal_radiation()
-        print('水平面全天日射= ' + '{:.1f}'.format(val[1]) + ' W/m2')
+        print('水平面全天日射' + ('= ' + '{:.1f}'.format(val[1]) + ' W/m2' if val[0] else ' 通信失敗'))
 
         val = wCom.get_nocturnal_radiation()
-        print('夜間放射= ' + '{:.1f}'.format(val[1]) + ' W/m2')
+        print('夜間放射' + ('= ' + '{:.1f}'.format(val[1]) + ' W/m2' if val[0] else ' 通信失敗'))
 
         val = wCom.get_zone_drybulb_temperature(2,4)
-        print('VRF2-4の温度= ' + '{:.1f}'.format(val[1]) + ' C')
+        print('VRF2-4の温度' + ('= ' + '{:.1f}'.format(val[1]) + ' C' if val[0] else ' 通信失敗'))
 
         val = wCom.get_zone_relative_humidity(2,4)
-        print('VRF2-4の湿度= ' + '{:.1f}'.format(val[1]) + ' %')
+        print('VRF2-4の湿度' + ('= ' + '{:.1f}'.format(val[1]) + ' %' if val[0] else ' 通信失敗'))
 
-    # 無限ループで待機
-    while True:
-        pass
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()

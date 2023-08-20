@@ -89,7 +89,7 @@ class VRFCommunicator():
 
 # endregion
 
-    def __init__(self, id, name='vrfComm', target_ip='127.0.0.1'):
+    def __init__(self, id, name='vrfComm', target_ip='127.0.0.1', time_out_sec=0.5):
         """インスタンスを初期化する
 
         Args:
@@ -98,7 +98,7 @@ class VRFCommunicator():
             ip_address (str): VRF ControllerのIP Address（xxx.xxx.xxx.xxx:port）
         """
         self.target_ip = target_ip + ':' + str(self.VRFCTRL_EXCLUSIVE_PORT)
-        self.comm = BACnetCommunicator.BACnetCommunicator(id,name)
+        self.comm = BACnetCommunicator.BACnetCommunicator(id,name,time_out_sec)
 
 # region 発停関連
 
