@@ -10,7 +10,7 @@ from bacpypes.local.device import LocalDeviceObject
 from bacpypes.primitivedata import ObjectIdentifier, Enumerated, Real, Integer, BitString, Boolean, Unsigned
 from bacpypes.object import get_datatype
 from bacpypes.iocb import IOCB
-from bacpypes.basetypes import DateTime
+from bacpypes.basetypes import DateTime, Date, Time
 from bacpypes.constructeddata import Any
 
 from bacpypes.core import enable_sleeping
@@ -87,12 +87,12 @@ class BACnetCommunicator():
             val = apdu.propertyValue.cast_out(data_type)
             if (isinstance(val, DateTime)):
                 return True, datetime(
-                    year=val.year,
-                    month=val.month,
-                    day=val.day,
-                    hour=val.hour,
-                    minute=val.minute,
-                    second=val.second)
+                    year=1900 + val.date[0],
+                    month=val.date[1],
+                    day=val.date[2],
+                    hour=val.time[0],
+                    minute=val.time[1],
+                    second=val.time[2])
             else:
                 return True, val
         
@@ -156,7 +156,7 @@ class BACnetCommunicator():
 
         # 通信成功
         elif iocb.ioResponse:
-            return True
+            return True, str(value)
         
     def write_present_value_async(self, addr, obj_id, value, call_back_fnc):
         """Write property requestでPresent valueを書き込む（非同期処理）
@@ -250,35 +250,64 @@ def main():
     pValue = master.read_present_value('127.0.0.1:47817', 'datetimeValue:13', DateTime)
     print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else ('failed because of ' + pValue[1])))
 
-    while True:
-        pass
-
-    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogValue:1', Integer, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogOutput:2', Enumerated, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47817', 'multiStateOutput:1103', Unsigned, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogValue:1105', Real, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47817', 'analogInput:1', Real, my_call_back_read)
-    pValue = master.read_present_value_async('127.0.0.1:47817', 'datetimeValue:1', DateTime, my_call_back_read)
-
-    # 同期でread property
-    pValue = master.read_present_value('127.0.0.1:47809', 'analogOutput:2', Integer)
-    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else 'failed'))
-    pValue = master.read_present_value('127.0.0.1:47810', 'binaryOutput:1101', Enumerated)
-    print('synchronously reading ' + ('success, value=' + str(pValue[1]) if pValue[0] else 'failed'))
+    #同期でwrite property
+    success = master.write_present_value('127.0.0.1:47817', 'analogValue:1', Integer(3))
+    print('synchronously writing analogValue(int) ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'analogOutput:2', Integer(2))
+    print('synchronously writing analogOutput(int) ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'analogInput:3', Integer(1))
+    print('synchronously writing analogInput(int) ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'analogValue:4', Real(3))
+    print('synchronously writing analogValue(real) ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'analogOutput:5', Real(2))
+    print('synchronously writing analogOutput(real) ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'analogInput:6', Real(1))
+    print('synchronously writing analogInput(real) ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'binaryValue:7', Enumerated(1))
+    print('synchronously writing binaryValue ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'binaryOutput:8', Enumerated(1))
+    print('synchronously writing binaryOutput ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'binaryInput:9', Enumerated(1))
+    print('synchronously writing binaryInput ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'multiStateValue:10', Unsigned(3))
+    print('synchronously writing multiStateValue ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'multiStateOutput:11', Unsigned(2))
+    print('synchronously writing multiStateOutput ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'multiStateInput:12', Unsigned(1))
+    print('synchronously writing multiStateInput ' + ('success' if success[0] else ('failed because of ' + success[1])))
+    success = master.write_present_value('127.0.0.1:47817', 'datetimeValue:13', DateTime(date=Date().now().value, time=Time().now().value))
+    print('synchronously writing dateTimeValue ' + ('success' if success[0] else ('failed because of ' + success[1])))
 
     # 非同期でwrite property
-    master.write_present_value_async('127.0.0.1:47809', 'analogOutput:2', Integer(1), my_call_back_write)
-    master.write_present_value_async('127.0.0.1:47810', 'binaryOutput:1101', Enumerated(0), my_call_back_write)
-    master.write_present_value_async('127.0.0.1:47810', 'multiStateOutput:1103', Unsigned(1), my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'analogValue:1', Integer, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'analogOutput:2', Integer, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'analogInput:3', Integer, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'analogValue:4', Real, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'analogOutput:5', Real, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'analogInput:6', Real, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'binaryValue:7', Enumerated, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'binaryOutput:8', Enumerated, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'binaryInput:9', Enumerated, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'multiStateValue:10', Unsigned, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'multiStateOutput:11', Unsigned, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'multiStateInput:12', Unsigned, my_call_back_write)
+    master.read_present_value_async('127.0.0.1:47817', 'datetimeValue:13', DateTime, my_call_back_write)
 
-    # 同期でwrite property
-    success = master.write_present_value('127.0.0.1:47809', 'analogOutput:2', Integer(1))
-    print('synchronously writing ' + ('success' if pValue[0] else 'failed'))
-    success = master.write_present_value('127.0.0.1:47810', 'binaryOutput:1101', Enumerated(0))
-    print('synchronously writing ' + ('success' if pValue[0] else 'failed'))
-    success = master.write_present_value('127.0.0.1:47810', 'multiStateOutput:1103', Unsigned(1))
-    print('synchronously writing ' + ('success' if pValue[0] else 'failed'))
-
+    # 非同期でwrite property
+    master.write_present_value_async('127.0.0.1:47817', 'analogValue:1', Integer(3), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'analogOutput:2', Integer(2), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'analogInput:3', Integer(1), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'analogValue:4', Real(3), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'analogOutput:5', Real(2), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'analogInput:6', Real(1), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'binaryValue:7', Enumerated(1), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'binaryOutput:8', Enumerated(1), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'binaryInput:9', Enumerated(1), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'multiStateValue:10', Unsigned(3), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'multiStateOutput:11', Unsigned(2), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'multiStateInput:12', Unsigned(1), my_call_back_write)
+    master.write_present_value_async('127.0.0.1:47817', 'datetimeValue:13', DateTime(date=Date().now().value, time=Time().now().value), my_call_back_write)
+ 
     # 無限ループで待機
     while True:
         pass
