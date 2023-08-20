@@ -1,7 +1,8 @@
 import threading
 import time
+import datetime
 
-from datetime import datetime
+# from datetime import datetime, timedelta
 from bacpypes.core import run, deferred
 from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest, SubscribeCOVPropertyRequest
@@ -35,6 +36,9 @@ class BACnetCommunicator(BIPSimpleApplication):
 
         # DateTimeのCOV登録状況
         self.dtcov_scribed = False
+        self.acc_rate = 0
+        self.base_real_datetime = datetime.datetime.today()
+        self.base_sim_datetime = datetime.datetime.today()
             
         this_device = LocalDeviceObject(
             objectName=name,
@@ -88,10 +92,9 @@ class BACnetCommunicator(BIPSimpleApplication):
         elif iocb.ioResponse:
             apdu = iocb.ioResponse
             # 型変換して出力
-            print("DEBUG " + str(apdu))
             val = apdu.propertyValue.cast_out(data_type)
             if (isinstance(val, DateTime)):
-                return True, datetime(
+                return True, datetime.datetime(
                     year=1900 + val.date[0],
                     month=val.date[1],
                     day=val.date[2],
@@ -247,6 +250,7 @@ class BACnetCommunicator(BIPSimpleApplication):
         # 通信成功
         elif iocb.ioResponse:
             self.dtcov_scribed = True
+            self._update_date_time(monitored_ip)
             return True
 
     def do_ConfirmedCOVNotificationRequest(self, apdu):
@@ -258,21 +262,21 @@ class BACnetCommunicator(BIPSimpleApplication):
             apdu.monitoredObjectIdentifier == ("analogOutput",2) and
             apdu.listOfValues[0].propertyIdentifier == 'presentValue'):
                 # 別スレッドで日時を更新
-                thread = threading.Thread(target=self.update_date_time, args=(self.mon_id,))
+                thread = threading.Thread(target=self._update_date_time, args=(self.mon_id,))
                 thread.start()
 
-    def update_date_time(self, dt_ip_address):
+    def _update_date_time(self, dt_ip_address):
         val = self.read_present_value(dt_ip_address, 'analogOutput:2', Integer)
         self.acc_rate = val[1] if val[0] else 0
-        print(self.acc_rate)
         time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(dt_ip_address, 'datetimeValue:3', DateTime)
         self.base_real_datetime = val[1] if val[0] else val[1] #None
-        print(self.base_real_datetime)
         time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(dt_ip_address, 'datetimeValue:4', DateTime)
         self.base_sim_datetime = val[1] if val[0] else val[1] #None
-        print(self.base_sim_datetime)
+
+    def current_date_time(self):
+        return (datetime.datetime.today() - self.base_real_datetime) * self.acc_rate + self.base_sim_datetime
 
 def request(self, apdu):
     BIPSimpleApplication.request(self, apdu)
@@ -294,9 +298,8 @@ def main():
     # Who is送信
     master.who_is()
 
+    # 日時のCOVを登録
     print('Subscribe COV: ' + str(master.subscribe_date_time_cov('127.0.0.1:47809')))    
-    while True:
-        pass
 
     # 同期でread property
     pValue = master.read_present_value('127.0.0.1:47817', 'analogValue:1', Integer)
@@ -384,8 +387,10 @@ def main():
     master.write_present_value_async('127.0.0.1:47817', 'multiStateInput:12', Unsigned(1), my_call_back_write)
     master.write_present_value_async('127.0.0.1:47817', 'datetimeValue:13', DateTime(date=Date().now().value, time=Time().now().value), my_call_back_write)
  
-    # 無限ループで待機
+    # 無限ループで日時を表示
     while True:
+        print(master.current_date_time().strftime('%Y/%m/%d %H:%M:%S'))
+        time.sleep(0.2)
         pass
 
 def my_call_back_read(addr, obj_id, success, value):
