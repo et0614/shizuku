@@ -1,7 +1,7 @@
-import BACnetCommunicator
+import PresentValueReadWriter
 
 from enum import Enum
-from bacpypes.primitivedata import ObjectIdentifier, Enumerated, Real, Integer, BitString, Boolean, Unsigned
+from bacpypes.primitivedata import Enumerated, Real, Unsigned
 
 class VRFCommunicator():
 
@@ -98,7 +98,26 @@ class VRFCommunicator():
             ip_address (str): VRF ControllerのIP Address（xxx.xxx.xxx.xxx:port）
         """
         self.target_ip = target_ip + ':' + str(self.VRFCTRL_EXCLUSIVE_PORT)
-        self.comm = BACnetCommunicator.BACnetCommunicator(id,name,time_out_sec)
+        self.comm = PresentValueReadWriter.PresentValueReadWriter(id,name,time_out_sec)
+
+    def subscribe_date_time_cov(self, monitored_ip):
+        """シミュレーション日時の加速度に関するCOVを登録する
+
+        Args:
+            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxx:xxxxの形式)
+
+        Returns:
+            bool: 登録が成功したか否か
+        """
+        self.comm.subscribe_date_time_cov(monitored_ip)
+    
+    def current_date_time(self):
+        """現在の日時を取得する
+
+        Returns:
+            datetime: 現在の日時
+        """        
+        return self.comm.current_date_time
 
 # region 発停関連
 
