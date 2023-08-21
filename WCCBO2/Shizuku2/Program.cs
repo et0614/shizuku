@@ -149,7 +149,7 @@ namespace Shizuku2
       //テナントを生成//生成と行動で乱数シードを分ける
       tenants = new TenantList((uint)initSettings["rseed1"], building, vrfs);
       tenants.ResetRandomSeed((uint)initSettings["rseed2"]);
-      //tenants.OutputOccupantsInfo("occupants.csv");
+      tenants.OutputOccupantsInfo("occupants.csv");
 
       //日時コントローラを用意して助走計算
       Console.Write("Start precalculation...");

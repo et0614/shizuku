@@ -39,6 +39,8 @@ namespace Shizuku2.BACnet
       Availability = 2,
       /// <summary>温冷感</summary>
       ThermalSensation = 3,
+      /// <summary>着衣量</summary>
+      ClothingIndex = 4
     }
 
     #endregion
@@ -79,18 +81,25 @@ namespace Shizuku2.BACnet
         for (int j = 0; j < ocs.Length; j++)
         {
           int baseNum = 10000 * (i + 1) + 100 * (j + 1);
+          string name = " (" + ocs[j].FirstName + " " + ocs[j].LastName + ")";
 
           //在不在
           dObject.AddBacnetObject(new BinaryInput
             (baseNum + (int)MemberNumber.Availability,
-            "Availability of occupant-" + (j + 1),
-            "Availability of occupant-" + (j + 1), false));
+            "Availability of occupant-" + (j + 1) + name,
+            "Availability of occupant-" + (j + 1) + name, false));
 
           //温冷感
           dObject.AddBacnetObject(new AnalogInput<int>
             (baseNum + (int)MemberNumber.ThermalSensation,
-            "Thermal sensation of occupant-" + (j + 1),
-            "Thermal sensation of occupant-" + (j + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+            "Thermal sensation of occupant-" + (j + 1) + name,
+            "Thermal sensation of occupant-" + (j + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
+
+          //着衣量
+          dObject.AddBacnetObject(new AnalogInput<float>
+            (baseNum + (int)MemberNumber.ClothingIndex,
+            "Clothing index of occupant-" + (j + 1) + name,
+            "Clothing index of occupant-" + (j + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
         }
       }
 
@@ -132,6 +141,10 @@ namespace Shizuku2.BACnet
           //温冷感
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation));
           ((AnalogInput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = convertVote(ocs[j].OCModel.Vote);
+
+          //温冷感
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
+          ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ocs[j].CloValue;
         }
       }
     }

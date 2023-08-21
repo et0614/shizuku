@@ -77,13 +77,13 @@ namespace Shizuku2.BACnet
       //乾球温度
       dObject.AddBacnetObject(new AnalogInput<float>
         ((int)MemberNumber.DrybulbTemperature,
-        "Dry-bulb temperature",
+        "Outdoor dry-bulb temperature",
         "Outdoor dry-bulb temperature.", 25, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
 
       //相対湿度
       dObject.AddBacnetObject(new AnalogInput<float>
         ((int)MemberNumber.RelativeHumdity,
-        "Relative humidity",
+        "Outdoor relative humidity",
         "Outdoor relative humidity.", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
       { PROP_LOW_LIMIT = 0, PROP_HIGH_LIMIT = 100 });
 
