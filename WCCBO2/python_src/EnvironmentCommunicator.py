@@ -48,7 +48,7 @@ class EnvironmentCommunicator():
         Returns:
             bool: 登録が成功したか否か
         """
-        self.comm.subscribe_date_time_cov(monitored_ip)
+        return self.comm.subscribe_date_time_cov(monitored_ip)
     
     def current_date_time(self):
         """現在の日時を取得する
@@ -56,7 +56,7 @@ class EnvironmentCommunicator():
         Returns:
             datetime: 現在の日時
         """        
-        return self.comm.current_date_time
+        return self.comm.current_date_time()
 
     def get_drybulb_temperature(self):
         """外気乾球温度[C]を取得する

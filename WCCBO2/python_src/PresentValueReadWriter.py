@@ -2,8 +2,7 @@ import threading
 import time
 import datetime
 
-# from datetime import datetime, timedelta
-from bacpypes.core import run, deferred
+from bacpypes.core import run, deferred, stop
 from bacpypes.pdu import Address
 from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest, SubscribeCOVPropertyRequest
 from bacpypes.app import BIPSimpleApplication
@@ -52,16 +51,18 @@ class PresentValueReadWriter(BIPSimpleApplication):
         self.core = threading.Thread(target = run, daemon=True)
         self.core.start()
 
-        # BACnetコントローラを用意して起動まで待機
+        # BACnetコントローラを用意
         BIPSimpleApplication.__init__(self, this_device, '127.0.0.1:' + str(0xBAC0 + id))
-        time.sleep(1)
+        time.sleep(1) # 起動まで待機が必要のようだ
 
         # idが0 (47808)以外だとWhoisが効かない。修正必要。
-        self.who_is()
+        # self.who_is()
 
         # 具体的な処理はわからんが、これでiocb.waite()が高速化する
         # おそらく通信処理の合間に待機する処理が有効になるのだろう
         enable_sleeping()
+
+# region readproperty関連
 
     def read_present_value(self, addr, obj_id, data_type):
         """Read property requestでPresent valueを読み取る（同期処理）
@@ -78,7 +79,8 @@ class PresentValueReadWriter(BIPSimpleApplication):
         request = self._make_request(addr, obj_id, True)
 
         iocb = IOCB(request)
-        iocb.set_timeout(self.time_out, err=TimeoutError)
+        iocb_id_send=iocb.ioID % 256 #結果のご配信を回避するためIDを一時保存
+        # iocb.set_timeout(self.time_out, err=TimeoutError) #たまに悪さする。消すか？？
         deferred(self.request_io, iocb)
 
         # 通信完了まで待機
@@ -91,6 +93,13 @@ class PresentValueReadWriter(BIPSimpleApplication):
         # 通信成功
         elif iocb.ioResponse:
             apdu = iocb.ioResponse
+
+            # IDを確認/異なるスレッドのレスポンスが届くことがあるため（参考：https://github.com/JoelBender/bacpypes/issues/333）
+            iocb_id_responce = apdu.apduInvokeID
+            if(iocb_id_responce != iocb_id_send):
+                time.sleep(0.5)
+                return False,'IOCB ID Error'
+
             # 型変換して出力
             val = apdu.propertyValue.cast_out(data_type)
             if (isinstance(val, DateTime)):
@@ -136,7 +145,35 @@ class PresentValueReadWriter(BIPSimpleApplication):
         if iocb.ioError:
             call_back_fnc(addr, obj_id, False, str(iocb.ioError))
             return
-        
+
+    def _make_request(self, addr, obj_id, is_read):
+        prop_id = 'presentValue'
+        obj_id = ObjectIdentifier(obj_id).value
+        if prop_id.isdigit():
+            prop_id = int(prop_id)
+
+        datatype = get_datatype(obj_id[0], prop_id)
+        if not datatype:
+            raise ValueError("invalid property for object type")
+            
+        if(is_read):
+            return ReadPropertyRequest(
+                destination=Address(addr),
+                objectIdentifier=obj_id, 
+                propertyIdentifier=prop_id
+                )
+        else:
+            return WritePropertyRequest(
+                destination=Address(addr),
+                objectIdentifier=obj_id, 
+                propertyIdentifier=prop_id,
+                propertyValue = Any(),
+                )
+
+# endregion
+
+# region writeproperty関連
+
     def write_present_value(self, addr, obj_id, value):
         """Write property requestでPresent valueを書き込む（同期処理）
 
@@ -152,7 +189,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         request.propertyValue.cast_in(value)
 
         iocb = IOCB(request)
-        iocb.set_timeout(self.time_out, err=TimeoutError)
+        # iocb.set_timeout(self.time_out, err=TimeoutError) #たまに悪さする。消すか？？
         deferred(self.request_io, iocb)
 
         # 通信完了まで待機
@@ -198,31 +235,11 @@ class PresentValueReadWriter(BIPSimpleApplication):
             call_back_fnc(addr, obj_id, False, str(iocb.ioError))
             return
 
-    def _make_request(self, addr, obj_id, is_read):
-        prop_id = 'presentValue'
-        obj_id = ObjectIdentifier(obj_id).value
-        if prop_id.isdigit():
-            prop_id = int(prop_id)
+# endregion
 
-        datatype = get_datatype(obj_id[0], prop_id)
-        if not datatype:
-            raise ValueError("invalid property for object type")
-            
-        if(is_read):
-            return ReadPropertyRequest(
-                destination=Address(addr),
-                objectIdentifier=obj_id, 
-                propertyIdentifier=prop_id
-                )
-        else:
-            return WritePropertyRequest(
-                destination=Address(addr),
-                objectIdentifier=obj_id, 
-                propertyIdentifier=prop_id,
-                propertyValue = Any(),
-                )
+# region datetime COV関連
 
-    def subscribe_date_time_cov(self, monitored_ip):
+    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1:47809'):
         """シミュレーション日時の加速度に関するCOVを登録する
 
         Args:
@@ -231,9 +248,9 @@ class PresentValueReadWriter(BIPSimpleApplication):
         Returns:
             bool: 登録が成功したか否か
         """        
-        # 既に登録されている場合には二重登録を回避
+        # 既に登録されている場合には日時だけ更新して二重登録を回避
         if self.dtcov_scribed:
-            return
+            return self._update_date_time(monitored_ip)
                         
         request = SubscribeCOVPropertyRequest(
             subscriberProcessIdentifier=self.id,
@@ -258,8 +275,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         # 通信成功
         elif iocb.ioResponse:
             self.dtcov_scribed = True
-            self._update_date_time(monitored_ip)
-            return True
+            return self._update_date_time(monitored_ip)
 
     def do_ConfirmedCOVNotificationRequest(self, apdu):
         print('receieve ConfirmedCOVNotificationRequest')
@@ -274,14 +290,22 @@ class PresentValueReadWriter(BIPSimpleApplication):
                 thread.start()
 
     def _update_date_time(self, dt_ip_address):
+        success = True
         val = self.read_present_value(dt_ip_address, 'analogOutput:2', Integer)
         self.acc_rate = val[1] if val[0] else 0
-        time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
+        # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(dt_ip_address, 'datetimeValue:3', DateTime)
-        self.base_real_datetime = val[1] if val[0] else val[1] #None
-        time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
+        if val[0]:
+            self.base_real_datetime = val[1]
+        else:
+            success = False
+        # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(dt_ip_address, 'datetimeValue:4', DateTime)
-        self.base_sim_datetime = val[1] if val[0] else val[1] #None
+        if val[0]:
+            self.base_sim_datetime = val[1]
+        else:
+            success = False
+        return success
 
     def current_date_time(self):
         """現在の日時を取得する
@@ -291,17 +315,23 @@ class PresentValueReadWriter(BIPSimpleApplication):
         """        
         return (datetime.datetime.today() - self.base_real_datetime) * self.acc_rate + self.base_sim_datetime
 
-def request(self, apdu):
-    BIPSimpleApplication.request(self, apdu)
+# endregion
 
-def indication(self, apdu):
-    BIPSimpleApplication.indication(self, apdu)
+# region BIPSimpleApplication
 
-def response(self, apdu):
-    BIPSimpleApplication.response(self, apdu)
+    def request(self, apdu):
+        BIPSimpleApplication.request(self, apdu)
 
-def confirmation(self, apdu):
-    BIPSimpleApplication.confirmation(self, apdu)
+    def indication(self, apdu):
+        BIPSimpleApplication.indication(self, apdu)
+
+    def response(self, apdu):
+        BIPSimpleApplication.response(self, apdu)
+
+    def confirmation(self, apdu):
+        BIPSimpleApplication.confirmation(self, apdu)
+
+# endregion
 
 # region サンプル
 
