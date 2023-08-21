@@ -4,7 +4,7 @@ import VRFCommunicator
 def main():
     vrfCom = VRFCommunicator.VRFCommunicator(999)
 
-    # 現在時刻の加速度のCOV登録を試みる
+    # 現在時刻の加速度のCOVイベントへ登録する（current_date_timeが有効になる）
     print('Subscribe COV...')
     while not vrfCom.subscribe_date_time_cov():
         time.sleep(0.1)
@@ -66,7 +66,7 @@ def is_weekday(dtime):
     return not (dy == 5 or dy == 6)    
 
 def is_hvac_time(dtime):
-    start_time = datetime.time(1, 0)
+    start_time = datetime.time(7, 0)
     end_time = datetime.time(19, 0)   
     now = dtime.time()    
     return is_weekday(dtime) and (start_time <= now <= end_time)

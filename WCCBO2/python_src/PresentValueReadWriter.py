@@ -80,7 +80,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
         iocb = IOCB(request)
         iocb_id_send=iocb.ioID % 256 #結果のご配信を回避するためIDを一時保存
-        # iocb.set_timeout(self.time_out, err=TimeoutError) #たまに悪さする。消すか？？
+        iocb.set_timeout(self.time_out, err=TimeoutError)
         deferred(self.request_io, iocb)
 
         # 通信完了まで待機
@@ -189,7 +189,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         request.propertyValue.cast_in(value)
 
         iocb = IOCB(request)
-        # iocb.set_timeout(self.time_out, err=TimeoutError) #たまに悪さする。消すか？？
+        iocb.set_timeout(self.time_out, err=TimeoutError)
         deferred(self.request_io, iocb)
 
         # 通信完了まで待機
