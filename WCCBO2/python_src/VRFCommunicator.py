@@ -101,7 +101,7 @@ class VRFCommunicator():
         self.target_ip = target_ip + ':' + str(self.VRFCTRL_EXCLUSIVE_PORT)
         self.comm = PresentValueReadWriter.PresentValueReadWriter(id,name,time_out_sec)
 
-    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1:47809'):
+    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1'):
         """シミュレーション日時の加速度に関するCOVを登録する
 
         Args:

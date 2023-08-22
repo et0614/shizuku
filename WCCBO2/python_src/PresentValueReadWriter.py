@@ -16,8 +16,12 @@ from bacpypes.constructeddata import Any
 from bacpypes.core import enable_sleeping
 
 class PresentValueReadWriter(BIPSimpleApplication):
-    """BACnet通信用クラス
+    """BACnet通信でPresent valueを読み書きするクラス
     """  
+
+    DATETIMECONTROLLER_DEVICE_ID = 1
+
+    DATETIMECONTROLLER_EXCLUSIVE_PORT = 0xBAC0 + DATETIMECONTROLLER_DEVICE_ID
 
     def __init__(self, id, name, time_out_sec = 1.0):
         """インスタンスを初期化する
@@ -239,18 +243,21 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
 # region datetime COV関連
 
-    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1:47809'):
+    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1'):
         """シミュレーション日時の加速度に関するCOVを登録する
 
         Args:
-            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxx:xxxxの形式)
+            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxxの形式)
 
         Returns:
             bool: 登録が成功したか否か
         """        
+        # 監視IPアドレスを保存
+        self.mon_id = monitored_ip + ':' + str(self.DATETIMECONTROLLER_EXCLUSIVE_PORT)
+
         # 既に登録されている場合には日時だけ更新して二重登録を回避
         if self.dtcov_scribed:
-            return self._update_date_time(monitored_ip)
+            return self._update_date_time()
                         
         request = SubscribeCOVPropertyRequest(
             subscriberProcessIdentifier=self.id,
@@ -258,8 +265,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
             monitoredPropertyIdentifier=PropertyReference(propertyIdentifier='presentValue'),
             covIncrement=0,
         )
-        request.pduDestination = Address(monitored_ip)
-        self.mon_id = monitored_ip # 監視IPアドレスを保存
+        request.pduDestination = Address(self.mon_id)
 
         iocb = IOCB(request)
         # iocb.set_timeout(self.time_out, err=TimeoutError)
@@ -275,7 +281,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         # 通信成功
         elif iocb.ioResponse:
             self.dtcov_scribed = True
-            return self._update_date_time(monitored_ip)
+            return self._update_date_time()
 
     def do_ConfirmedCOVNotificationRequest(self, apdu):
         print('receieve ConfirmedCOVNotificationRequest')
@@ -286,21 +292,21 @@ class PresentValueReadWriter(BIPSimpleApplication):
             apdu.monitoredObjectIdentifier == ("analogOutput",2) and
             apdu.listOfValues[0].propertyIdentifier == 'presentValue'):
                 # 別スレッドで日時を更新
-                thread = threading.Thread(target=self._update_date_time, args=(self.mon_id,))
+                thread = threading.Thread(target=self._update_date_time)
                 thread.start()
 
-    def _update_date_time(self, dt_ip_address):
+    def _update_date_time(self):
         success = True
-        val = self.read_present_value(dt_ip_address, 'analogOutput:2', Integer)
+        val = self.read_present_value(self.mon_id, 'analogOutput:2', Integer)
         self.acc_rate = val[1] if val[0] else 0
         # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
-        val = self.read_present_value(dt_ip_address, 'datetimeValue:3', DateTime)
+        val = self.read_present_value(self.mon_id, 'datetimeValue:3', DateTime)
         if val[0]:
             self.base_real_datetime = val[1]
         else:
             success = False
         # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
-        val = self.read_present_value(dt_ip_address, 'datetimeValue:4', DateTime)
+        val = self.read_present_value(self.mon_id, 'datetimeValue:4', DateTime)
         if val[0]:
             self.base_sim_datetime = val[1]
         else:
