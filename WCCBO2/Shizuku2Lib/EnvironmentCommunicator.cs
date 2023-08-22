@@ -1,11 +1,10 @@
 ﻿using System.IO.BACnet;
-using BaCSharp;
 
 namespace Shizuku2.BACnet
 {
 
   /// <summary>Shizuku2のEnvironmentモニタとの通信ユーティリティクラス</summary>
-  public class EnvironmentCommunicator
+  public class EnvironmentCommunicator : PresentValueReadWriter
   {
 
     #region 定数宣言
@@ -38,42 +37,16 @@ namespace Shizuku2.BACnet
 
     #endregion
 
-    #region インスタンス変数・プロパティ
-
-    /// <summary>BACnet通信用オブジェクト</summary>
-    private BACnetCommunicator communicator;
-
-    #endregion
-
     #region コンストラクタ
 
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="id">通信に使うBACnet DeviceのID</param>
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
-    /// <param name="description">通信に使うBACnet Deviceの説明</param>
     /// <param name="ipAddress">WeatherモニタのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
-    public EnvironmentCommunicator(uint id, string name, string description, string ipAddress = "127.0.0.1")
+    public EnvironmentCommunicator(uint id, string name, string ipAddress = "127.0.0.1")
+      : base(id, name)
     {
-      DeviceObject dObject = new DeviceObject(id, name, description, true);
-      communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + ENVIRONMENTMONITOR_EXCLUSIVE_PORT.ToString());
-    }
-
-    #endregion
-
-    #region インスタンスメソッド
-
-    /// <summary>サービスを開始する</summary>
-    public void StartService()
-    {
-      communicator.StartService();
-      communicator.Client.WhoIs();
-    }
-
-    /// <summary>リソースを解放する</summary>
-    public void EndService()
-    {
-      communicator.EndService();
     }
 
     #endregion
@@ -85,16 +58,8 @@ namespace Shizuku2.BACnet
     /// <returns>乾球温度[C]</returns>
     public float GetDrybulbTemperature(out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.DrybulbTemperature);
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (float)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.DrybulbTemperature, out succeeded);
     }
 
     /// <summary>相対湿度[%]を取得する</summary>
@@ -102,16 +67,8 @@ namespace Shizuku2.BACnet
     /// <returns>相対湿度[%]</returns>
     public float GetRelativeHumidity(out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.RelativeHumdity);
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (float)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.RelativeHumdity, out succeeded);
     }
 
     /// <summary>水平面全天日射[W/m2]を取得する</summary>
@@ -119,16 +76,8 @@ namespace Shizuku2.BACnet
     /// <returns>水平面全天日射[W/m2]</returns>
     public float GetGlobalHorizontalRadiation(out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.GlobalHorizontalRadiation);
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (float)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.GlobalHorizontalRadiation, out succeeded);
     }
 
     /// <summary>夜間放射[W/m2]を取得する</summary>
@@ -136,16 +85,8 @@ namespace Shizuku2.BACnet
     /// <returns>夜間放射[W/m2]</returns>
     public float GetNocturnalRadiation(out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.NocturnalRadiation);
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (float)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)WeatherMonitorMember.NocturnalRadiation, out succeeded);
     }
 
     #endregion
@@ -159,17 +100,9 @@ namespace Shizuku2.BACnet
     /// <returns>ゾーン（下部空間）の乾球温度[C]</returns>
     public float GetZoneDrybulbTemperature(int oUnitIndex, int iUnitIndex, out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        (uint)(1000 * oUnitIndex + 100 * iUnitIndex + WeatherMonitorMember.DrybulbTemperature));
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (float)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + WeatherMonitorMember.DrybulbTemperature);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
     /// <summary>ゾーン（下部空間）の相対湿度[%]を取得する</summary>
@@ -179,17 +112,9 @@ namespace Shizuku2.BACnet
     /// <returns>ゾーン（下部空間）の相対湿度[%]</returns>
     public float GetZoneRelativeHumidity(int oUnitIndex, int iUnitIndex, out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        (uint)(1000 * oUnitIndex + 100 * iUnitIndex + WeatherMonitorMember.RelativeHumdity));
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (float)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + WeatherMonitorMember.RelativeHumdity);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
     #endregion

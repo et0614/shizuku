@@ -1,11 +1,10 @@
 ﻿using System.IO.BACnet;
-using BaCSharp;
 
 namespace Shizuku2.BACnet
 {
 
   /// <summary>Shizuku2のOccupantモニタとの通信ユーティリティクラス</summary>
-  public class OccupantCommunicator
+  public class OccupantCommunicator : PresentValueReadWriter
   {
 
     #region 定数宣言
@@ -68,13 +67,6 @@ namespace Shizuku2.BACnet
 
     #endregion
 
-    #region インスタンス変数・プロパティ
-
-    /// <summary>BACnet通信用オブジェクト</summary>
-    private BACnetCommunicator communicator;
-
-    #endregion
-
     #region コンストラクタ
 
     /// <summary>インスタンスを初期化する</summary>
@@ -82,10 +74,9 @@ namespace Shizuku2.BACnet
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
     /// <param name="description">通信に使うBACnet Deviceの説明</param>
     /// <param name="ipAddress">WeatherモニタのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
-    public OccupantCommunicator(uint id, string name, string description, string ipAddress = "127.0.0.1")
+    public OccupantCommunicator(uint id, string name, string ipAddress = "127.0.0.1")
+      : base(id, name)
     {
-      DeviceObject dObject = new DeviceObject(id, name, description, true);
-      communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + OCCUPANTMONITOR_EXCLUSIVE_PORT.ToString());
     }
 
@@ -93,36 +84,15 @@ namespace Shizuku2.BACnet
 
     #region インスタンスメソッド
 
-    /// <summary>サービスを開始する</summary>
-    public void StartService()
-    {
-      communicator.StartService();
-      communicator.Client.WhoIs();
-    }
-
-    /// <summary>リソースを解放する</summary>
-    public void EndService()
-    {
-      communicator.EndService();
-    }
-
     /// <summary>在室している執務者数を取得する</summary>
     /// <param name="tenant">テナント</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>在室している執務者数</returns>
     public int GetOccupantNumber(Tenant tenant, out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        (uint)(10000 * (int)tenant + (int)OccupantMonitorMember.OccupantNumber));
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (int)val[0].Value;
-      }
-
-      succeeded = false;
-      return 0;
+      uint instNum = (uint)(10000 * (int)tenant + (int)OccupantMonitorMember.OccupantNumber);
+      return ReadPresentValue<int>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
     /// <summary>在室しているか否かを取得する</summary>
@@ -132,17 +102,9 @@ namespace Shizuku2.BACnet
     /// <returns>在室しているか否か</returns>
     public bool IsOccupantStayInOffice(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.Availability));
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-        return (uint)val[0].Value == 1;
-      }
-
-      succeeded = false;
-      return false;
+      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.Availability);
+      return 1 == ReadPresentValue<uint>
+        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_INPUT, instNum, out succeeded);
     }
 
     /// <summary>温冷感を取得する</summary>
@@ -152,18 +114,9 @@ namespace Shizuku2.BACnet
     /// <returns>温冷感</returns>
     public ThermalSensation GetThermalSensation(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.ThermalSensation));
-
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
-      {
-        succeeded = true;
-
-        return convertVote((int)val[0].Value);
-      }
-
-      succeeded = false;
-      return ThermalSensation.Neutral;
+      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.ThermalSensation);
+      return convertVote(ReadPresentValue<int>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded));
     }
 
     private ThermalSensation convertVote(int vote)

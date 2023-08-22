@@ -19,19 +19,6 @@ namespace ExcelController
 
     static void Main(string[] args)
     {
-      /*OccupantCommunicator cm = new OccupantCommunicator(999, "", "");
-      cm.StartService();
-      while (true)
-      {
-        int ocNum = cm.GetOccupantNumber(OccupantCommunicator.Tenant.SouthEast, out bool s1);
-        bool stay = cm.IsOccupantStayInOffice(OccupantCommunicator.Tenant.SouthEast, 1, out bool s2);
-        OccupantCommunicator.ThermalSensation ss = cm.GetThermalSensation(OccupantCommunicator.Tenant.SouthWest, 1, out bool s3);
-
-        Console.WriteLine(ocNum.ToString("F0") + ", " + (stay ? "Available" : "Vacant") + ", " + ss.ToString());
-
-        Thread.Sleep(1000);
-      }*/
-
       Console.WriteLine("Starting Excel controller.");
 
       //制御値保持インスタンス生成
@@ -129,18 +116,16 @@ namespace ExcelController
       Console.WriteLine(" done.");
 
       //コントローラを用意して開始
-      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID + 1, "Excel controller", "Controller who send control signal from excel data file.");
-      DateTimeCommunicator dtCom = new DateTimeCommunicator(DEVICE_ID + 2, "Excel controller (Date time ctrl.)", "Excel controller (Date time ctrl.)");
+      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID + 1, "Excel controller");
       vrfCom.StartService();
-      dtCom.StartService();
+      while (!vrfCom.SubscribeDateTimeCOV()) ; //COV登録が成功するまでは空ループ
 
       //制御値更新ループ*************************************
+      DateTime dtOut = DateTime.Now;
       while (true)
       {
-        while (!dtCom.DateTimeInitialized) ; //日時が初期化されるまでは空ループ
-
         bool success;
-        DateTime now = dtCom.CurrentDateTimeInSimulation;
+        DateTime now = vrfCom.CurrentDateTime;
         for (int i = 0; i < 4; i++)
         {
           vrfCtrl vc = vrfCtrls[i];
@@ -267,6 +252,11 @@ namespace ExcelController
         }
 
         Thread.Sleep(50);
+        if (dtOut.AddSeconds(1) < DateTime.Now)
+        {
+          dtOut = DateTime.Now;
+          Console.WriteLine(vrfCom.CurrentDateTime);
+        }
       }
 
     }
