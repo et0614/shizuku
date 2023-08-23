@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
-using System.IO;
-
-using Popolo.Numerics;
+﻿using Popolo.Numerics;
 using Popolo.BuildingOccupant;
 using Popolo.ThermalLoad;
 using System.Reflection;
 using Shizuku2;
-using System.Formats.Tar;
 
 namespace Shizuku.Models
 {
@@ -68,24 +62,19 @@ namespace Shizuku.Models
       }
       zones = znLst.ToArray();
 
-      tenants = new Tenant[4];
+      tenants = new Tenant[2];
       ImmutableZone[] zns;
       //南側
       zns = building.MultiRoom[0].Zones;
-      tenants[0] = new Tenant(building, "South west tenant", false, 
-        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5] },
+      tenants[0] = new Tenant(building, "South tenant", false, 
+        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5], zns[6], zns[7], zns[8], zns[9] },
         OfficeTenant.CategoryOfIndustry.Manufacturing, dw, vrfs[0], uRnd.Next());
-      tenants[1] = new Tenant(building, "South east tenant", false,
-        new ImmutableZone[] { zns[6], zns[7], zns[8], zns[9], zns[10], zns[11] },
-        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, vrfs[1], uRnd.Next());
+
       //北側
       zns = building.MultiRoom[1].Zones;
-      tenants[2] = new Tenant(building, "North west tenant", false,
-        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5] },
-        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, vrfs[2], uRnd.Next());
-      tenants[3] = new Tenant(building, "North east tenant", false,
-        new ImmutableZone[] { zns[6], zns[7], zns[8], zns[9], zns[10], zns[11], zns[12], zns[13] },
-        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, vrfs[3], uRnd.Next());
+      tenants[1] = new Tenant(building, "North tenant", false,
+        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5], zns[6], zns[7], zns[8], zns[9] },
+        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, vrfs[2], uRnd.Next());
 
       //豪華ゲストを登場させる
       introduceSpecialCharacters(uRnd);
