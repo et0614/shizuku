@@ -67,14 +67,14 @@ namespace Shizuku.Models
       //南側
       zns = building.MultiRoom[0].Zones;
       tenants[0] = new Tenant(building, "South tenant", false, 
-        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5], zns[6], zns[7], zns[8], zns[9] },
-        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, vrfs[0], uRnd.Next());
+        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5], zns[6], zns[7], zns[8] },
+        OfficeTenant.CategoryOfIndustry.Manufacturing, dw, new ExVRFSystem[] { vrfs[0], vrfs[1] }, uRnd.Next());
 
       //北側
       zns = building.MultiRoom[1].Zones;
       tenants[1] = new Tenant(building, "North tenant", false,
-        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5], zns[6], zns[7], zns[8], zns[9] },
-        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, vrfs[2], uRnd.Next());
+        new ImmutableZone[] { zns[0], zns[1], zns[2], zns[3], zns[4], zns[5], zns[6], zns[7], zns[8] },
+        OfficeTenant.CategoryOfIndustry.InformationAndCommunications, dw, new ExVRFSystem[] { vrfs[2], vrfs[3] }, uRnd.Next());
 
       //豪華ゲストを登場させる
       introduceSpecialCharacters(uRnd);

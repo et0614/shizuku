@@ -216,8 +216,8 @@ namespace Shizuku2
         boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
       bool finished = false;
-      try
-      {
+      //try
+      //{
         //別スレッドで経過を表示
         Task.Run(() =>
         {
@@ -244,8 +244,8 @@ namespace Shizuku2
 
         Console.WriteLine("Emulation finished. Press any key to exit.");
         Console.ReadLine();
-      }
-      catch (Exception e)
+      //}
+      /*catch (Exception e)
       {
         finished = true;
         using (StreamWriter sWriter = new StreamWriter("error.log"))
@@ -257,7 +257,7 @@ namespace Shizuku2
         Console.WriteLine("Emulation aborted. The errors were written out to \"error.log\".");
         Console.WriteLine("Press any key to exit.");
         Console.ReadLine();
-      }
+      }*/
     }
 
     /// <summary>期間計算を実行する</summary>
@@ -585,15 +585,15 @@ namespace Shizuku2
       double lowRate = BuildingMaker.L_ZONE_HEIGHT / (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT);
       double vRateDwn = (mechVent ? BuildingMaker.VENT_RATE * lowRate : BuildingMaker.LEAK_RATE * BuildingMaker.L_ZONE_HEIGHT) / 3600d;
       double vRateUp = (mechVent ? BuildingMaker.VENT_RATE * (1.0 - lowRate) : BuildingMaker.LEAK_RATE * BuildingMaker.U_ZONE_HEIGHT) / 3600d;
-      for (int i = 0; i < 12; i++)
+      for (int i = 0; i < 9; i++)
       {
         building.SetVentilationRate(0, i, building.MultiRoom[0].Zones[i].FloorArea * vRateDwn);
-        building.SetVentilationRate(0, i + 12, building.MultiRoom[0].Zones[i + 12].FloorArea * vRateUp);
+        building.SetVentilationRate(0, i + 9, building.MultiRoom[0].Zones[i + 9].FloorArea * vRateUp);
       }
-      for (int i = 0; i < 14; i++)
+      for (int i = 0; i < 9; i++)
       {
         building.SetVentilationRate(1, i, building.MultiRoom[1].Zones[i].FloorArea * vRateDwn);
-        building.SetVentilationRate(1, i + 14, building.MultiRoom[1].Zones[i + 14].FloorArea * vRateDwn);
+        building.SetVentilationRate(1, i + 9, building.MultiRoom[1].Zones[i + 9].FloorArea * vRateDwn);
       }
     }
 
@@ -615,24 +615,24 @@ namespace Shizuku2
     /// <summary>室内機の吸込空気を設定する</summary>
     private static void setVRFInletAir()
     {
-      for (int i = 0; i < 6; i++)
+      for (int i = 0; i < 5; i++)
       {
-        ImmutableZone znU = building.MultiRoom[0].Zones[i + 12];
+        ImmutableZone znU = building.MultiRoom[0].Zones[i + 9];
         vrfs[0].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
       }
-      for (int i = 0; i < 6; i++)
+      for (int i = 0; i < 4; i++)
       {
-        ImmutableZone znU = building.MultiRoom[0].Zones[i + 18];
+        ImmutableZone znU = building.MultiRoom[0].Zones[i + 14];
         vrfs[1].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
       }
-      for (int i = 0; i < 6; i++)
+      for (int i = 0; i < 5; i++)
       {
-        ImmutableZone znU = building.MultiRoom[1].Zones[i + 14];
+        ImmutableZone znU = building.MultiRoom[1].Zones[i + 9];
         vrfs[2].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
       }
-      for (int i = 0; i < 8; i++)
+      for (int i = 0; i < 4; i++)
       {
-        ImmutableZone znU = building.MultiRoom[1].Zones[i + 20];
+        ImmutableZone znU = building.MultiRoom[1].Zones[i + 14];
         vrfs[3].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
       }
     }
@@ -640,14 +640,14 @@ namespace Shizuku2
     /// <summary>下部空間と上部空間へ給気する（一括）</summary>
     private static void setVRFOutletAir()
     {
-      for (int i = 0; i < 6; i++)
-        setVRFOutletAir(vrfs[0], i, 0, i, i + 12);
-      for (int i = 0; i < 6; i++)
-        setVRFOutletAir(vrfs[1], i, 0, i + 6, i + 18);
-      for (int i = 0; i < 6; i++)
-        setVRFOutletAir(vrfs[2], i, 1, i, i + 14);
-      for (int i = 0; i < 8; i++)
-        setVRFOutletAir(vrfs[3], i, 1, i + 6, i + 20);
+      for (int i = 0; i < 5; i++)
+        setVRFOutletAir(vrfs[0], i, 0, i, i + 9);
+      for (int i = 0; i < 4; i++)
+        setVRFOutletAir(vrfs[1], i, 0, i + 6, i + 14);
+      for (int i = 0; i < 5; i++)
+        setVRFOutletAir(vrfs[2], i, 1, i, i + 9);
+      for (int i = 0; i < 4; i++)
+        setVRFOutletAir(vrfs[3], i, 1, i + 6, i + 14);
     }
 
     /// <summary>下部空間と上部空間へ給気する（室内機別）</summary>

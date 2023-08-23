@@ -290,5 +290,10 @@ namespace Shizuku2
       return lowerZones[iUnitIndex].HumidityRatio;
     }
 
+    public bool HasZone(ImmutableZone zn)
+    {
+      return lowerZones.Contains(zn);
+    }
+
   }
 }

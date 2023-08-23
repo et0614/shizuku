@@ -158,7 +158,7 @@ namespace Shizuku2.BACnet.Original
         {
           //室内機ごとの情報
           bBase = 1000 * (1 + ouIndx) + 100 * (1 + iuIndx);
-          vrfName += "-" + (1 + iuIndx);
+          vrfName = "VRF" + (1 + ouIndx) + "-" + (1 + iuIndx);
 
           dObject.AddBacnetObject(new BinaryOutput
           ((int)(bBase + MemberNumber.OnOff_Setting),

@@ -27,25 +27,48 @@ namespace Shizuku2.BACnet.Original
 
     private enum MemberNumber
     {
+      /// <summary>On/Offの設定</summary>
       OnOff_Setting = 1,
+      /// <summary>On/Offの状態</summary>
       OnOff_Status = 2,
+      /// <summary>運転モードの設定</summary>
       OperationMode_Setting = 3,
+      /// <summary>運転モードの状態</summary>
       OperationMode_Status = 4,
+      /// <summary>室温設定値の設定</summary>
       Setpoint_Setting = 5,
+      /// <summary>室温設定値の状態</summary>
       Setpoint_Status = 6,
+      /// <summary>還乾球温度</summary>
       MeasuredRoomTemperature = 7,
-      FanSpeed_Setting = 8,
-      FanSpeed_Status = 9,
-      AirflowDirection_Setting = 10,
-      AirflowDirection_Status = 11,
-      RemoteControllerPermittion_Setpoint_Setting = 12,
-      RemoteControllerPermittion_Setpoint_Status = 13,
-      ForcedRefrigerantTemperature_Setting = 14,
-      ForcedRefrigerantTemperature_Status = 15,
-      EvaporatingTemperatureSetpoint_Setting = 16,
-      EvaporatingTemperatureSetpoint_Status = 17,
-      CondensingTemperatureSetpoint_Setting = 18,
-      CondensingTemperatureSetpoint_Status = 19
+      /// <summary>還相対湿度</summary>
+      MeasuredRelativeHumidity = 8,
+      /// <summary>ファン風量の設定</summary>
+      FanSpeed_Setting = 9,
+      /// <summary>ファン風量の状態</summary>
+      FanSpeed_Status = 10,
+      /// <summary>風向の設定</summary>
+      AirflowDirection_Setting = 11,
+      /// <summary>風量の状態</summary>
+      AirflowDirection_Status = 12,
+      /// <summary>手元リモコン操作許可の設定</summary>
+      RemoteControllerPermittion_Setpoint_Setting = 13,
+      /// <summary>手元リモコン操作許可の状態</summary>
+      RemoteControllerPermittion_Setpoint_Status = 14,
+      /// <summary>冷媒温度強制制御の設定</summary>
+      ForcedRefrigerantTemperature_Setting = 15,
+      /// <summary>冷媒温度強制制御の状態</summary>
+      ForcedRefrigerantTemperature_Status = 16,
+      /// <summary>冷媒蒸発温度設定値の設定</summary>
+      EvaporatingTemperatureSetpoint_Setting = 17,
+      /// <summary>冷媒蒸発温度設定値の状態</summary>
+      EvaporatingTemperatureSetpoint_Status = 18,
+      /// <summary>冷媒凝縮温度設定値の設定</summary>
+      CondensingTemperatureSetpoint_Setting = 19,
+      /// <summary>冷媒凝縮温度設定値の状態</summary>
+      CondensingTemperatureSetpoint_Status = 20,
+      /// <summary>消費電力</summary>
+      Electricity
     }
 
     #endregion

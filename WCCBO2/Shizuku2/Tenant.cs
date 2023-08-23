@@ -56,7 +56,7 @@ namespace Shizuku.Models
     private double[] mrTemps;
 
     /// <summary>テナント用VRF</summary>
-    private ExVRFSystem vrf;
+    private ExVRFSystem[] vrfs;
 
     /// <summary>正規乱数製造機</summary>
     private NormalRandom nRnd;
@@ -75,13 +75,13 @@ namespace Shizuku.Models
     /// <param name="seed">乱数シード</param>
     public Tenant(
       ImmutableBuildingThermalModel building, string name, bool isNonTerritorialOffice, 
-      ImmutableZone[] zones, OfficeTenant.CategoryOfIndustry cInd, OfficeTenant.DaysOfWeek dOfWeek, ExVRFSystem vrf, uint seed)
+      ImmutableZone[] zones, OfficeTenant.CategoryOfIndustry cInd, OfficeTenant.DaysOfWeek dOfWeek, ExVRFSystem[] vrfs, uint seed)
     {
       this.Building = building;
       this.Name = name;
       IsNonTerritorialOffice = isNonTerritorialOffice;
       this.Zones = zones;
-      this.vrf = vrf;
+      this.vrfs = vrfs;
 
       MersenneTwister uRnd = new MersenneTwister(seed);
       nRnd = new NormalRandom(uRnd.Next());
@@ -155,6 +155,7 @@ namespace Shizuku.Models
       //コントローラ操作の判定
       for (int i = 0; i < Zones.Length; i++)
       {
+        ExVRFSystem vrf = vrfs[0].HasZone(Zones[i]) ? vrfs[0] : vrfs[1];
         bool controllable = vrf.ControlPermited(Zones[i]);
         int upDown = 0;
         for (int j = 0; j < znOccupants[i].Length; j++)

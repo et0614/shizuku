@@ -77,10 +77,10 @@ namespace Shizuku2
       for (int i = 0; i < ZN_AREAS.Length; i++)
       {
         znASum += ZN_AREAS[i];
-        znSs[i] = new Zone("S" + i, ZN_AREAS[i] * L_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
-        znSs[i + 12] = new Zone("S" + i + "_Up", ZN_AREAS[i] * U_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
-        znNs[i] = new Zone("N" + i, ZN_AREAS[i] * L_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
-        znNs[i + 14] = new Zone("N" + i + "_Up", ZN_AREAS[i] * U_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
+        znSs[i] = new Zone("S" + (i + 1), ZN_AREAS[i] * L_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
+        znSs[i + 9] = new Zone("S" + (i + 1) + "_Up", ZN_AREAS[i] * U_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
+        znNs[i] = new Zone("N" + (i + 1), ZN_AREAS[i] * L_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
+        znNs[i + 9] = new Zone("N" + (i + 1) + "_Up", ZN_AREAS[i] * U_ZONE_HEIGHT * 1.2, ZN_AREAS[i]);
       }
       znSs[18] = new Zone("S_Attic", znASum * 1.5 * 1.2, znASum);
       znNs[18] = new Zone("N_Attic", znASum * 1.5 * 1.2, znASum);
