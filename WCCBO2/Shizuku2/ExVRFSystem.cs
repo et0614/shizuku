@@ -1,12 +1,6 @@
 ﻿using Popolo.HVAC.MultiplePackagedHeatPump;
-using Popolo.Numerics;
 using Popolo.ThermalLoad;
 using Shizuku.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Shizuku2
 {
