@@ -126,7 +126,7 @@ class VRFCommunicator():
         """室内機を起動する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             comAsync(bool):非同期で命令するか否か
         Returns:
             bool:命令が成功したか否か（非同期の場合には常にFalse）
@@ -142,7 +142,7 @@ class VRFCommunicator():
         """室内機を停止する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             comAsync(bool):非同期で命令するか否か
         Returns:
             bool:命令が成功したか否か（非同期の場合には常にFalse）
@@ -158,7 +158,7 @@ class VRFCommunicator():
         """起動しているか否か
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,bool): 読み取り成功の真偽,起動しているか否か
         """
@@ -174,7 +174,7 @@ class VRFCommunicator():
         """運転モードを変える
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             mode (Mode): 運転モード
             comAsync(bool):非同期で命令するか否か
         Returns:
@@ -191,7 +191,7 @@ class VRFCommunicator():
         """運転モードを取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,Mode): 読み取り成功の真偽,運転モード
         """        
@@ -207,7 +207,7 @@ class VRFCommunicator():
         """室温設定値[C]を変える
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             sp (float): 室温設定値[C]
             comAsync(bool):非同期で命令するか否か
         Returns:
@@ -224,7 +224,7 @@ class VRFCommunicator():
         """室温設定値[C]を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,float): 読み取り成功の真偽,室温設定値[C]
         """
@@ -235,7 +235,7 @@ class VRFCommunicator():
         """還空気の温度[C]を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,float): 読み取り成功の真偽,還空気の温度[C]
         """
@@ -246,7 +246,7 @@ class VRFCommunicator():
         """還空気の相対湿度[%]を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,float): 読み取り成功の真偽,相対湿度[%]
         """
@@ -261,7 +261,7 @@ class VRFCommunicator():
         """ファン風量を変える
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             mode (FanSpeed): ファン風量
             comAsync(bool):非同期で命令するか否か
         Returns:
@@ -278,7 +278,7 @@ class VRFCommunicator():
         """ファン風量を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,FanSpeed): 読み取り成功の真偽,ファン風量
         """        
@@ -295,7 +295,7 @@ class VRFCommunicator():
         """風向を変える
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             mode (Direction): 風向
             comAsync(bool):非同期で命令するか否か
         Returns:
@@ -312,7 +312,7 @@ class VRFCommunicator():
         """風向を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,Direction): 読み取り成功の真偽,風向
         """        
@@ -338,7 +338,7 @@ class VRFCommunicator():
         """手元リモコン操作を許可する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             comAsync(bool):非同期で命令するか否か
         Returns:
             bool:命令が成功したか否か
@@ -354,7 +354,7 @@ class VRFCommunicator():
         """手元リモコン操作を禁止する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
             comAsync(bool):非同期で命令するか否か
         Returns:
             bool:命令が成功したか否か
@@ -370,7 +370,7 @@ class VRFCommunicator():
         """手元リモコン操作が許可されているか否か
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,bool): 読み取り成功の真偽,手元リモコン操作が許可されているか否か
         """
@@ -487,7 +487,7 @@ class VRFCommunicator():
         """室内機の消費電力[kW]を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
         Returns:
             list(bool,float): 読み取り成功の真偽,室内機の消費電力[kW]
         """
@@ -533,7 +533,7 @@ def main():
 
 def turn_off(vrfCom):
     # 各系統の室内機の台数
-    i_unit_num = [6,6,6,8]
+    i_unit_num = [5,4,5,4]
 
     for i in range(len(i_unit_num)):
         for j in range(i_unit_num[i]):
@@ -545,7 +545,7 @@ def turn_off(vrfCom):
 
 def turn_on(vrfCom):
     # 各系統の室内機の台数
-    i_unit_num = [6,6,6,8]
+    i_unit_num = [5,4,5,4]
 
     for i in range(len(i_unit_num)):
         for j in range(i_unit_num[i]):

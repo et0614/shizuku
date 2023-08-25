@@ -11,7 +11,7 @@ def main():
     print('success')
 
     # 各系統の室内機の台数
-    i_unit_num = [6,6,6,8]
+    i_unit_num = [5,4,5,4]
 
     last_dt = vrfCom.current_date_time()
     while True:
