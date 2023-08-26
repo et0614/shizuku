@@ -51,11 +51,8 @@ namespace Shizuku2
     /// <summary>下部ゾーンへ送る風量比[-]を取得する</summary>
     public double[] LowZoneBlowRate { get; private set; }
 
-    /// <summary>電力量計</summary>
-    private Accumulator eMeters = new Accumulator(3600, 2, 1);
-
-    /// <summary>電力量計を取得する</summary>
-    public ImmutableAccumulator ElectricityMeters { get { return eMeters; } }
+    /// <summary>消費電力[kW]を取得する</summary>
+    public double Electricity { get; private set; } = 0.0;
 
     /// <summary>噴流による不満足者率[-]を取得する</summary>
     public double DissatisfiedRateByJet { get; private set; }
@@ -190,12 +187,11 @@ namespace Shizuku2
         }
       }
 
-      //消費電力を更新
-      eMeters.Update((now - lastUpdate).TotalSeconds,
+      //消費電力[kW]を更新
+      Electricity =
         VRFSystem.CompressorElectricity +
-        VRFSystem.OutdoorUnitFanElectricity + 
-        VRFSystem.IndoorUnitFanElectricity
-        );
+        VRFSystem.OutdoorUnitFanElectricity +
+        VRFSystem.IndoorUnitFanElectricity;
       lastUpdate = now;
     }
 

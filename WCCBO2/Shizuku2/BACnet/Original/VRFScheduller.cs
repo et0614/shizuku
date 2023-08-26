@@ -9,67 +9,27 @@ namespace Shizuku2.BACnet.Original
 
     #region 定数宣言
 
-    const uint TARGET_DEVICE_ID = 2; //Original.Controller
+    const uint VRFCTRL_DEVICE_ID = 2;
+
+    const uint HEXCTRL_DEVICE_ID = 6;
 
     const uint THIS_DEVICE_ID = 3;
 
-    public const int TARGET_EXCLUSIVE_PORT = 0xBAC0 + (int)TARGET_DEVICE_ID;
+    public const int VRFCTRL_EXCLUSIVE_PORT = 0xBAC0 + (int)VRFCTRL_DEVICE_ID;
+
+    public const int HEXCTRL_EXCLUSIVE_PORT = 0xBAC0 + (int)HEXCTRL_DEVICE_ID;
 
     public const int THIS_EXCLUSIVE_PORT = 0xBAC0 + (int)THIS_DEVICE_ID;
 
-    const string DEVICE_NAME = "WCCBO Original VRF scheduller";
+    const string DEVICE_NAME = "WCCBO Original VRF and HEX scheduller";
 
-    const string DEVICE_DESCRIPTION = "WCCBO Original VRF scheduller";
+    const string DEVICE_DESCRIPTION = "WCCBO Original VRF and HEX scheduller";
 
-    #endregion
+    /// <summary>VRFコントローラのBACnetアドレス</summary>
+    readonly BacnetAddress vrfCtrlBAdd = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + VRFCTRL_EXCLUSIVE_PORT.ToString());
 
-    #region 列挙型
-
-    private enum MemberNumber
-    {
-      /// <summary>On/Offの設定</summary>
-      OnOff_Setting = 1,
-      /// <summary>On/Offの状態</summary>
-      OnOff_Status = 2,
-      /// <summary>運転モードの設定</summary>
-      OperationMode_Setting = 3,
-      /// <summary>運転モードの状態</summary>
-      OperationMode_Status = 4,
-      /// <summary>室温設定値の設定</summary>
-      Setpoint_Setting = 5,
-      /// <summary>室温設定値の状態</summary>
-      Setpoint_Status = 6,
-      /// <summary>還乾球温度</summary>
-      MeasuredRoomTemperature = 7,
-      /// <summary>還相対湿度</summary>
-      MeasuredRelativeHumidity = 8,
-      /// <summary>ファン風量の設定</summary>
-      FanSpeed_Setting = 9,
-      /// <summary>ファン風量の状態</summary>
-      FanSpeed_Status = 10,
-      /// <summary>風向の設定</summary>
-      AirflowDirection_Setting = 11,
-      /// <summary>風量の状態</summary>
-      AirflowDirection_Status = 12,
-      /// <summary>手元リモコン操作許可の設定</summary>
-      RemoteControllerPermittion_Setpoint_Setting = 13,
-      /// <summary>手元リモコン操作許可の状態</summary>
-      RemoteControllerPermittion_Setpoint_Status = 14,
-      /// <summary>冷媒温度強制制御の設定</summary>
-      ForcedRefrigerantTemperature_Setting = 15,
-      /// <summary>冷媒温度強制制御の状態</summary>
-      ForcedRefrigerantTemperature_Status = 16,
-      /// <summary>冷媒蒸発温度設定値の設定</summary>
-      EvaporatingTemperatureSetpoint_Setting = 17,
-      /// <summary>冷媒蒸発温度設定値の状態</summary>
-      EvaporatingTemperatureSetpoint_Status = 18,
-      /// <summary>冷媒凝縮温度設定値の設定</summary>
-      CondensingTemperatureSetpoint_Setting = 19,
-      /// <summary>冷媒凝縮温度設定値の状態</summary>
-      CondensingTemperatureSetpoint_Status = 20,
-      /// <summary>消費電力</summary>
-      Electricity
-    }
+    /// <summary>HEXコントローラのBACnetアドレス</summary>
+    readonly BacnetAddress hexCtrlBAdd = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + HEXCTRL_EXCLUSIVE_PORT.ToString());
 
     #endregion
 
@@ -90,8 +50,6 @@ namespace Shizuku2.BACnet.Original
     /// <summary>スケジュールを有効にする</summary>
     public bool EnableScheduling { get; set; } = false;
 
-    readonly BacnetAddress targetBACAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + TARGET_EXCLUSIVE_PORT.ToString());
-
     #endregion
 
     #region コンストラクタ
@@ -99,13 +57,6 @@ namespace Shizuku2.BACnet.Original
     public VRFScheduller(ExVRFSystem[] vrfs, int accRate, DateTime now)
     {
       dtAccl = new DateTimeAccelerator(accRate, now);
-
-      List<VRFUnitIndex> vrfInd = new List<VRFUnitIndex>();
-      for (int i = 0; i < vrfs.Length; i++)
-        for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
-          vrfInd.Add(new VRFUnitIndex(i, j));
-      VRFUnitIndex[] vrfUnitIndices = vrfInd.ToArray();
-
       DeviceObject dObject = new DeviceObject(THIS_DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
       communicator = new BACnetCommunicator(dObject, THIS_EXCLUSIVE_PORT);
 
@@ -123,52 +74,78 @@ namespace Shizuku2.BACnet.Original
               BacnetObjectId boID;
               List<BacnetValue> values;
 
-              for (int oHex = 0; oHex < vrfs.Length; oHex++)
+              for (int oUnt = 0; oUnt < vrfs.Length; oUnt++)
               {
-                for (int iHex = 0; iHex < vrfs[oHex].VRFSystem.IndoorUnitNumber; iHex++)
+                for (int iUnt = 0; iUnt < vrfs[oUnt].VRFSystem.IndoorUnitNumber; iUnt++)
                 {
-                  int bBase = bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
+                  int bBase = bBase = 1000 * (oUnt + 1) + 100 * (iUnt + 1);
 
+                  //VRF************************
                   //On/Off
-                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VRFController.MemberNumber.OnOff_Setting));
                   values = new List<BacnetValue>
                   {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
                   };
-                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                   //Mode
-                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.OperationMode_Setting));
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFController.MemberNumber.OperationMode_Setting));
                   bool isCooling = 5 <= dtAccl.AcceleratedDateTime.Month && dtAccl.AcceleratedDateTime.Month <= 10;
                   values = new List<BacnetValue>
                   {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, isCooling ? 1u : 2u) //1:冷房, 2:暖房, 3:換気
                   };
-                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                   //SP
-                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + VRFController.MemberNumber.Setpoint_Setting));
                   values = new List<BacnetValue>
                   {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, isCooling ? 26f : 22f)
                   };
-                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                   //風量
-                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.FanSpeed_Setting));
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFController.MemberNumber.FanSpeed_Setting));
                   values = new List<BacnetValue>
                   {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 2u)  //1:Low, 2:Midddle, 3:High
                   };
-                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                   //角度
-                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.AirflowDirection_Setting));
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFController.MemberNumber.AirflowDirection_Setting));
                   values = new List<BacnetValue>
                   {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 3u) //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
                   };
-                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                  //HEX************************
+                  //On/Off
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexOnOff));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
+                  };
+                  communicator.Client.WritePropertyRequest(hexCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                  //Bypass
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexBypassEnabled));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
+                  };
+                  communicator.Client.WritePropertyRequest(hexCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                  //ファン風量
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexFanSpeed));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 3u)  //1:Low, 2:Midddle, 3:High
+                  };
+                  communicator.Client.WritePropertyRequest(hexCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
                 }
               }
             }
@@ -184,13 +161,21 @@ namespace Shizuku2.BACnet.Original
                 {
                   int bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
 
-                  //On/Off
-                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));
+                  //VRF On/Off
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VRFController.MemberNumber.OnOff_Setting));
                   values = new List<BacnetValue>
                   {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
                   };
-                  communicator.Client.WritePropertyRequest(targetBACAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+                  communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+                  //HEX On/Off
+                  boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexOnOff));
+                  values = new List<BacnetValue>
+                  {
+                    new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
+                  };
+                  communicator.Client.WritePropertyRequest(hexCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
                 }
               }
             }
@@ -305,9 +290,6 @@ namespace Shizuku2.BACnet.Original
       BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
       communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)DateTimeController.MemberNumber.AccerarationRate, false, false, 3600);
-
-      //Who is送信
-      communicator.Client.WhoIs();
     }
 
     /// <summary>BACnetControllerのリソースを解放する</summary>

@@ -10,7 +10,6 @@ using Shizuku.Models;
 using Popolo.Numerics;
 using Popolo.ThermophysicalProperty;
 using Shizuku2.BACnet;
-using Popolo.HVAC.HeatExchanger;
 
 namespace Shizuku2
 {
@@ -39,13 +38,13 @@ namespace Shizuku2
     private const int V_MAJOR = 0;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 3;
+    private const int V_MINOR = 4;
 
     /// <summary>バージョン（リビジョン）</summary>
     private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.08.12";
+    private const string V_DATE = "2023.08.26";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -73,25 +72,10 @@ namespace Shizuku2
     private static ExVRFSystem[] vrfs;
 
     /// <summary>換気システム</summary>
-    private static VentilationSystem ventSystem = new VentilationSystem();
+    private static VentilationSystem ventSystem;
 
     /// <summary>テナントリスト</summary>
     private static TenantList tenants;
-
-    /// <summary>日時コントローラ</summary>
-    private static DateTimeController dtCtrl;
-
-    /// <summary>VRFコントローラ</summary>
-    private static IBACnetController vrfCtrl;
-
-    /// <summary>外気モニタ</summary>
-    private static EnvironmentMonitor wetMntr;
-
-    /// <summary>執務者モニタ</summary>
-    private static OccupantMonitor ocMntr;
-
-    /// <summary>VRFスケジューラ</summary>
-    private static IBACnetController? vrfSchedl;
 
     /// <summary>計算が遅れているか否か</summary>
     private static bool isDelayed = false;
@@ -105,11 +89,39 @@ namespace Shizuku2
     /// <summary>ドラフトによる不満足率[-]</summary>
     private static double dissatisfactionRate_draft = 0.0;
 
+    /// <summary>上下温度分布による不満足者率[-]</summary>
+    private static double dissatisfactionRate_vTempDif = 0.0;
+
+    /// <summary>CO2濃度による不満足者率[-]</summary>
+    private static double dissatisFactionRate_CO2 = 0.0;
+
     /// <summary>積算エネルギー消費量[GJ]</summary>
     private static double totalEnergyConsumption = 0.0;
 
     /// <summary>瞬時エネルギー消費量[GJ/h]</summary>
     private static double instantaneousEnergyConsumption = 0.0;
+
+    #region BACnet Device
+
+    /// <summary>日時コントローラ</summary>
+    private static DateTimeController dtCtrl;
+
+    /// <summary>VRFコントローラ</summary>
+    private static IBACnetController vrfCtrl;
+
+    /// <summary>外気モニタ</summary>
+    private static EnvironmentMonitor envMntr;
+
+    /// <summary>執務者モニタ</summary>
+    private static OccupantMonitor ocMntr;
+
+    /// <summary>換気システムコントローラ</summary>
+    private static VentilationController ventCtrl;
+
+    /// <summary>VRFスケジューラ</summary>
+    private static IBACnetController? vrfSchedl;
+
+    #endregion
 
     #endregion
 
@@ -133,6 +145,7 @@ namespace Shizuku2
       //建物モデルを作成
       building = BuildingMaker.Make();
       vrfs = makeVRFSystem(building);
+      ventSystem = new VentilationSystem(building);
 
       //気象データを生成
       WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["rseed3"],
@@ -186,20 +199,18 @@ namespace Shizuku2
           throw new Exception("VRF controller number not supported.");
       }
 
-      //外気モニタ
-      wetMntr = new EnvironmentMonitor(building, vrfs);
+      //その他のBACnet Device      
+      envMntr = new EnvironmentMonitor(building, vrfs); //外気モニタ
+      ocMntr = new OccupantMonitor(tenants); //執務者モニタ
+      ventCtrl = new VentilationController(ventSystem); //換気システムコントローラ
+      DummyDevice dummyDv = new DummyDevice(); //ダミーデバイス
 
-      //執務者モニタ
-      ocMntr = new OccupantMonitor(tenants);
-
-      //ダミーデバイス
-      DummyDevice dummyDv = new DummyDevice();
-
-      //コントローラ起動
+      //BACnet Device起動
       dtCtrl.StartService();
       vrfCtrl.StartService();
-      wetMntr.StartService();
+      envMntr.StartService();
       ocMntr.StartService();
+      ventCtrl.StartService();
       dummyDv.StartService();
 
       //BACnet controllerの登録を待つ
@@ -233,7 +244,12 @@ namespace Shizuku2
             Console.WriteLine(
               dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") +
               "  " + totalEnergyConsumption.ToString("F4") + " (" + instantaneousEnergyConsumption.ToString("F4") + ")" +
-              "  " + averagedDissatisfactionRate.ToString("F4") + " (" + dissatisfactionRate_thermal.ToString("F4") + " , " + dissatisfactionRate_draft.ToString("F4") + ")" +
+              "  " + averagedDissatisfactionRate.ToString("F4") + " (" + 
+              dissatisfactionRate_thermal.ToString("F4") + " , " +
+              dissatisfactionRate_draft.ToString("F4") + " , " +
+              dissatisfactionRate_vTempDif.ToString("F4") + " , " +
+              ventSystem.DissatisifactionRateFromCO2Level.ToString("F4") +
+              ")" +
               "  " + (isDelayed ? "DELAYED" : "")
               );
             Thread.Sleep(1000);
@@ -275,10 +291,11 @@ namespace Shizuku2
       using (StreamWriter swGen = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "general.csv"))
       using (StreamWriter swZone = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "zone.csv"))
       using (StreamWriter swVRF = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "vrf.csv"))
+      using (StreamWriter swVent = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "vent.csv"))
       using (StreamWriter swOcc = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "occupant.csv"))
       {
         //タイトル行書き出し
-        outputStatus(swGen, swZone, swVRF, swOcc, true);
+        outputStatus(swGen, swZone, swVRF, swVent, swOcc, true);
 
         //加速度を考慮して計算を進める
         while (true)
@@ -295,6 +312,7 @@ namespace Shizuku2
             //コントローラの制御値を機器やセンサに反映
             vrfCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
             dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+            ventCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
 
             //気象データを建物モデルに反映
             sun.Update(dtCtrl.CurrentDateTime);
@@ -303,6 +321,8 @@ namespace Shizuku2
 
             //テナントを更新（内部発熱もここで更新される）
             tenants.Update(dtCtrl.CurrentDateTime);
+            //換気・CO2濃度を更新
+            ventSystem.UpdateVentilation(building, tenants.Tenants[0].StayWorkerNumber, tenants.Tenants[1].StayWorkerNumber);
 
             //VRF更新
             setVRFInletAir();
@@ -325,7 +345,8 @@ namespace Shizuku2
             //機器やセンサの検出値を取得
             vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
             dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-            wetMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            envMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            ventCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
             ocMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
 
             //成績を集計
@@ -334,7 +355,7 @@ namespace Shizuku2
             //書き出し
             if (nextOutput <= building.CurrentDateTime)
             {
-              outputStatus(swGen, swZone, swVRF, swOcc, false);
+              outputStatus(swGen, swZone, swVRF, swVent, swOcc, false);
               nextOutput = building.CurrentDateTime.AddSeconds(initSettings["outputSpan"]);
             }
           }
@@ -384,29 +405,30 @@ namespace Shizuku2
     private static void updateScore(ref uint totalOccupants) 
     {
       //不満足者率を更新
-      tenants.GetDissatisfiedInfo(vrfs, out uint noc, out dissatisfactionRate_thermal, out dissatisfactionRate_draft);
+      tenants.GetDissatisfiedInfo(building, vrfs, out uint noc, 
+        out dissatisfactionRate_thermal, out dissatisfactionRate_draft, out dissatisfactionRate_vTempDif);
       uint tNum = noc + totalOccupants;
       if (tNum != 0)
       {
-        double disRate = dissatisfactionRate_thermal + dissatisfactionRate_draft;
+        double disRate = 1 - 
+          (1 - dissatisfactionRate_thermal) * 
+          (1 - dissatisfactionRate_draft) * 
+          (1 - dissatisfactionRate_vTempDif) * 
+          (1 - ventSystem.DissatisifactionRateFromCO2Level);
         averagedDissatisfactionRate = (averagedDissatisfactionRate * totalOccupants + disRate * noc) / tNum;
       }
       totalOccupants = tNum;
 
       //エネルギー消費関連を更新
-      instantaneousEnergyConsumption = 0.0;
-      totalEnergyConsumption = 0.0;
+      instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_SouthTenant;
       for (int i = 0; i < vrfs.Length; i++)
-      {
-        instantaneousEnergyConsumption += vrfs[i].ElectricityMeters.InstantaneousValue;
-        totalEnergyConsumption += vrfs[i].ElectricityMeters.IntegratedValue;
-      }
+        instantaneousEnergyConsumption += vrfs[i].Electricity;
       instantaneousEnergyConsumption *= ELC_PRIM_RATE;
-      totalEnergyConsumption *= ELC_PRIM_RATE;
+      totalEnergyConsumption += instantaneousEnergyConsumption * (building.TimeStep / 3600d) * ELC_PRIM_RATE;
     }
 
     private static void outputStatus(
-      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swOcc, bool isTitleLine)
+      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
     {
       //タイトル行
       if (isTitleLine)
@@ -463,6 +485,9 @@ namespace Shizuku2
           }
         }
         swVRF.WriteLine();
+
+        //Ventilation Systemの情報
+        swVent.WriteLine("date,time,CO2 level (South)[ppm],CO2 level (North)[ppm],Fan electricity (South)[kW],Fan electricity (North)[kW]");
 
         //執務者情報
         swOcc.Write("date,time");
@@ -526,7 +551,7 @@ namespace Shizuku2
       swVRF.Write(dtHeader);
       for (int i = 0; i < vrfs.Length; i++)
       {
-        swVRF.Write("," + vrfs[i].ElectricityMeters.InstantaneousValue.ToString("F2"));
+        swVRF.Write("," + vrfs[i].Electricity.ToString("F2"));
         for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
         {
           swVRF.Write(
@@ -543,6 +568,15 @@ namespace Shizuku2
         }
       }
       swVRF.WriteLine();
+
+      //Ventilation Systemの情報
+      swVent.Write(dtHeader);
+      swVent.WriteLine(
+        "," + ventSystem.CO2Level_SouthTenant.ToString("F0") +
+        "," + ventSystem.CO2Level_NorthTenant.ToString("F0") +
+        "," + ventSystem.FanElectricity_SouthTenant.ToString("F2") +
+        "," + ventSystem.FanElectricity_NorthTenant.ToString("F2")
+        );
 
       //執務者情報
       swOcc.Write(dtHeader);
@@ -616,9 +650,6 @@ namespace Shizuku2
     /// <summary>下部空間と上部空間へ給気する（一括）</summary>
     private static void updateSupplyAir()
     {
-      //換気を更新
-      ventSystem.UpdateVentilation(building);
-
       for(int k=0;k< 2; k++)
       {
         int ofst = k * 2;
@@ -646,7 +677,9 @@ namespace Shizuku2
       ref double tmp1, ref double hmd1, double aflow1,
       double tmp2, double hmd2, double aflow2)
     {
-      double rate1 = aflow1 / (aflow1 + aflow2);
+      double sum = aflow1 + aflow2;
+      if (sum == 0) return;
+      double rate1 = aflow1 / sum;
       double rate2 = 1 - rate1;
       tmp1 = rate1 * tmp1 + rate2 * tmp2;
       hmd1 = rate1 * hmd1 + rate2 * hmd2;
@@ -697,21 +730,20 @@ namespace Shizuku2
         if (rhmd < 40)
         {
           double hmdAFlow = HMD_AFLOW * znL.FloorArea;
-          saFlow = lowerBlow + hmdAFlow;
           humidify(znL.Temperature, znL.HumidityRatio, out double hmdATmp, out double hmdAHmd);
           blendAir(ref saTmp, ref saHmd, lowerBlow, hmdATmp, hmdAHmd, hmdAFlow);
+          saFlow += hmdAFlow; //加湿給気分の風量を加算
         }
       }
       //換気と混ぜて下部空間に給気
       blendAir(ref saTmp, ref saHmd, saFlow, ventDB, ventHmd, ventLow);
-      building.SetSupplyAir(mrIndex, lwZnIndex, saTmp, saHmd, saFlow + ventLow);
+      saFlow += ventLow; //換気給気分の風量を加算
+      building.SetSupplyAir(mrIndex, lwZnIndex, saTmp, saHmd, saFlow);
 
       //下部空間に吹き込まれた風量分は下部から上部へ移動する
       double udVent = 1.2 * building.MultiRoom[mrIndex].Zones[lwZnIndex].FloorArea * 
         (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT) * UPDOWN_VENT;
-      double vent = Math.Max(lowerBlow, udVent);
-      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, vent); //これ、混ざる処理なので不正確。
-      //building.SetAirFlow(mrIndex, lwZnIndex, upZnIndex, unt.AirFlowRate - upperBlow);
+      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, Math.Max(saFlow, udVent)); //これ、混ざる処理なので厳密には不正確。
     }
 
     /// <summary>水滴下で加湿する</summary>

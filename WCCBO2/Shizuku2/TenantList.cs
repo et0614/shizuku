@@ -166,33 +166,50 @@ namespace Shizuku.Models
     /// <param name="stayNumber">建物内執務者数</param>
     /// <param name="aveDissatisfaction_thermal">平均不満足率</param>
     public void GetDissatisfiedInfo(
-      ExVRFSystem[] vrfs, out uint stayNumber, out double aveDissatisfaction_thermal, out double aveDissatisfaction_draft)
+      ImmutableBuildingThermalModel bModel, ExVRFSystem[] vrfs, out uint stayNumber, out double aveDissatisfaction_thermal, out double aveDissatisfaction_draft, out double aveDissatisfaction_vTempDif)
     {
-      stayNumber = 0;
+      stayNumber = tenants[0].StayWorkerNumber + tenants[1].StayWorkerNumber;
       aveDissatisfaction_thermal = 0;
       aveDissatisfaction_draft = 0;
+      aveDissatisfaction_vTempDif = 0;
+
+      //執務者0なら計算しない
+      if (stayNumber == 0) return;
 
       for (int i = 0; i < tenants.Length; i++)
       {
         int tntOcc = 0;
+
         //温冷感による不満
         foreach (Occupant oc in tenants[i].Occupants)
         {
           if (oc.Worker.StayInOffice)
           {
             tntOcc++;
-            stayNumber++;
             aveDissatisfaction_thermal += oc.OCModel.UncomfortableProbability;
           }
         }
-        //ドラフトによる不満を加算
+
+        //ドラフトによる不満
         aveDissatisfaction_draft += tntOcc * (tntOcc / (double)tenants[i].Occupants.Length) * vrfs[i].DissatisfiedRateByJet;
       }
-      if (stayNumber != 0)
+
+      //上下温度分布による不満
+      for (int i = 0; i < 2; i++)
       {
-        aveDissatisfaction_thermal /= stayNumber;
-        aveDissatisfaction_draft /= stayNumber;
+        for (int j = 0; j < 9; j++)
+        {
+          double tmpL = bModel.MultiRoom[i].Zones[j].Temperature;
+          double tmpU = bModel.MultiRoom[i].Zones[j + 9].Temperature;
+          double dT = Math.Max(0, tmpU - tmpL) / 1.35 * 1.0; //上下空間の距離をもとに足下と頭の高さの温度差を推定
+          double pd = 1.0 / (1 + Math.Exp(5.76 - 0.856 * dT));
+          aveDissatisfaction_vTempDif += pd * tenants[i].GetOccupants(bModel.MultiRoom[i].Zones[j]).Length;
+        }        
       }
+
+      aveDissatisfaction_thermal /= stayNumber;
+      aveDissatisfaction_draft /= stayNumber;
+      aveDissatisfaction_vTempDif /= stayNumber;
     }
 
     /// <summary>ゾーンに滞在する人数を取得する</summary>

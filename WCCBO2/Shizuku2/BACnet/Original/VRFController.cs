@@ -35,7 +35,7 @@ namespace Shizuku2.BACnet.Original
 
     #region 列挙型
 
-    private enum MemberNumber
+    public enum MemberNumber
     {
       /// <summary>On/Offの設定</summary>
       OnOff_Setting = 1,

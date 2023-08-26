@@ -17,13 +17,6 @@ namespace Shizuku.Models
   public class Tenant : ImmutableTenant
   {
 
-    #region 定数宣言
-
-    /// <summary>外気CO2濃度[m3/m3]</summary>
-    private const double OACO2LEVEL = 400e-6;
-
-    #endregion
-
     #region インスタンス変数・プロパティ
 
     /// <summary>テナント名称を取得する</summary>
@@ -68,12 +61,6 @@ namespace Shizuku.Models
     /// <summary>正規乱数製造機</summary>
     private NormalRandom nRnd;
 
-    /// <summary>CO2濃度[ppm]を取得する</summary>
-    public double CO2Level { get; private set; } = 400;
-
-    /// <summary>室容積[m3]</summary>
-    private double roomVolume;
-
     #endregion
 
     #region コンストラクタ
@@ -100,17 +87,12 @@ namespace Shizuku.Models
       nRnd = new NormalRandom(uRnd.Next());
 
       //ゾーン別のテナント情報を初期化
-      roomVolume = 0;
       znTenants = new OfficeTenant[zones.Length];
       for (int i = 0; i < znTenants.Length; i++)
       {
         znTenants[i] = new OfficeTenant(cInd, zones[i].FloorArea, dOfWeek, uRnd.Next(), 9, 0, 18, 0, 12, 0, 13, 0); //営業9:00-18:00、昼休み12:00-13:00
         znTenants[i].ClearSpecialHolidays();  //祝祭日無し
-
-        roomVolume += zones[i].AirMass;
       }
-      roomVolume /= 1.2; //kgをm3に換算
-      roomVolume *= (BuildingMaker.L_ZONE_HEIGHT + BuildingMaker.U_ZONE_HEIGHT) / BuildingMaker.L_ZONE_HEIGHT; //上部空間分も加える
 
       //温湿度配列初期化
       dbTemps = new double[zones.Length];
@@ -297,42 +279,6 @@ namespace Shizuku.Models
     public ImmutableOccupant[] GetOccupants(ImmutableZone zone)
     {
       return znOccupants[Array.IndexOf(Zones, zone)];
-    }
-
-    #endregion
-
-    #region CO2関連
-
-    /// <summary>CO2濃度[m3/m3]を更新する</summary>
-    /// <param name="ventilation">換気量[m3/s]</param>
-    /// <param name="timeStep">タイムステップ[sec]</param>
-    public void UpdateCO2Level(double ventilation, double timeStep)
-    {
-      CO2Level = updateCO2Level(CO2Level, ventilation, OACO2LEVEL, roomVolume,
-        getCO2Generation(StayWorkerNumber), timeStep);
-    }
-
-    /// <summary>timeStep後のCO2濃度[m3/m3]を計算する</summary>
-    /// <param name="co2lvl">0時点のCO2濃度[m3/m3]</param>
-    /// <param name="ventFLow">換気量[m3/s]</param>
-    /// <param name="ventCO2">外気CO2濃度[m3/m3]</param>
-    /// <param name="volume">室容積[m3]</param>
-    /// <param name="genCO2">CO2発生量[m3/sec]</param>
-    /// <param name="timeStep">タイムステップ[sec]</param>
-    /// <returns>timeStep後のCO2濃度[m3/m3]</returns>
-    private static double updateCO2Level
-      (double co2lvl, double ventFLow, double ventCO2, double volume, double genCO2, double timeStep)
-    {
-      double ex = Math.Exp(-ventFLow / volume * timeStep);
-      return ventCO2 + (co2lvl - ventCO2) * ex + genCO2 / ventFLow * (1 - ex);
-    }
-
-    /// <summary>執務者からのCO2発生量[m3/sec]を計算する</summary>
-    /// <param name="occupantNumber">執務者数</param>
-    /// <returns>執務者からのCO2発生量[m3/sec]</returns>
-    private static double getCO2Generation(uint occupantNumber)
-    {
-      return 0.02 * occupantNumber / 3600d;
     }
 
     #endregion

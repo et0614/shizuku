@@ -7,7 +7,6 @@ namespace Shizuku2.BACnet
 {
   internal class EnvironmentMonitor : IBACnetController
   {
-
     //BACnet Object IDは以下のルールで付与
     //外界情報はMember Number
     //ゾーンの温湿度は
@@ -22,10 +21,10 @@ namespace Shizuku2.BACnet
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
 
     /// <summary>Deviceの名称</summary>
-    const string DEVICE_NAME = "Weather monitor";
+    const string DEVICE_NAME = "Environment monitor";
 
     /// <summary>Deviceの説明</summary>
-    const string DEVICE_DESCRIPTION = "BACnet device monitoring weather state.";
+    const string DEVICE_DESCRIPTION = "BACnet device monitoring outdoor and room environment.";
 
     #endregion
 
