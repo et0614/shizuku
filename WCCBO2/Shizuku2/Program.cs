@@ -321,6 +321,7 @@ namespace Shizuku2
 
             //テナントを更新（内部発熱もここで更新される）
             tenants.Update(dtCtrl.CurrentDateTime);
+            updateHeatGain();
             //換気・CO2濃度を更新
             ventSystem.UpdateVentilation(building, tenants.Tenants[0].StayWorkerNumber, tenants.Tenants[1].StayWorkerNumber);
 
@@ -424,7 +425,7 @@ namespace Shizuku2
       for (int i = 0; i < vrfs.Length; i++)
         instantaneousEnergyConsumption += vrfs[i].Electricity;
       instantaneousEnergyConsumption *= ELC_PRIM_RATE;
-      totalEnergyConsumption += instantaneousEnergyConsumption * (building.TimeStep / 3600d) * ELC_PRIM_RATE;
+      totalEnergyConsumption += instantaneousEnergyConsumption * (building.TimeStep / 3600d);
     }
 
     private static void outputStatus(
@@ -603,6 +604,19 @@ namespace Shizuku2
       swOcc.WriteLine();
     }
 
+    private static void updateHeatGain()
+    {
+      for (int i = 0; i < building.MultiRoom.Length; i++) {
+        for (int j = 0; j < building.MultiRoom[i].ZoneNumber; j++)
+        {
+          ImmutableZone zn = building.MultiRoom[i].Zones[j];
+          double sh = tenants.GetSensibleHeat(zn);
+          double lh = tenants.GetLatentHeat(zn);
+          building.SetBaseHeatGain(i, j, 0.6 * sh, 0.4 * sh, 0.001 * lh / 2500d);
+        }
+      }
+    }
+
     #endregion
 
     #region 加湿設定
@@ -628,22 +642,34 @@ namespace Shizuku2
       for (int i = 0; i < 5; i++)
       {
         ImmutableZone znU = building.MultiRoom[0].Zones[i + 9];
-        vrfs[0].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        vrfs[0].VRFSystem.SetIndoorUnitInletAirState(i, 
+          Math.Max(5, Math.Min(35, znU.Temperature)), 
+          Math.Max(0, Math.Min(0.025, znU.HumidityRatio))
+          );
       }
       for (int i = 0; i < 4; i++)
       {
         ImmutableZone znU = building.MultiRoom[0].Zones[i + 14];
-        vrfs[1].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        vrfs[1].VRFSystem.SetIndoorUnitInletAirState(i,
+          Math.Max(5, Math.Min(35, znU.Temperature)),
+          Math.Max(0, Math.Min(0.025, znU.HumidityRatio))
+          );
       }
       for (int i = 0; i < 5; i++)
       {
         ImmutableZone znU = building.MultiRoom[1].Zones[i + 9];
-        vrfs[2].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        vrfs[2].VRFSystem.SetIndoorUnitInletAirState(i,
+          Math.Max(5, Math.Min(35, znU.Temperature)),
+          Math.Max(0, Math.Min(0.025, znU.HumidityRatio))
+          );
       }
       for (int i = 0; i < 4; i++)
       {
         ImmutableZone znU = building.MultiRoom[1].Zones[i + 14];
-        vrfs[3].VRFSystem.SetIndoorUnitInletAirState(i, znU.Temperature, znU.HumidityRatio);
+        vrfs[3].VRFSystem.SetIndoorUnitInletAirState(i,
+          Math.Max(5, Math.Min(35, znU.Temperature)),
+          Math.Max(0, Math.Min(0.025, znU.HumidityRatio))
+          );
       }
     }
 
@@ -654,35 +680,16 @@ namespace Shizuku2
       {
         int ofst = k * 2;
         for (int i = 0; i < 5; i++)
-          setVRFOutletAir(vrfs[ofst], i, 0, i, i + 9,
+          setVRFOutletAir(vrfs[ofst], i, k, i, i + 9,
             ventSystem.HeatExchangers[ofst][i].SupplyAirOutletDrybulbTemperature,
             ventSystem.HeatExchangers[ofst][i].SupplyAirOutletHumidityRatio,
             ventSystem.HeatExchangers[ofst][i].SupplyAirFlowVolume / 3600d * 1.2);
         for (int i = 0; i < 4; i++)
-          setVRFOutletAir(vrfs[ofst + 1], i, 0, i + 6, i + 14,
+          setVRFOutletAir(vrfs[ofst + 1], i, k, i + 5, i + 14,
             ventSystem.HeatExchangers[ofst + 1][i].SupplyAirOutletDrybulbTemperature,
             ventSystem.HeatExchangers[ofst + 1][i].SupplyAirOutletHumidityRatio,
             ventSystem.HeatExchangers[ofst + 1][i].SupplyAirFlowVolume / 3600d * 1.2);
       }
-    }
-
-    /// <summary>空気を混合する</summary>
-    /// <param name="tmp1">空気1の温度</param>
-    /// <param name="hmd1">空気1の湿度</param>
-    /// <param name="aflow1">空気1の風量</param>
-    /// <param name="tmp2">空気2の温度</param>
-    /// <param name="hmd2">空気2の湿度</param>
-    /// <param name="aflow2">空気2の風量</param>
-    private static void blendAir(
-      ref double tmp1, ref double hmd1, double aflow1,
-      double tmp2, double hmd2, double aflow2)
-    {
-      double sum = aflow1 + aflow2;
-      if (sum == 0) return;
-      double rate1 = aflow1 / sum;
-      double rate2 = 1 - rate1;
-      tmp1 = rate1 * tmp1 + rate2 * tmp2;
-      hmd1 = rate1 * hmd1 + rate2 * hmd2;
     }
 
     /// <summary>下部空間と上部空間へ給気する（室内機別）</summary>
@@ -744,6 +751,25 @@ namespace Shizuku2
       double udVent = 1.2 * building.MultiRoom[mrIndex].Zones[lwZnIndex].FloorArea * 
         (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT) * UPDOWN_VENT;
       building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, Math.Max(saFlow, udVent)); //これ、混ざる処理なので厳密には不正確。
+    }
+
+    /// <summary>空気を混合する</summary>
+    /// <param name="tmp1">空気1の温度</param>
+    /// <param name="hmd1">空気1の湿度</param>
+    /// <param name="aflow1">空気1の風量</param>
+    /// <param name="tmp2">空気2の温度</param>
+    /// <param name="hmd2">空気2の湿度</param>
+    /// <param name="aflow2">空気2の風量</param>
+    private static void blendAir(
+      ref double tmp1, ref double hmd1, double aflow1,
+      double tmp2, double hmd2, double aflow2)
+    {
+      double sum = aflow1 + aflow2;
+      if (sum == 0) return;
+      double rate1 = aflow1 / sum;
+      double rate2 = 1 - rate1;
+      tmp1 = rate1 * tmp1 + rate2 * tmp2;
+      hmd1 = rate1 * hmd1 + rate2 * hmd2;
     }
 
     /// <summary>水滴下で加湿する</summary>

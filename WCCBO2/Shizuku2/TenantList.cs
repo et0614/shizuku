@@ -178,20 +178,24 @@ namespace Shizuku.Models
 
       for (int i = 0; i < tenants.Length; i++)
       {
-        int tntOcc = 0;
+        int occCold = 0;
 
         //温冷感による不満
         foreach (Occupant oc in tenants[i].Occupants)
         {
           if (oc.Worker.StayInOffice)
           {
-            tntOcc++;
+            if (
+              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.SlightlyCool ||
+              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cool ||
+              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cold)
+              occCold++; //寒い側申告の人数を数える
             aveDissatisfaction_thermal += oc.OCModel.UncomfortableProbability;
           }
         }
 
         //ドラフトによる不満
-        aveDissatisfaction_draft += tntOcc * (tntOcc / (double)tenants[i].Occupants.Length) * vrfs[i].DissatisfiedRateByJet;
+        aveDissatisfaction_draft += occCold * (occCold / (double)tenants[i].Occupants.Length) * vrfs[i].DissatisfiedRateByJet;
       }
 
       //上下温度分布による不満

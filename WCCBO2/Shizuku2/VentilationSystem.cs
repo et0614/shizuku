@@ -1,6 +1,5 @@
 ﻿using Popolo.HVAC.HeatExchanger;
 using Popolo.ThermalLoad;
-using System.Security.Cryptography;
 
 namespace Shizuku2
 {

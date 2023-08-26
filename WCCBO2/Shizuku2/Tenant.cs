@@ -248,7 +248,7 @@ namespace Shizuku.Models
         //人体負荷（潜顕比は石野「人体Two-node modelの簡易化と応用に関する研究」より回帰」
         double znT = Math.Max(22, Math.Min(28, zone.Temperature));
         sensibleHeat += number * (-5.3 * znT + 211.3);
-        latentHeat += number * (-5.4 * znT - 91.5);
+        latentHeat += number * (5.4 * znT - 91.5);
 
         //コンセント負荷（金融業と通信業は70W、その他は40W）
         double pcLoad = 40;
