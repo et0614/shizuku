@@ -428,8 +428,26 @@ namespace Shizuku2
       totalEnergyConsumption += instantaneousEnergyConsumption * (building.TimeStep / 3600d);
     }
 
+    /// <summary>内部発熱を反映する</summary>
+    private static void updateHeatGain()
+    {
+      for (int i = 0; i < building.MultiRoom.Length; i++) {
+        for (int j = 0; j < building.MultiRoom[i].ZoneNumber; j++)
+        {
+          ImmutableZone zn = building.MultiRoom[i].Zones[j];
+          double sh = tenants.GetSensibleHeat(zn);
+          double lh = tenants.GetLatentHeat(zn);
+          building.SetBaseHeatGain(i, j, 0.6 * sh, 0.4 * sh, 0.001 * lh / 2500d);
+        }
+      }
+    }
+
+    #endregion
+
+    #region 書き出し処理
+
     private static void outputStatus(
-      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
+  StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
     {
       //タイトル行
       if (isTitleLine)
@@ -438,8 +456,8 @@ namespace Shizuku2
         swGen.Write("date,time");
         swGen.WriteLine(
           ",Outdoor drybulb temperature[C],Outdoor humidity ratio[g/kg],Global horizontal radiation [W/m2]" +
-          ",Energy consumption (Total) [GJ],Energy consumption (Current) [GJ/h]" + 
-          ",Averaged dissatisfaction[-],Dissatisfaction rate (Thermal comfort)[-],Dissatisfaction rate (Draft)[-]");
+          ",Energy consumption (Total) [GJ],Energy consumption (Current) [GJ/h]" +
+          ",Averaged dissatisfaction[-],Dissatisfaction rate (Thermal comfort)[-],Dissatisfaction rate (Draft)[-],Dissatisfaction rate (Vertical temp. dif)[-],Dissatisfaction rate (CO2 level)[-]");
 
         //ゾーンの情報
         swZone.Write("date,time");
@@ -517,14 +535,16 @@ namespace Shizuku2
       //一般の情報
       swGen.Write(dtHeader);
       swGen.WriteLine(
-        "," + building.OutdoorTemperature.ToString("F1") + 
-        "," + (1000 * building.OutdoorHumidityRatio).ToString("F1") + 
+        "," + building.OutdoorTemperature.ToString("F1") +
+        "," + (1000 * building.OutdoorHumidityRatio).ToString("F1") +
         "," + building.Sun.GlobalHorizontalRadiation.ToString("F1") +
         "," + totalEnergyConsumption.ToString("F5") +
         "," + instantaneousEnergyConsumption.ToString("F5") +
         "," + averagedDissatisfactionRate.ToString("F4") +
         "," + dissatisfactionRate_thermal.ToString("F4") +
-        "," + dissatisfactionRate_draft.ToString("F4"));
+        "," + dissatisfactionRate_draft.ToString("F4") +
+        "," + dissatisfactionRate_vTempDif.ToString("F4") +
+        "," + dissatisFactionRate_CO2.ToString("F4"));
 
       //ゾーンの情報
       swZone.Write(dtHeader);
@@ -556,14 +576,14 @@ namespace Shizuku2
         for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
         {
           swVRF.Write(
-            "," + vrfs[i].VRFSystem.IndoorUnits[j].CurrentMode.ToString() + 
+            "," + vrfs[i].VRFSystem.IndoorUnits[j].CurrentMode.ToString() +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].InletAirTemperature.ToString("F1") +
             "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].InletAirHumidityRatio).ToString("F2") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].OutletAirTemperature.ToString("F1") +
             "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F2") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3") +
             "," + vrfs[i].GetSetpoint(j, true).ToString("F0") +
-            "," + vrfs[i].GetSetpoint(j, false).ToString("F0") + 
+            "," + vrfs[i].GetSetpoint(j, false).ToString("F0") +
             "," + vrfs[i].LowZoneBlowRate[j].ToString("F3")
             );
         }
@@ -584,7 +604,7 @@ namespace Shizuku2
       //着衣量
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
-          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ? 
+          swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
             tenants.Tenants[i].Occupants[j].CloValue.ToString("F3") : ""));
       //温冷感申告値
       for (int i = 0; i < tenants.Tenants.Length; i++)
@@ -595,7 +615,7 @@ namespace Shizuku2
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
           swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
-            (tenants.Tenants[i].Occupants[j].TryToRaiseTemperatureSP ? "1" : "0" ) : ""));
+            (tenants.Tenants[i].Occupants[j].TryToRaiseTemperatureSP ? "1" : "0") : ""));
       //下降要求
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
@@ -604,18 +624,6 @@ namespace Shizuku2
       swOcc.WriteLine();
     }
 
-    private static void updateHeatGain()
-    {
-      for (int i = 0; i < building.MultiRoom.Length; i++) {
-        for (int j = 0; j < building.MultiRoom[i].ZoneNumber; j++)
-        {
-          ImmutableZone zn = building.MultiRoom[i].Zones[j];
-          double sh = tenants.GetSensibleHeat(zn);
-          double lh = tenants.GetLatentHeat(zn);
-          building.SetBaseHeatGain(i, j, 0.6 * sh, 0.4 * sh, 0.001 * lh / 2500d);
-        }
-      }
-    }
 
     #endregion
 
