@@ -23,7 +23,7 @@ namespace Shizuku2.BACnet
     #region 列挙型
 
     /// <summary>項目</summary>
-    public enum VRFControllerMember
+    private enum member
     {
       /// <summary>On/Offの設定</summary>
       OnOff_Setting = 1,
@@ -127,35 +127,35 @@ namespace Shizuku2.BACnet
 
     /// <summary>室内機を起動する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void TurnOn
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       WritePresentValue(bacAddress, 
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OnOff_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.OnOff_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE), 
         out succeeded);
     }
 
     /// <summary>室内機を停止する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void TurnOff
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OnOff_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.OnOff_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
         out succeeded);
     }
 
     /// <summary>起動しているか否かを取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>起動しているか否か</returns>
     public bool IsTurnedOn
@@ -163,7 +163,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress, 
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OnOff_Status), 
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.OnOff_Status), 
         out succeeded);
     }
 
@@ -173,28 +173,28 @@ namespace Shizuku2.BACnet
 
     /// <summary>運転モードを変える</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="mode">運転モード</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeMode(uint oUnitIndex, uint iUnitIndex, Mode mode, out bool succeeded)
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OperationMode_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.OperationMode_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, mode == Mode.Cooling ? 1u : 2u),
         out succeeded);
     }
 
     /// <summary>運転モードを取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>運転モード</returns>
     public Mode GetMode(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.OperationMode_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.OperationMode_Status),
         out succeeded))
       {
         case 1: 
@@ -212,7 +212,7 @@ namespace Shizuku2.BACnet
 
     /// <summary>室温設定値[C]を変える</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="setpointTemperature">室温設定値[C]</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeSetpointTemperature
@@ -220,14 +220,14 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.Setpoint_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.Setpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, setpointTemperature),
         out succeeded);
     }
 
     /// <summary>室温設定値[C]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>室温設定値[C]</returns>
     public float GetSetpointTemperature
@@ -235,13 +235,13 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.Setpoint_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.Setpoint_Status),
         out succeeded);
     }
 
     /// <summary>還空気の温度[C]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>還空気の温度[C]</returns>
     public float GetReturnAirTemperature
@@ -249,13 +249,13 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.MeasuredRoomTemperature),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.MeasuredRoomTemperature),
         out succeeded);
     }
 
     /// <summary>還空気の相対湿度[%]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>還空気の相対湿度[%]</returns>
     public float GetReturnAirRelativeHumidity
@@ -263,7 +263,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.MeasuredRelativeHumidity),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.MeasuredRelativeHumidity),
         out succeeded);
     }
 
@@ -273,7 +273,7 @@ namespace Shizuku2.BACnet
 
     /// <summary>ファン風量を変える</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="speed">ファン風量</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeFanSpeed
@@ -282,14 +282,14 @@ namespace Shizuku2.BACnet
       uint spd = (speed == FanSpeed.Low ? 1u : speed == FanSpeed.Middle ? 2u : 3u);
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.FanSpeed_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.FanSpeed_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, spd),
         out succeeded);
     }
 
     /// <summary>ファン風量を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>ファン風量</returns>
     public FanSpeed GetFanSpeed
@@ -297,7 +297,7 @@ namespace Shizuku2.BACnet
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.FanSpeed_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.FanSpeed_Status),
         out succeeded))
       {
         case 1u:
@@ -315,7 +315,7 @@ namespace Shizuku2.BACnet
 
     /// <summary>風向を変える</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="direction">風向</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ChangeDirection
@@ -329,14 +329,14 @@ namespace Shizuku2.BACnet
 
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.AirflowDirection_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.AirflowDirection_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, dir),
         out succeeded);
     }
 
     /// <summary>風向を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>風向</returns>
     public Direction GetDirection
@@ -344,7 +344,7 @@ namespace Shizuku2.BACnet
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.AirflowDirection_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.AirflowDirection_Status),
         out succeeded))
       {
         case 1u:
@@ -366,35 +366,35 @@ namespace Shizuku2.BACnet
 
     /// <summary>手元リモコン操作を許可する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void PermitLocalControl
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.RemoteControllerPermittion_Setpoint_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.RemoteControllerPermittion_Setpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE),
         out succeeded);
     }
 
     /// <summary>手元リモコン操作を禁止する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     public void ProhibitLocalControl
       (uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.RemoteControllerPermittion_Setpoint_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.RemoteControllerPermittion_Setpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
         out succeeded);
     }
 
     /// <summary>手元リモコン操作が許可されているか否か</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>手元リモコン操作が許可されているか否か</returns>
     public bool IsLocalControlProhibited
@@ -402,7 +402,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        GetInstanceNumber(oUnitIndex, iUnitIndex, VRFControllerMember.RemoteControllerPermittion_Setpoint_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.RemoteControllerPermittion_Setpoint_Status),
         out succeeded);
     }
 
@@ -417,7 +417,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.ForcedRefrigerantTemperature_Setting),
+        getInstanceNumber(oUnitIndex, member.ForcedRefrigerantTemperature_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE),
         out succeeded);
     }
@@ -429,7 +429,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
          BacnetObjectTypes.OBJECT_BINARY_VALUE,
-         GetInstanceNumber(oUnitIndex, VRFControllerMember.ForcedRefrigerantTemperature_Setting),
+         getInstanceNumber(oUnitIndex, member.ForcedRefrigerantTemperature_Setting),
          new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
          out succeeded);
     }
@@ -442,7 +442,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.ForcedRefrigerantTemperature_Setting),
+        getInstanceNumber(oUnitIndex, member.ForcedRefrigerantTemperature_Setting),
         out succeeded);
     }
 
@@ -459,7 +459,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.EvaporatingTemperatureSetpoint_Setting),
+        getInstanceNumber(oUnitIndex, member.EvaporatingTemperatureSetpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, evaporatingTemperature),
         out succeeded);
     }
@@ -472,7 +472,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.EvaporatingTemperatureSetpoint_Status),
+        getInstanceNumber(oUnitIndex, member.EvaporatingTemperatureSetpoint_Status),
         out succeeded);
     }
 
@@ -485,7 +485,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.CondensingTemperatureSetpoint_Setting),
+        getInstanceNumber(oUnitIndex, member.CondensingTemperatureSetpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, condensingTemperature),
         out succeeded);
     }
@@ -498,7 +498,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.CondensingTemperatureSetpoint_Status),
+        getInstanceNumber(oUnitIndex, member.CondensingTemperatureSetpoint_Status),
         out succeeded);
     }
 
@@ -508,14 +508,14 @@ namespace Shizuku2.BACnet
 
     /// <summary>室内機の消費電力[kW]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>室内機の消費電力[kW]</returns>
     public float GetElectricity(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.Electricity),
+        getInstanceNumber(oUnitIndex, member.Electricity),
         out succeeded);
     }
 
@@ -527,7 +527,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        GetInstanceNumber(oUnitIndex, VRFControllerMember.Electricity),
+        getInstanceNumber(oUnitIndex, member.Electricity),
         out succeeded);
     }
 
@@ -537,11 +537,11 @@ namespace Shizuku2.BACnet
 
     /// <summary>インスタンス番号を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="member">項目</param>
     /// <returns>インスタンス番号</returns>
-    public static uint GetInstanceNumber
-      (uint oUnitIndex, uint iUnitIndex, VRFControllerMember member)
+    private static uint getInstanceNumber
+      (uint oUnitIndex, uint iUnitIndex, member member)
     {
       if (!isIndexValid(oUnitIndex, iUnitIndex))
         throw new Exception("Index of outdoor/indoor unit is invalid.");
@@ -554,8 +554,8 @@ namespace Shizuku2.BACnet
     /// <param name="member">項目</param>
     /// <returns>インスタンス番号</returns>
     /// <exception cref="Exception"></exception>
-    public static uint GetInstanceNumber
-      (uint oUnitIndex, VRFControllerMember member)
+    private static uint getInstanceNumber
+      (uint oUnitIndex, member member)
     {
       if (!isIndexValid(oUnitIndex))
         throw new Exception("Index of outdoor unit is invalid.");
@@ -570,16 +570,16 @@ namespace Shizuku2.BACnet
     private static bool isIndexValid
       (uint oUnitIndex, uint iUnitIndex)
     {
-      if (
-        oUnitIndex < 0 ||
-        4 < oUnitIndex ||
-        iUnitIndex < 0 ||
-        8 < iUnitIndex ||
-        (oUnitIndex != 4 && 6 < iUnitIndex)
-        )
+      if (oUnitIndex <= 0 || 4 < oUnitIndex || iUnitIndex <= 0)
         return false;
 
-      else return true;
+      if ((oUnitIndex == 1 || oUnitIndex == 3) && 5 < iUnitIndex)
+        return false;
+
+      if ((oUnitIndex == 2 || oUnitIndex == 4) && 4 < iUnitIndex)
+        return false;
+
+      return true;
     }
 
     /// <summary>室外機の番号が有効か否かを判定する</summary>
@@ -587,7 +587,7 @@ namespace Shizuku2.BACnet
     /// <returns>室外機の番号が有効か否か</returns>
     private static bool isIndexValid(uint oUnitIndex)
     {
-      if (oUnitIndex < 0 || 4 < oUnitIndex)
+      if (oUnitIndex <= 0 || 4 < oUnitIndex)
         return false;
 
       else return true;

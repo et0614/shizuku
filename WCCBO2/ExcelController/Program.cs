@@ -1,4 +1,5 @@
 ﻿using NPOI.SS.UserModel;
+using Org.BouncyCastle.Utilities.Encoders;
 using Shizuku2.BACnet;
 
 namespace ExcelController
@@ -24,12 +25,17 @@ namespace ExcelController
       //制御値保持インスタンス生成
       vrfCtrl[] vrfCtrls = new vrfCtrl[4];
       iHexCtrl[][] iHexCtrls = new iHexCtrl[4][];
+      ventCtrl[][] ventCtrls = new ventCtrl[4][];
       for (int i = 0; i < 4; i++)
       {
         vrfCtrls[i] = new vrfCtrl();
-        iHexCtrls[i] = new iHexCtrl[i == 3 ? 8 : 6];
+        iHexCtrls[i] = new iHexCtrl[(i == 0 || i == 2) ? 5 : 4];
+        ventCtrls[i] = new ventCtrl[(i == 0 || i == 2) ? 5 : 4];
         for (int j = 0; j < iHexCtrls[i].Length; j++)
+        {
           iHexCtrls[i][j] = new iHexCtrl();
+          ventCtrls[i][j] = new ventCtrl();
+        }
       }
 
       //Excelデータの読み込み*****************************************
@@ -44,23 +50,24 @@ namespace ExcelController
         DateTime dt1 = wSheet.GetRow(line).GetCell(0).DateCellValue;
         DateTime dt2 = wSheet.GetRow(line).GetCell(1).DateCellValue;
         DateTime dTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+        int col = 2;
 
         for (int i = 0; i < 4; i++)
         {
           vrfCtrl vc = vrfCtrls[i];
 
           //冷媒制御
-          bool refCtrl = wSheet.GetRow(line).GetCell(2 + 0 + i * 39).BooleanCellValue;
+          bool refCtrl = wSheet.GetRow(line).GetCell(col++).BooleanCellValue;
           if (line == 3 || vc.refCtrl[vc.refCtrl.Count - 1].Item2 != refCtrl)
             vc.refCtrl.Add(Tuple.Create(dTime, refCtrl));
 
           //蒸発温度
-          float evpTemp = (float)wSheet.GetRow(line).GetCell(2 + 1 + i * 39).NumericCellValue;
+          float evpTemp = (float)wSheet.GetRow(line).GetCell(col++).NumericCellValue;
           if (line == 3 || vc.evpTemp[vc.evpTemp.Count - 1].Item2 != evpTemp)
             vc.evpTemp.Add(Tuple.Create(dTime, evpTemp));
 
           //凝縮温度
-          float cndTemp = (float)wSheet.GetRow(line).GetCell(2 + 2 + i * 39).NumericCellValue;
+          float cndTemp = (float)wSheet.GetRow(line).GetCell(col++).NumericCellValue;
           if (line == 3 || vc.cndTemp[vc.cndTemp.Count - 1].Item2 != cndTemp)
             vc.cndTemp.Add(Tuple.Create(dTime, cndTemp));
 
@@ -68,26 +75,28 @@ namespace ExcelController
           for (int j = 0; j < iHexCtrls[i].Length; j++)
           {
             iHexCtrl ic = iHexCtrls[i][j];
+            ventCtrl th = ventCtrls[i][j];
 
+            //室内機*********************
             //On/Off
-            bool onOff = wSheet.GetRow(line).GetCell(2 + 3 + i * 39 + j * 6).BooleanCellValue;
+            bool onOff = wSheet.GetRow(line).GetCell(col++).BooleanCellValue;
             if (line == 3 || ic.onOff[ic.onOff.Count - 1].Item2 != onOff)
               ic.onOff.Add(Tuple.Create(dTime, onOff));
 
             //Mode
-            string sMode = wSheet.GetRow(line).GetCell(2 + 4 + i * 39 + j * 6).StringCellValue;
+            string sMode = wSheet.GetRow(line).GetCell(col++).StringCellValue;
             VRFCommunicator.Mode mode = 
               sMode == "Cool" ? VRFCommunicator.Mode.Cooling : VRFCommunicator.Mode.Heating;
             if (line == 3 || ic.mode[ic.mode.Count - 1].Item2 != mode)
               ic.mode.Add(Tuple.Create(dTime, mode));
 
             //Setpoint
-            float sp = (float)wSheet.GetRow(line).GetCell(2 + 5 + i * 39 + j * 6).NumericCellValue;
+            float sp = (float)wSheet.GetRow(line).GetCell(col++).NumericCellValue;
             if (line == 3 || ic.spTemp[ic.spTemp.Count - 1].Item2 != sp)
               ic.spTemp.Add(Tuple.Create(dTime, sp));
 
             //Fan speed
-            string sFs = wSheet.GetRow(line).GetCell(2 + 6 + i * 39 + j * 6).StringCellValue;
+            string sFs = wSheet.GetRow(line).GetCell(col++).StringCellValue;
             VRFCommunicator.FanSpeed fs = 
               sFs == "Low" ? VRFCommunicator.FanSpeed.Low : 
               sFs == "Middle" ? VRFCommunicator.FanSpeed.Middle : VRFCommunicator.FanSpeed.High;
@@ -95,7 +104,7 @@ namespace ExcelController
               ic.fanSpeed.Add(Tuple.Create(dTime, fs));
 
             //Direction
-            string sDir = wSheet.GetRow(line).GetCell(2 + 7 + i * 39 + j * 6).StringCellValue;
+            string sDir = wSheet.GetRow(line).GetCell(col++).StringCellValue;
             VRFCommunicator.Direction dir = 
               sDir == "Horizontal" ? VRFCommunicator.Direction.Horizontal :
               sDir == "22.5deg" ? VRFCommunicator.Direction.Degree_225 :
@@ -105,9 +114,28 @@ namespace ExcelController
               ic.direction.Add(Tuple.Create(dTime, dir));
 
             //Permit control
-            bool pmt = wSheet.GetRow(line).GetCell(2 + 8 + i * 39 + j * 6).BooleanCellValue;
+            bool pmt = wSheet.GetRow(line).GetCell(col++).BooleanCellValue;
             if (line == 3 || ic.permitRCtrl[ic.permitRCtrl.Count - 1].Item2 != pmt)
               ic.permitRCtrl.Add(Tuple.Create(dTime, pmt));
+
+            //全熱交換器*********************
+            //On/Off_hex
+            bool onOffHex = wSheet.GetRow(line).GetCell(col++).BooleanCellValue;
+            if (line == 3 || th.onOff[th.onOff.Count - 1].Item2 != onOffHex)
+              th.onOff.Add(Tuple.Create(dTime, onOffHex));
+
+            //bypass_hex
+            bool byps = wSheet.GetRow(line).GetCell(col++).BooleanCellValue;
+            if (line == 3 || th.bypassCtrl[th.bypassCtrl.Count - 1].Item2 != byps)
+              th.bypassCtrl.Add(Tuple.Create(dTime, byps));
+
+            //Fan speed_hex
+            string sFsHex = wSheet.GetRow(line).GetCell(col++).StringCellValue;
+            VentilationSystemCommunicator.FanSpeed fsHex =
+              sFsHex == "Low" ? VentilationSystemCommunicator.FanSpeed.Low :
+              sFsHex == "Middle" ? VentilationSystemCommunicator.FanSpeed.Middle : VentilationSystemCommunicator.FanSpeed.High;
+            if (line == 3 || th.fanSpeed[th.fanSpeed.Count - 1].Item2 != fsHex)
+              th.fanSpeed.Add(Tuple.Create(dTime, fsHex));
           }
         }
 
@@ -116,8 +144,10 @@ namespace ExcelController
       Console.WriteLine(" done.");
 
       //コントローラを用意して開始
-      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID + 1, "Excel controller");
+      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID, "Excel controller(VRF)");
+      VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 1, "Excel controller (Vent)");
       vrfCom.StartService();
+      ventCom.StartService();
       while (!vrfCom.SubscribeDateTimeCOV()) ; //COV登録が成功するまでは空ループ
 
       //制御値更新ループ*************************************
@@ -171,8 +201,10 @@ namespace ExcelController
           for (int j = 0; j < iHexCtrls[i].Length; j++)
           {
             iHexCtrl ic = iHexCtrls[i][j];
+            ventCtrl th = ventCtrls[i][j];
             uint iUnitIndx = (uint)(j + 1);
 
+            //室内機*********************
             //On/off
             if ((ic.onOffIndx < ic.onOff.Count) && (ic.onOff[ic.onOffIndx].Item1 < now))
             {
@@ -248,6 +280,53 @@ namespace ExcelController
 
               ic.permitRCtrlIndx++;
             }
+
+            //全熱交換器*********************
+            //On/off
+            if ((th.onOffIndx < th.onOff.Count) && (th.onOff[th.onOffIndx].Item1 < now))
+            {
+              if (th.onOff[th.onOffIndx].Item2)
+              {
+                Console.Write("Turning on HEX" + oUnitIndx + "-" + iUnitIndx + "...");
+                ventCom.StartVentilation(oUnitIndx, iUnitIndx, out success);
+              }
+              else
+              {
+                Console.Write("Turning off HEX" + oUnitIndx + "-" + iUnitIndx + "...");
+                ventCom.StopVentilation(oUnitIndx, iUnitIndx, out success);
+              }
+              Console.WriteLine(success ? "succeeded." : "failed.");
+              th.onOffIndx++;
+            }
+
+            //Bypass
+            if ((th.bypassCtrlIndx < th.bypassCtrl.Count) && (th.bypassCtrl[th.bypassCtrlIndx].Item1 < now))
+            {
+              if (th.bypassCtrl[th.bypassCtrlIndx].Item2)
+              {
+                Console.Write("Enable bypass control HEX" + oUnitIndx + "-" + iUnitIndx + "...");
+                ventCom.EnableBypassControl(oUnitIndx, iUnitIndx, out success);
+              }
+              else
+              {
+                Console.Write("Disable bypass control HEX" + oUnitIndx + "-" + iUnitIndx + "...");
+                ventCom.DisableBypassControl(oUnitIndx, iUnitIndx, out success);
+              }
+              Console.WriteLine(success ? "succeeded." : "failed.");
+              th.bypassCtrlIndx++;
+            }
+
+            //Fan speed
+            if ((th.fanSpeedIndx < th.fanSpeed.Count) && (th.fanSpeed[th.fanSpeedIndx].Item1 < now))
+            {
+              Console.Write("Sending fan speed of HEX" + oUnitIndx + "-" + iUnitIndx + "...");
+
+              ventCom.ChangeFanSpeed(oUnitIndx, iUnitIndx, th.fanSpeed[th.fanSpeedIndx].Item2, out success);
+              Console.WriteLine(success ? "succeeded." : "failed.");
+
+              th.fanSpeedIndx++;
+            }
+
           }
         }
 
@@ -313,6 +392,24 @@ namespace ExcelController
 
       public int permitRCtrlIndx = 0;
 
+    }
+
+    private class ventCtrl
+    {
+      /// <summary>on/off</summary>
+      public List<Tuple<DateTime, bool>> onOff = new List<Tuple<DateTime, bool>>();
+
+      /// <summary>バイパス制御</summary>
+      public List<Tuple<DateTime, bool>> bypassCtrl = new List<Tuple<DateTime, bool>>();
+
+      /// <summary>ファン風量</summary>
+      public List<Tuple<DateTime, VentilationSystemCommunicator.FanSpeed>> fanSpeed = new List<Tuple<DateTime, VentilationSystemCommunicator.FanSpeed>>();
+
+      public int onOffIndx = 0;
+
+      public int fanSpeedIndx = 0;
+
+      public int bypassCtrlIndx = 0;
     }
 
     #endregion

@@ -22,11 +22,11 @@ namespace Shizuku2
       /// <summary>停止</summary>
       Off = 0,
       /// <summary>弱</summary>
-      Low,
+      Low = 1,
       /// <summary>中</summary>
-      Middle,
+      Middle = 2,
       /// <summary>強</summary>
-      High
+      High = 3
     }
 
     #endregion
