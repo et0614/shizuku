@@ -3,6 +3,7 @@ using Popolo.HVAC.HeatExchanger;
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.ThermophysicalProperty;
 using System.IO.BACnet;
+using static Popolo.ThermophysicalProperty.Refrigerant;
 
 namespace Shizuku2.BACnet.Original
 {
@@ -158,7 +159,7 @@ namespace Shizuku2.BACnet.Original
           "This object is used to monitor the outdoor unit's electric consumption (fans and compressors).", 0, BacnetUnitsId.UNITS_KILOWATTS));
 
         dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.Electricity),
+          ((int)(bBase + MemberNumber.HeatLoad),
           "HeatLoad_" + vrfName,
           "This object is used to monitor the heat load of VRF system.", 0, BacnetUnitsId.UNITS_KILOWATTS));
 

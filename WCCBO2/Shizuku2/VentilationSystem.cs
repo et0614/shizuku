@@ -48,10 +48,10 @@ namespace Shizuku2
     /// <summary>ファン風量リスト</summary>
     private FanSpeed[][] fanSpeeds = new FanSpeed[][]
     {
-      new FanSpeed[]{ FanSpeed.High,FanSpeed.High,FanSpeed.High,FanSpeed.High,FanSpeed.High },
-      new FanSpeed[]{ FanSpeed.High,FanSpeed.High,FanSpeed.High,FanSpeed.High },
-      new FanSpeed[]{ FanSpeed.High,FanSpeed.High,FanSpeed.High,FanSpeed.High,FanSpeed.High },
-      new FanSpeed[]{ FanSpeed.High,FanSpeed.High,FanSpeed.High,FanSpeed.High }
+      new FanSpeed[]{ FanSpeed.Off,FanSpeed.Off, FanSpeed.Off, FanSpeed.Off, FanSpeed.Off },
+      new FanSpeed[]{ FanSpeed.Off, FanSpeed.Off, FanSpeed.Off, FanSpeed.Off },
+      new FanSpeed[]{ FanSpeed.Off, FanSpeed.Off, FanSpeed.Off, FanSpeed.Off, FanSpeed.Off },
+      new FanSpeed[]{ FanSpeed.Off, FanSpeed.Off, FanSpeed.Off, FanSpeed.Off }
     };
 
     /// <summary>バイパスコントロール有効か否かのリスト</summary>

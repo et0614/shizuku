@@ -18,6 +18,10 @@ namespace Shizuku2
 
     #region 定数宣言
 
+    /// <summary>デバッグ用熱負荷計算モード</summary>
+    /// <remarks>BACnet通信を切って高速で熱負荷を計算し、混合損失の有無や原単位の妥当性を確認する目的。</remarks>
+    private const bool HL_TEST_MODE = false;
+
     /// <summary>大気圧[kPa]（海抜0m）</summary>
     private const double ATM = 101.325;
 
@@ -218,7 +222,12 @@ namespace Shizuku2
       Console.WriteLine("Press \"Enter\" key to continue.");
       //Defaultコントローラ開始
       vrfSchedl?.StartService();
-      while (Console.ReadKey().Key != ConsoleKey.Enter);
+      int key;
+      while ((key = Console.Read()) != -1)
+      {
+        if ((char)key == (char)ConsoleKey.Enter) break;
+      }
+      //while (Console.ReadKey().Key != ConsoleKey.Enter);
 
       //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
@@ -310,9 +319,12 @@ namespace Shizuku2
             if (endDTime < dtCtrl.CurrentDateTime) break;
 
             //コントローラの制御値を機器やセンサに反映
-            vrfCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
-            dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
-            ventCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+            if (!HL_TEST_MODE)
+            {
+              vrfCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+              dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+              ventCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime);
+            }
 
             //気象データを建物モデルに反映
             sun.Update(dtCtrl.CurrentDateTime);
@@ -325,30 +337,44 @@ namespace Shizuku2
             //換気・CO2濃度を更新
             ventSystem.UpdateVentilation(building, tenants.Tenants[0].StayWorkerNumber, tenants.Tenants[1].StayWorkerNumber);
 
-            //VRF更新
-            setVRFInletAir();
-            for (int i = 0; i < vrfs.Length; i++)
+            if (HL_TEST_MODE)
             {
-              //外気条件
-              vrfs[i].VRFSystem.OutdoorAirDrybulbTemperature = dbt;
-              vrfs[i].VRFSystem.OutdoorAirHumidityRatio = 0.001 * hmd;
-              //制御と状態の更新
-              vrfs[i].UpdateControl(building.CurrentDateTime);
-              vrfs[i].VRFSystem.UpdateState(false);
+              setDebugBoundary();
             }
-            updateSupplyAir();
+            else
+            {
+              //VRF更新
+              setVRFInletAir();
+              for (int i = 0; i < vrfs.Length; i++)
+              {
+                //外気条件
+                vrfs[i].VRFSystem.OutdoorAirDrybulbTemperature = dbt;
+                vrfs[i].VRFSystem.OutdoorAirHumidityRatio = 0.001 * hmd;
+                //制御と状態の更新
+                vrfs[i].UpdateControl(building.CurrentDateTime);
+                vrfs[i].VRFSystem.UpdateState(false);
+              }
+              updateSupplyAir();
+            }
 
             //熱環境更新
-            building.ForecastHeatTransfer();
-            building.ForecastWaterTransfer();
-            building.FixState();
+            if (HL_TEST_MODE) building.UpdateHeatTransferWithinCapacityLimit();
+            else
+            {
+              building.ForecastHeatTransfer();
+              building.ForecastWaterTransfer();
+              building.FixState();
+            }
 
-            //機器やセンサの検出値を取得
-            vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-            dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-            envMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-            ventCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
-            ocMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            if (!HL_TEST_MODE)
+            {
+              //機器やセンサの検出値を取得
+              vrfCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+              dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+              envMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+              ventCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+              ocMntr.ReadMeasuredValues(dtCtrl.CurrentDateTime);
+            }
 
             //成績を集計
             updateScore(ref ttlOcNum);
@@ -442,6 +468,28 @@ namespace Shizuku2
       }
     }
 
+    /// <summary>デバッグ用高速熱負荷計算用の境界条件を設定する</summary>
+    private static void setDebugBoundary()
+    {
+      bool isSummer = 5 <= building.CurrentDateTime.Month && building.CurrentDateTime.Month <= 10;
+      for (int i = 0; i < 2; i++)
+      {
+        for (int j = 0; j < 18; j++)
+        {
+          if (building.CurrentDateTime.Hour < 8 || 20 < building.CurrentDateTime.Hour)
+          {
+            building.ControlHeatSupply(i, j, 0);
+            building.ControlWaterSupply(i, j, 0);
+          }
+          else
+          {
+            building.ControlDrybulbTemperature(i, j, isSummer ? 26 : 22);
+            building.ControlHumidityRatio(i, j, isSummer ? 0.0105 : 0.0065);
+          }
+        }
+      }
+    }
+
     #endregion
 
     #region 書き出し処理
@@ -466,18 +514,31 @@ namespace Shizuku2
           int znNum = building.MultiRoom[i].ZoneNumber / 2; //上部下部空間それぞれ書き出す
           for (int j = 0; j < znNum; j++)
           {
-            swZone.Write(
-              "," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature [CDB]" +
-              "," + building.MultiRoom[i].Zones[j + znNum].Name + " drybulb temperature [CDB]" +
-              "," + building.MultiRoom[i].Zones[j].Name + " absolute humidity [g/kg]" +
-              "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity [g/kg]"
-              );
+            if (HL_TEST_MODE)
+            {
+              swZone.Write(
+                "," + building.MultiRoom[i].Zones[j].Name + " sensible heat load [W]" +
+                "," + building.MultiRoom[i].Zones[j].Name + " latent heat load [W]"
+                );
+            }
+            else
+            {
+              swZone.Write(
+                "," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature [CDB]" +
+                "," + building.MultiRoom[i].Zones[j + znNum].Name + " drybulb temperature [CDB]" +
+                "," + building.MultiRoom[i].Zones[j].Name + " absolute humidity [g/kg]" +
+                "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity [g/kg]"
+                );
+            }
           }
-          //天井裏
-          swZone.Write(
-            "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Name + " drybulb temperature [CDB]" +
-            "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Name + " absolute humidity [g/kg]"
-              );
+          if (!HL_TEST_MODE)
+          {
+            //天井裏
+            swZone.Write(
+              "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Name + " drybulb temperature [CDB]" +
+              "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Name + " absolute humidity [g/kg]"
+                );
+          }
         }
         swZone.WriteLine();
 
@@ -553,18 +614,31 @@ namespace Shizuku2
         int znNum = building.MultiRoom[i].ZoneNumber / 2; //上部下部空間それぞれ書き出す
         for (int j = 0; j < znNum; j++)
         {
+          if (HL_TEST_MODE)
+          {
+            swZone.Write(
+              "," + (building.MultiRoom[i].Zones[j].HeatSupply + building.MultiRoom[i].Zones[j + znNum].HeatSupply).ToString("F1") +
+              "," + (2500000 * (building.MultiRoom[i].Zones[j].WaterSupply + building.MultiRoom[i].Zones[j + znNum].WaterSupply)).ToString("F2")
+              );
+          }
+          else
+          {
+            swZone.Write(
+              "," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1") +
+              "," + building.MultiRoom[i].Zones[j + znNum].Temperature.ToString("F1") +
+              "," + (1000 * building.MultiRoom[i].Zones[j].HumidityRatio).ToString("F2") +
+              "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F2")
+              );
+          }
+        }
+        if (!HL_TEST_MODE)
+        {
+          //天井裏
           swZone.Write(
-            "," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1") +
-            "," + building.MultiRoom[i].Zones[j + znNum].Temperature.ToString("F1") +
-            "," + (1000 * building.MultiRoom[i].Zones[j].HumidityRatio).ToString("F2") +
-            "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F2")
+            "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Temperature.ToString("F1") +
+            "," + (1000 * building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].HumidityRatio).ToString("F2")
             );
         }
-        //天井裏
-        swZone.Write(
-          "," + building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].Temperature.ToString("F1") +
-          "," + (1000 * building.MultiRoom[i].Zones[building.MultiRoom[i].ZoneNumber - 1].HumidityRatio).ToString("F2")
-          );
       }
       swZone.WriteLine();
 
@@ -845,6 +919,7 @@ namespace Shizuku2
               initSettings.Add(st[0], int.Parse(st[1]));
           }
         }
+        if (HL_TEST_MODE) initSettings["accelerationRate"] = 1000000;
         return true;
       }
       else return false;

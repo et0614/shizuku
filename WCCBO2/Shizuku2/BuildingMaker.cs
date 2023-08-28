@@ -332,6 +332,12 @@ namespace Shizuku2
           zns[i].InitializeAirState(22, 0.0105);
           zns[i].HeatCapacity = zns[i].AirMass * 1006 * (
             (i < half || i == zns.Length - 1 ) ? HCAP_FURNITURE : 3); //下部空間は家具の熱容量を考慮。天井裏も同等とみなす
+
+          //最大能力（デバッグ用設定）
+          zns[i].CoolingCapacity = 200 * zns[i].FloorArea * 0.5; //上下空間に能力を分けるので半分
+          zns[i].HeatingCapacity = 200 * zns[i].FloorArea * 0.5;
+          zns[i].DehumidifyingCapacity = 200 / 2500000d * zns[i].FloorArea * 0.5;
+          zns[i].HumidifyingCapacity = 200 / 2500000d * zns[i].FloorArea * 0.5;
         }
       }
       initZone(znNs);
