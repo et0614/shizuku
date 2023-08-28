@@ -218,7 +218,7 @@ namespace Shizuku2
       Console.WriteLine("Press \"Enter\" key to continue.");
       //Defaultコントローラ開始
       vrfSchedl?.StartService();
-      while (Console.ReadKey().Key != ConsoleKey.Enter) ;
+      while (Console.ReadKey().Key != ConsoleKey.Enter);
 
       //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
@@ -486,7 +486,7 @@ namespace Shizuku2
         for (int i = 0; i < vrfs.Length; i++)
         {
           int oHex = i + 1;
-          swVRF.Write(",VRF" + oHex + " electricity [kW]");
+          swVRF.Write(",VRF" + oHex + " electricity [kW],VRF" + oHex + " heat load[kW]");
           for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
           {
             string name = ",VRF" + oHex + "-" + (j + 1);
@@ -572,7 +572,10 @@ namespace Shizuku2
       swVRF.Write(dtHeader);
       for (int i = 0; i < vrfs.Length; i++)
       {
-        swVRF.Write("," + vrfs[i].Electricity.ToString("F2"));
+        double hl = 0;
+        for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
+          hl += vrfs[i].VRFSystem.IndoorUnits[j].HeatTransfer;
+        swVRF.Write("," + vrfs[i].Electricity.ToString("F2") + "," + hl.ToString("F2"));
         for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
         {
           swVRF.Write(
@@ -623,7 +626,6 @@ namespace Shizuku2
             (tenants.Tenants[i].Occupants[j].TryToLowerTemperatureSP ? "1" : "0") : ""));
       swOcc.WriteLine();
     }
-
 
     #endregion
 

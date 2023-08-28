@@ -1,4 +1,5 @@
 ﻿using BaCSharp;
+using Popolo.HVAC.HeatExchanger;
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.ThermophysicalProperty;
 using System.IO.BACnet;
@@ -78,7 +79,9 @@ namespace Shizuku2.BACnet.Original
       /// <summary>冷媒凝縮温度設定値の状態</summary>
       CondensingTemperatureSetpoint_Status = 20,
       /// <summary>消費電力</summary>
-      Electricity
+      Electricity = 21,
+      /// <summary>熱負荷</summary>
+      HeatLoad = 22
     }
 
     #endregion
@@ -153,6 +156,11 @@ namespace Shizuku2.BACnet.Original
           ((int)(bBase + MemberNumber.Electricity),
           "Electricity_" + vrfName,
           "This object is used to monitor the outdoor unit's electric consumption (fans and compressors).", 0, BacnetUnitsId.UNITS_KILOWATTS));
+
+        dObject.AddBacnetObject(new AnalogInput<float>
+          ((int)(bBase + MemberNumber.Electricity),
+          "HeatLoad_" + vrfName,
+          "This object is used to monitor the heat load of VRF system.", 0, BacnetUnitsId.UNITS_KILOWATTS));
 
         for (int iuIndx = 0; iuIndx < vrfSystems[ouIndx].IndoorUnitModes.Length; iuIndx++)
         {
@@ -237,6 +245,11 @@ namespace Shizuku2.BACnet.Original
            ((int)(bBase + MemberNumber.Electricity),
            "Electricity_" + vrfName.ToString(),
            "This object is used to monitor the indoor unit's electric consumption.", 0, BacnetUnitsId.UNITS_KILOWATTS));
+
+          dObject.AddBacnetObject(new AnalogInput<float>
+           ((int)(bBase + MemberNumber.HeatLoad),
+           "HeatLoad_" + vrfName.ToString(),
+           "This object is used to monitor the heat load of indoor unit.", 0, BacnetUnitsId.UNITS_KILOWATTS));
         }
       }
 
@@ -382,15 +395,15 @@ namespace Shizuku2.BACnet.Original
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
         {
+          BacnetObjectId boID;
           ExVRFSystem vrf = vrfSystems[i];
 
-          //室外機消費電力*************
-          BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.Electricity));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)(vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity);
-
+          float hlSum = 0;
           for (int j = 0; j < vrf.VRFSystem.IndoorUnitNumber; j++)
           {
             int bBase = 1000 * (i + 1) + 100 * (j + 1);
+
+            ImmutableVRFUnit unt = vrf.VRFSystem.IndoorUnits[j];
 
             //室内温度設定***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
@@ -399,20 +412,33 @@ namespace Shizuku2.BACnet.Original
 
             //吸い込み温度***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)vrf.VRFSystem.IndoorUnits[j].InletAirTemperature;
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)unt.InletAirTemperature;
 
             //吸い込み湿度***************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRelativeHumidity));
             float rhmd = (float)MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
-              (vrf.VRFSystem.IndoorUnits[j].InletAirTemperature, vrf.VRFSystem.IndoorUnits[j].InletAirHumidityRatio, ATM);
+              (vrf.VRFSystem.IndoorUnits[j].InletAirTemperature, unt.InletAirHumidityRatio, ATM);
             ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = rhmd;
 
             //室内機消費電力*************
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Electricity));
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)vrf.VRFSystem.IndoorUnits[j].FanElectricity;
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)unt.FanElectricity;
+
+            //熱負荷*************
+            hlSum += (float)unt.HeatTransfer;
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.HeatLoad));
+            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)unt.HeatTransfer;
 
             iuNum++;
           }
+
+          //室外機消費電力*************
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.Electricity));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)(vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity);
+
+          //室外機熱負荷*************
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.HeatLoad));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = hlSum;
         }
       }
     }

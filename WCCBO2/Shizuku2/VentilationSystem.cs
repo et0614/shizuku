@@ -252,7 +252,7 @@ namespace Shizuku2
     /// </remarks>
     private static double getDissatisfideRate(double co2Level)
     {
-      return 1d / (1d + Math.Exp((950d - co2Level) / 10d));
+      return 1d / (1d + Math.Exp((950d - co2Level) / 10.8d));
     }
 
     #endregion

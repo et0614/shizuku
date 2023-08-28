@@ -66,7 +66,9 @@ namespace Shizuku2.BACnet
       /// <summary>冷媒凝縮温度設定値の状態</summary>
       CondensingTemperatureSetpoint_Status = 20,
       /// <summary>消費電力</summary>
-      Electricity
+      Electricity = 21,
+      /// <summary>熱負荷</summary>
+      HeatLoad = 22
     }
 
     /// <summary>運転モード</summary>
@@ -515,7 +517,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, member.Electricity),
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.Electricity),
         out succeeded);
     }
 
@@ -528,6 +530,35 @@ namespace Shizuku2.BACnet
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
         getInstanceNumber(oUnitIndex, member.Electricity),
+        out succeeded);
+    }
+
+    #endregion
+
+    #region 熱負荷
+
+    /// <summary>室内機の熱負荷[kW]を取得する</summary>
+    /// <param name="oUnitIndex">室外機番号（1～4）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>室内機の熱負荷[kW]</returns>
+    public float GetHeatLoad(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
+    {
+      return ReadPresentValue<float>(bacAddress,
+        BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+        getInstanceNumber(oUnitIndex, iUnitIndex, member.HeatLoad),
+        out succeeded);
+    }
+
+    /// <summary>室外機の熱負荷[kW]を取得する</summary>
+    /// <param name="oUnitIndex">室外機番号（1～4）</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>室外機の熱負荷[kW]</returns>
+    public float GetHeatLoad(uint oUnitIndex, out bool succeeded)
+    {
+      return ReadPresentValue<float>(bacAddress,
+        BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+        getInstanceNumber(oUnitIndex, member.HeatLoad),
         out succeeded);
     }
 
