@@ -253,7 +253,7 @@ namespace Shizuku2
             Console.WriteLine(
               dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") +
               "  " + totalEnergyConsumption.ToString("F4") + " (" + instantaneousEnergyConsumption.ToString("F4") + ")" +
-              "  " + averagedDissatisfactionRate.ToString("F4") + " (" + 
+              "  " + averagedDissatisfactionRate.ToString("F4") + " (" +
               dissatisfactionRate_thermal.ToString("F4") + " , " +
               dissatisfactionRate_draft.ToString("F4") + " , " +
               dissatisfactionRate_vTempDif.ToString("F4") + " , " +

@@ -27,7 +27,7 @@ namespace CaseStudyProcessor
 
     private static void execOne(string file)
     {
-      File.Copy(file, "scheule.xlsx", true);
+      File.Copy(file, "schedule.xlsx", true);
 
       try
       {
@@ -49,14 +49,16 @@ namespace CaseStudyProcessor
 
       while (true)
       {
-        if (procS != null && !procS.HasExited)
+        if (procS != null && procS.HasExited)
         {
           Console.WriteLine("END");
 
           string fName = file.Substring(file.LastIndexOf('\\') + 1);
-          string dirName = fName.Remove(fName.Length - 5, 5);
+          string dirName = "data_" + fName.Remove(fName.Length - 5, 5);
 
-          Directory.Move("data", "data_" + dirName);
+          if (Directory.Exists(dirName))
+            Directory.Delete(dirName, true);
+          Directory.Move("data", dirName);
           return;
         }
       }
@@ -104,16 +106,18 @@ namespace CaseStudyProcessor
       //計算終了
       else if (e.Data.StartsWith("Emulation finished. Press any key to exit."))
       {
-        procS.StandardInput.Write((char)ConsoleKey.Enter);
+        //procS.StandardInput.Write((char)ConsoleKey.Enter);
         //ExcelControllerを閉じる
         if (procE != null && !procE.HasExited) procE.Kill();
+        if (procS != null && !procS.HasExited) procS.Kill();
       }
       //エラー終了
       else if (e.Data.StartsWith("Press any key to exit."))
       {
-        procS.StandardInput.Write((char)ConsoleKey.Enter);
+        //procS.StandardInput.Write((char)ConsoleKey.Enter);
         //ExcelControllerを閉じる
         if (procE != null && !procE.HasExited) procE.Kill();
+        if (procS != null && !procS.HasExited) procS.Kill();
       }
     }
 

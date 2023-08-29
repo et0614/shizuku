@@ -155,7 +155,8 @@ namespace Shizuku.Models
       //コントローラ操作の判定
       for (int i = 0; i < Zones.Length; i++)
       {
-        ExVRFSystem vrf = vrfs[0].HasZone(Zones[i]) ? vrfs[0] : vrfs[1];
+        bool isVRF1 = vrfs[0].HasZone(Zones[i]);
+        ExVRFSystem vrf = isVRF1 ? vrfs[0] : vrfs[1];
         bool controllable = vrf.ControlPermited(Zones[i]);
         int upDown = 0;
         for (int j = 0; j < znOccupants[i].Length; j++)
@@ -175,10 +176,11 @@ namespace Shizuku.Models
         //制御が許可されている場合
         if (controllable)
         {
+          int bf = isVRF1 ? 0 : vrfs[0].VRFSystem.IndoorUnitNumber;
           //制御の向きは多数決
           int delta = Math.Sign(upDown);
-          vrf.SetSetpoint(vrf.GetSetpoint(i, true) + delta, i, true); //冷却
-          vrf.SetSetpoint(vrf.GetSetpoint(i, false) + delta, i, false); //加熱
+          vrf.SetSetpoint(vrf.GetSetpoint(i - bf, true) + delta, i - bf, true); //冷却
+          vrf.SetSetpoint(vrf.GetSetpoint(i - bf, false) + delta, i - bf, false); //加熱
         }
       }
     }
