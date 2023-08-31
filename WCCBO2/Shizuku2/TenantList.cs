@@ -188,8 +188,9 @@ namespace Shizuku.Models
             if (
               oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.SlightlyCool ||
               oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cool ||
-              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cold)
-              occCold++; //寒い側申告の人数を数える
+              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cold ||
+              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Neutral)
+              occCold++; //中立から寒い側申告の人数を数える
             aveDissatisfaction_thermal += oc.OCModel.UncomfortableProbability;
           }
         }

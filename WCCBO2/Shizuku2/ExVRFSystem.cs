@@ -1,6 +1,5 @@
 ﻿using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.ThermalLoad;
-using Shizuku.Models;
 
 namespace Shizuku2
 {
@@ -9,6 +8,12 @@ namespace Shizuku2
   {
 
     #region 定数
+
+    /// <summary>基準風速[m/s]</summary>
+    public const double RATED_VELOCITY = 3.5;
+
+    /// <summary>基準風量[kg/s]</summary>
+    public const double RATED_AIRFLOW = 960d / 3600 * 1.2;
 
     /// <summary>制御が変更できる時間間隔[sec]</summary>
     private const int CONTROL_INTERVAL = 300;
@@ -30,6 +35,17 @@ namespace Shizuku2
       ShutOff
     }
 
+    /// <summary>ファン風量</summary>
+    public enum FanSpeed
+    {
+      /// <summary>弱</summary>
+      Low,
+      /// <summary>中</summary>
+      Middle,
+      /// <summary>強</summary>
+      High
+    }
+
     #endregion
 
     #region プロパティ・インスタンス変数
@@ -40,6 +56,8 @@ namespace Shizuku2
     public VRFSystem VRFSystem { get; private set; }
 
     public Mode[] IndoorUnitModes { get; private set; }
+
+    public FanSpeed[] FanSpeeds { get; private set; }
 
     /// <summary>温度設定値の操作を許可するか否か</summary>
     public bool[] PermitSPControl { get; private set; }
@@ -57,9 +75,6 @@ namespace Shizuku2
     /// <summary>噴流による不満足者率[-]を取得する</summary>
     public double DissatisfiedRateByJet { get; private set; }
 
-    /// <summary>前回の更新日時</summary>
-    private DateTime lastUpdate;
-
     /// <summary>次の制御可能時点</summary>
     private DateTime[] nextControllerbleTime;
 
@@ -76,12 +91,12 @@ namespace Shizuku2
     /// <param name="lowerZones">給気対象のゾーン（下部）</param>
     public ExVRFSystem(DateTime now, VRFSystem vrfSystem, ImmutableZone[] lowerZones)
     {
-      lastUpdate = now;
       VRFSystem = vrfSystem;
       this.lowerZones = lowerZones;
 
       int iuNum = VRFSystem.IndoorUnitNumber;
       IndoorUnitModes = new Mode[iuNum];
+      FanSpeeds = new FanSpeed[iuNum];
       spC = new double[iuNum];
       spH = new double[iuNum];
       Direction = new double[iuNum];
@@ -92,6 +107,7 @@ namespace Shizuku2
       for (int i = 0; i < iuNum; i++)
       {
         IndoorUnitModes[i] = Mode.ShutOff;
+        FanSpeeds[i] = FanSpeed.High;
         spC[i] = 25;
         spH[i] = 20;
         Direction[i] = 0;
@@ -120,6 +136,9 @@ namespace Shizuku2
           break;
         }
       }
+
+      //ファン風量を更新
+      updateAirFlowRate();
 
       //運転モードを設定
       for (int i = 0; i < IndoorUnitModes.Length; i++)
@@ -192,7 +211,6 @@ namespace Shizuku2
         VRFSystem.CompressorElectricity +
         VRFSystem.OutdoorUnitFanElectricity +
         VRFSystem.IndoorUnitFanElectricity;
-      lastUpdate = now;
     }
 
     /// <summary>下部空間へ吹き出す流量を更新する</summary>
@@ -202,9 +220,6 @@ namespace Shizuku2
     public void UpdateBlowRate
       (int iuntIndex, double lowerZoneTemperature, double upperZoneTemperature)
     {
-      //最大風速[m/s]
-      const double MAX_VELOCITY = 3.0;
-
       //室内機特定
       ImmutableVRFUnit unt = VRFSystem.IndoorUnits[iuntIndex];
 
@@ -221,7 +236,7 @@ namespace Shizuku2
       PrimaryFlow.CalcBlowDown(
         unt.OutletAirTemperature,
         ambT,
-        MAX_VELOCITY * (unt.AirFlowRate / unt.NominalAirFlowRate), dTdY, Direction[iuntIndex],
+        RATED_VELOCITY * (unt.AirFlowRate / RATED_AIRFLOW), dTdY, Direction[iuntIndex],
         out double hRate, out double velAtNeck, out double tempAtNeck, out double jetLengthAtNeck);
       DissatisfiedRateByJet = PrimaryFlow.GetDraftRate(tempAtNeck, velAtNeck, ambT, jetLengthAtNeck);
       LowZoneBlowRate[iuntIndex] = hRate;
@@ -283,6 +298,18 @@ namespace Shizuku2
     public bool HasZone(ImmutableZone zn)
     {
       return lowerZones.Contains(zn);
+    }
+
+    private void updateAirFlowRate()
+    {
+      for(int i=0;i<FanSpeeds.Length;i++)
+      {
+        double rf = 
+          FanSpeeds[i] == FanSpeed.Low ? 0.50 : 
+          FanSpeeds[i] == FanSpeed.Middle ? 0.75 : 1.00;
+        VRFSystem.SetIndoorUnitAirFlowRate
+          (i, rf * VRFSystem.IndoorUnits[i].NominalAirFlowRate);
+      }
     }
 
   }

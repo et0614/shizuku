@@ -322,11 +322,9 @@ namespace Shizuku2.BACnet.Original
             uint fanSpdStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             if (fanSpdSet != fanSpdStt)
               ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = fanSpdSet;
-
-            double fRate =
-              fanSpdSet == 1 ? 0.3 :
-              fanSpdSet == 2 ? 0.7 : 1.0; //Low, Midddle, Highの係数は適当
-            vrf.VRFSystem.SetIndoorUnitAirFlowRate(j, vrf.VRFSystem.IndoorUnits[j].NominalAirFlowRate * fRate);
+            vrf.FanSpeeds[j] =
+              fanSpdSet == 1 ? ExVRFSystem.FanSpeed.Low :
+              fanSpdSet == 2 ? ExVRFSystem.FanSpeed.Middle : ExVRFSystem.FanSpeed.High;
 
             //風向***********************
             //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
