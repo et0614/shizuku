@@ -118,6 +118,17 @@ namespace Shizuku2
 
     #endregion
 
+    public void UpdateState()
+    {
+      VRFSystem.UpdateState(false);
+
+      //消費電力[kW]を更新
+      Electricity =
+        VRFSystem.CompressorElectricity +
+        VRFSystem.OutdoorUnitFanElectricity +
+        VRFSystem.IndoorUnitFanElectricity;
+    }
+
     /// <summary>受信した制御信号にもとづいてVRFの制御を更新する</summary>
     public void UpdateControl(DateTime now)
     {
@@ -205,12 +216,6 @@ namespace Shizuku2
           }
         }
       }
-
-      //消費電力[kW]を更新
-      Electricity =
-        VRFSystem.CompressorElectricity +
-        VRFSystem.OutdoorUnitFanElectricity +
-        VRFSystem.IndoorUnitFanElectricity;
     }
 
     /// <summary>下部空間へ吹き出す流量を更新する</summary>

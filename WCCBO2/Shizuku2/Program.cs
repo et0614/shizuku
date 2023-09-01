@@ -352,7 +352,7 @@ namespace Shizuku2
                 vrfs[i].VRFSystem.OutdoorAirHumidityRatio = 0.001 * hmd;
                 //制御と状態の更新
                 vrfs[i].UpdateControl(building.CurrentDateTime);
-                vrfs[i].VRFSystem.UpdateState(false);
+                vrfs[i].UpdateState();
               }
               updateSupplyAir();
             }
