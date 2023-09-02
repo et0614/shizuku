@@ -169,8 +169,8 @@ namespace Shizuku2
       double[] yy1 = new double[5];
 
       bool dyMode = false;
-      double um1 = 0; //1時点前のu
-      double tm1 = 0; //1時点前のt
+      double um1 = velocity; //1時点前のu
+      double tm1 = supplyTemperature; //1時点前のt
       double sm1 = 0; //1時点前のs
       double ym1 = 0; //1時点前のy
       double ym2 = 0; //2時点前のy
