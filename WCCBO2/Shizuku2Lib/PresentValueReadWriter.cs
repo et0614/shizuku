@@ -182,7 +182,6 @@ namespace Shizuku2.BACnet
     /// <param name="trialIntervalMSec">試行間の時間間隔[msec]</param>
     private void updateDateTime(int maxTrial, int trialIntervalMSec)
     {
-      Console.WriteLine("COUNT:" + num++);
       BacnetAddress bacAddDT = new BacnetAddress(BacnetAddressTypes.IP, dtCtrlIP + ":" + DATETIMECONTROLLER_EXCLUSIVE_PORT.ToString());
 
       //加速度を取得
