@@ -591,7 +591,7 @@ namespace Shizuku2
       }
 
       //ここから実際の値
-      string dtHeader = building.CurrentDateTime.ToString("MM/dd") + "," + building.CurrentDateTime.ToString("HH:mm:ss");
+      string dtHeader = building.CurrentDateTime.ToString("yyyy/MM/dd") + "," + building.CurrentDateTime.ToString("HH:mm:ss");
 
       //一般の情報
       swGen.Write(dtHeader);

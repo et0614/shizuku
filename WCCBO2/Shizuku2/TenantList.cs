@@ -207,8 +207,8 @@ namespace Shizuku.Models
           double tmpL = bModel.MultiRoom[i].Zones[j].Temperature;
           double tmpU = bModel.MultiRoom[i].Zones[j + 9].Temperature;
           double dT = Math.Max(0, tmpU - tmpL) / 1.35 * 1.0; //上下空間の距離をもとに足下と頭の高さの温度差を推定
-          double pd = 1.0 / (1 + Math.Exp(5.76 - 0.856 * dT));
-          aveDissatisfaction_vTempDif += pd * tenants[i].GetOccupants(bModel.MultiRoom[i].Zones[j]).Length;
+          double pd = Math.Max(0, Math.Min(1, 1.0 / (1 + Math.Exp(5.76 - 0.856 * dT))));
+          aveDissatisfaction_vTempDif += pd * tenants[i].GetStayWorkerNumber(bModel.MultiRoom[i].Zones[j]);
         }        
       }
 

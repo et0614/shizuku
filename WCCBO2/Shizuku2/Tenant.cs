@@ -283,6 +283,17 @@ namespace Shizuku.Models
       return znOccupants[Array.IndexOf(Zones, zone)];
     }
 
+    /// <summary>ゾーンに滞在している執務者の数を取得する</summary>
+    /// <param name="zone">ゾーン</param>
+    /// <returns>ゾーンに滞在している執務者の数</returns>
+    public uint GetStayWorkerNumber(ImmutableZone zone)
+    {
+      int ind = Array.IndexOf(Zones, zone);
+      if (ind == -1) return 0;
+
+      return znTenants[ind].StayWorkerNumber;
+    }
+
     #endregion
 
   }
