@@ -447,7 +447,7 @@ namespace Shizuku2
 
       localTemp = Math.Max(20, Math.Min(34, localTemp)); //ここ、ISO7730と違う
       turbulance = Math.Max(0.1, Math.Min(0.6, turbulance));
-      double drft = (34 - localTemp) * Math.Pow(localVelocity - 0.05, 0.62) * (0.37 * localVelocity * turbulance + 0.0314);
+      double drft = (34 - localTemp) * Math.Pow(localVelocity - 0.05, 0.62) * (0.37 * localVelocity * turbulance + 3.14) * 0.01;
       return Math.Max(0, Math.Min(1.0, drft));
     }
 
