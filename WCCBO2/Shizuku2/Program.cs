@@ -33,7 +33,7 @@ namespace Shizuku2
     private const double HMD_AFLOW = 0.036 * 260.0 * 1.2 / 3600;
 
     /// <summary>上下空間の噴流によらない空気循環[回/s]</summary>
-    private const double UPDOWN_VENT = 1.0 / 3600d;
+    private const double UPDOWN_VENT = 0.1 / 3600d;
 
     /// <summary>電力の一次エネルギー換算係数[GJ/kWh]</summary>
     private const double ELC_PRIM_RATE = 0.00976;
@@ -807,7 +807,8 @@ namespace Shizuku2
       double upTmp = unt.OutletAirTemperature;
       double upHmd = unt.OutletAirHumidityRatio;
       blendAir(ref upTmp, ref upHmd, upperBlow, ventDB, ventHmd, ventHigh);
-      building.SetSupplyAir(mrIndex, upZnIndex, upTmp, upHmd, upperBlow + ventHigh);
+      blendAir(ref upTmp, ref upHmd, upperBlow + ventHigh, znL.Temperature, znL.HumidityRatio, lowerBlow);
+      building.SetSupplyAir(mrIndex, upZnIndex, upTmp, upHmd, upperBlow + ventHigh + lowerBlow);
 
       //冬季は加湿運転判断
       double saTmp = unt.OutletAirTemperature;
@@ -831,10 +832,10 @@ namespace Shizuku2
       saFlow += ventLow; //換気給気分の風量を加算
       building.SetSupplyAir(mrIndex, lwZnIndex, saTmp, saHmd, saFlow);
 
-      //下部空間に吹き込まれた風量分は下部から上部へ移動する
+      //VRF吹き出しによらない換気
       double udVent = 1.2 * building.MultiRoom[mrIndex].Zones[lwZnIndex].FloorArea * 
         (BuildingMaker.U_ZONE_HEIGHT + BuildingMaker.L_ZONE_HEIGHT) * UPDOWN_VENT;
-      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, Math.Max(saFlow, udVent)); //これ、混ざる処理なので厳密には不正確。
+      building.SetCrossVentilation(mrIndex, lwZnIndex, upZnIndex, udVent);
     }
 
     /// <summary>空気を混合する</summary>
