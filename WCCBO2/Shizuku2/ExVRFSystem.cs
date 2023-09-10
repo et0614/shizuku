@@ -103,6 +103,7 @@ namespace Shizuku2
       LowZoneBlowRate = new double[iuNum];
       nextControllerbleTime = new DateTime[iuNum];
       PermitSPControl = new bool[iuNum];
+      DissatisfiedRateByJet = new double[iuNum];
 
       for (int i = 0; i < iuNum; i++)
       {
