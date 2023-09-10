@@ -73,7 +73,7 @@ namespace Shizuku2
     public double Electricity { get; private set; } = 0.0;
 
     /// <summary>噴流による不満足者率[-]を取得する</summary>
-    public double DissatisfiedRateByJet { get; private set; }
+    public double[] DissatisfiedRateByJet { get; private set; }
 
     /// <summary>次の制御可能時点</summary>
     private DateTime[] nextControllerbleTime;
@@ -231,7 +231,7 @@ namespace Shizuku2
       //停止時
       if (unt.CurrentMode == VRFUnit.Mode.ShutOff)
       {
-        DissatisfiedRateByJet = 0.0;
+        DissatisfiedRateByJet[iuntIndex] = 0.0;
         LowZoneBlowRate[iuntIndex] = 0.0;
         return;
       }
@@ -243,7 +243,7 @@ namespace Shizuku2
         ambT,
         RATED_VELOCITY * (unt.AirFlowRate / RATED_AIRFLOW), dTdY, Direction[iuntIndex],
         out double hRate, out double velAtNeck, out double tempAtNeck, out double jetLengthAtNeck);
-      DissatisfiedRateByJet = PrimaryFlow.GetDraftRate(tempAtNeck, velAtNeck, ambT, jetLengthAtNeck);
+      DissatisfiedRateByJet[iuntIndex] = PrimaryFlow.GetDraftRate(tempAtNeck, velAtNeck, ambT, jetLengthAtNeck);
       LowZoneBlowRate[iuntIndex] = hRate;
     }
 

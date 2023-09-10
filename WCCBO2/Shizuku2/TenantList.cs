@@ -176,28 +176,11 @@ namespace Shizuku.Models
       //執務者0なら計算しない
       if (stayNumber == 0) return;
 
+      //温冷感による不満
       for (int i = 0; i < tenants.Length; i++)
-      {
-        int occCold = 0;
-
-        //温冷感による不満
         foreach (Occupant oc in tenants[i].Occupants)
-        {
           if (oc.Worker.StayInOffice)
-          {
-            if (
-              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.SlightlyCool ||
-              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cool ||
-              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cold ||
-              oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Neutral)
-              occCold++; //中立から寒い側申告の人数を数える
             aveDissatisfaction_thermal += oc.OCModel.UncomfortableProbability;
-          }
-        }
-
-        //ドラフトによる不満
-        aveDissatisfaction_draft += occCold * (occCold / (double)tenants[i].Occupants.Length) * vrfs[i].DissatisfiedRateByJet;
-      }
 
       //上下温度分布による不満
       for (int i = 0; i < 2; i++)
@@ -210,6 +193,35 @@ namespace Shizuku.Models
           double pd = Math.Max(0, Math.Min(1, 1.0 / (1 + Math.Exp(5.76 - 0.856 * dT))));
           aveDissatisfaction_vTempDif += pd * tenants[i].GetStayWorkerNumber(bModel.MultiRoom[i].Zones[j]);
         }        
+      }
+
+      //ドラフトによる不満
+      for (int i = 0; i < tenants.Length; i++)
+      {
+        for (int j = 0; j < tenants[i].Zones.Length; j++)
+        {
+          int occCold = 0;
+          int ocStay = 0;
+          ImmutableOccupant[] ocs = tenants[i].GetOccupants(tenants[i].Zones[j]);
+          foreach (Occupant oc in ocs)
+          {
+            if (oc.Worker.StayInOffice)
+            {
+              ocStay++;
+              if (
+                oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.SlightlyCool ||
+                oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cool ||
+                oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Cold ||
+                oc.OCModel.Vote == Popolo.HumanBody.OccupantModel_Langevin.ASHRAE_Vote.Neutral)
+                occCold++; //中立から寒い側申告の人数を数える
+            }
+          }
+          int oUnt;
+          int iUnt = j < 5 ? j : j - 5;
+          if (i == 0) oUnt = j < 5 ? 0 : 1;
+          else oUnt = j < 5 ? 2 : 3;
+          aveDissatisfaction_draft += ocStay * (occCold / (double)ocs.Length) * vrfs[oUnt].DissatisfiedRateByJet[iUnt];
+        }
       }
 
       aveDissatisfaction_thermal /= stayNumber;
