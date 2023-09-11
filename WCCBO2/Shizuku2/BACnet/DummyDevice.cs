@@ -23,7 +23,7 @@ namespace Shizuku2.BACnet
     #region インスタンス変数・プロパティ
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    public BACnetCommunicator Communicator;
+    private BACnetCommunicator communicator;
 
     #endregion
 
@@ -53,7 +53,7 @@ namespace Shizuku2.BACnet
     /// <summary>BACnet通信テストのためのダミーDevice</summary>
     public DummyDevice()
     {
-      Communicator = new BACnetCommunicator
+      communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT, true);
     }
 
@@ -134,20 +134,49 @@ namespace Shizuku2.BACnet
 
     #endregion
 
+    #region インスタンスメソッド
+
+    public void OutputBACnetObjectInfo
+      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
+    {
+      List<string> tLst = new List<string>();
+      List<uint> iLst = new List<uint>();
+      List<string> nLst = new List<string>();
+      List<string> dLst = new List<string>();
+      List<string> vLst = new List<string>();
+      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
+      {
+        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
+        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
+        nLst.Add(bObj.PROP_OBJECT_NAME);
+        dLst.Add(bObj.PROP_DESCRIPTION);
+        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
+        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
+        else vLst.Add(null);
+      }
+      types = tLst.ToArray();
+      instances = iLst.ToArray();
+      names = nLst.ToArray();
+      descriptions = dLst.ToArray();
+      values = vLst.ToArray();
+    }
+
+    #endregion
+
     #region IBACnetController実装
 
     public void ApplyManipulatedVariables(DateTime dTime) { }
 
     public void EndService()
     {
-      Communicator.EndService();
+      communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime) { }
 
     public void StartService()
     {
-      Communicator.StartService();
+      communicator.StartService();
     }
 
     #endregion

@@ -51,7 +51,7 @@ namespace Shizuku2.BACnet
     private readonly VentilationSystem ventSystem;
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    public BACnetCommunicator Communicator;
+    private BACnetCommunicator communicator;
 
     #endregion
 
@@ -61,7 +61,7 @@ namespace Shizuku2.BACnet
     {
       this.ventSystem = ventSystem;
 
-      Communicator = new BACnetCommunicator
+      communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
     }
 
@@ -115,6 +115,35 @@ namespace Shizuku2.BACnet
 
     #endregion
 
+    #region インスタンスメソッド
+
+    public void OutputBACnetObjectInfo
+      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
+    {
+      List<string> tLst = new List<string>();
+      List<uint> iLst = new List<uint>();
+      List<string> nLst = new List<string>();
+      List<string> dLst = new List<string>();
+      List<string> vLst = new List<string>();
+      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
+      {
+        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
+        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
+        nLst.Add(bObj.PROP_OBJECT_NAME);
+        dLst.Add(bObj.PROP_DESCRIPTION);
+        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
+        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
+        else vLst.Add(null);
+      }
+      types = tLst.ToArray();
+      instances = iLst.ToArray();
+      names = nLst.ToArray();
+      descriptions = dLst.ToArray();
+      values = vLst.ToArray();
+    }
+
+    #endregion
+
     #region IBACnetController実装
 
     public void ApplyManipulatedVariables(DateTime dTime)
@@ -129,13 +158,13 @@ namespace Shizuku2.BACnet
 
           //On/off******************
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.HexOnOff));
-          bool isOn = BACnetCommunicator.ConvertToBool(((BinaryOutput)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+          bool isOn = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
           if (!isOn)
             ventSystem.SetFanSpeed((uint)ouIndx, (uint)iuIndx, VentilationSystem.FanSpeed.Off);
 
           //バイパス制御******************
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.HexBypassEnabled));
-          bool bpEnabled = BACnetCommunicator.ConvertToBool(((BinaryOutput)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+          bool bpEnabled = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
           if (bpEnabled)
             ventSystem.EnableBypassControl((uint)ouIndx, (uint)iuIndx);
           else
@@ -146,7 +175,7 @@ namespace Shizuku2.BACnet
           if (isOn) //Offの場合にはそもそも有効ではない
           {
             boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.HexFanSpeed));
-            uint fanSpeed = ((MultiStateOutput)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            uint fanSpeed = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
             switch (fanSpeed)
             {
               case 1:
@@ -166,7 +195,7 @@ namespace Shizuku2.BACnet
 
     public void EndService()
     {
-      Communicator.EndService();
+      communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime)
@@ -175,16 +204,16 @@ namespace Shizuku2.BACnet
 
       //南側テナントCO2濃度
       boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.SouthCO2Level);
-      ((AnalogInput<uint>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (uint)ventSystem.CO2Level_SouthTenant;
+      ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (uint)ventSystem.CO2Level_SouthTenant;
 
       //北側テナントCO2濃度
       boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NorthCO2Level);
-      ((AnalogInput<uint>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (uint)ventSystem.CO2Level_NorthTenant;
+      ((AnalogInput<uint>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (uint)ventSystem.CO2Level_NorthTenant;
     }
 
     public void StartService()
     {
-      Communicator.StartService();
+      communicator.StartService();
     }
 
     #endregion

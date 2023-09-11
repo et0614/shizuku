@@ -48,7 +48,7 @@ namespace Shizuku2.BACnet
     #region インスタンス変数・プロパティ
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    public BACnetCommunicator Communicator;
+    private BACnetCommunicator communicator;
 
     private ImmutableTenantList tenants;
 
@@ -60,7 +60,7 @@ namespace Shizuku2.BACnet
     {
       this.tenants = tenants;
 
-      Communicator = new BACnetCommunicator
+      communicator = new BACnetCommunicator
         (makeDeviceObject(), EXCLUSIVE_PORT);
     }
 
@@ -75,7 +75,7 @@ namespace Shizuku2.BACnet
         dObject.AddBacnetObject(new AnalogInput<int>
           (10000 * (i + 1) + (int)MemberNumber.OccupantNumber,
           "Occupant number",
-          "Number of occupants stay in office.", 0, BacnetUnitsId.UNITS_NO_UNITS));
+          "Number of occupants stay in office (tenant-" + (i + 1) + ").", 0, BacnetUnitsId.UNITS_NO_UNITS));
 
         ImmutableOccupant[] ocs = tenants.Tenants[i].Occupants;
         for (int j = 0; j < ocs.Length; j++)
@@ -86,24 +86,53 @@ namespace Shizuku2.BACnet
           //在不在
           dObject.AddBacnetObject(new BinaryInput
             (baseNum + (int)MemberNumber.Availability,
-            "Availability of occupant-" + (j + 1) + name,
-            "Availability of occupant-" + (j + 1) + name, false));
+            "Availability_OC_" + (j + 1),
+            "Availability of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name, false));
 
           //温冷感
           dObject.AddBacnetObject(new AnalogInput<int>
             (baseNum + (int)MemberNumber.ThermalSensation,
-            "Thermal sensation of occupant-" + (j + 1) + name,
-            "Thermal sensation of occupant-" + (j + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
+            "T_Sensation_OC_" + (j + 1),
+            "Thermal sensation of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
 
           //着衣量
           dObject.AddBacnetObject(new AnalogInput<float>
             (baseNum + (int)MemberNumber.ClothingIndex,
-            "Clothing index of occupant-" + (j + 1) + name,
-            "Clothing index of occupant-" + (j + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
+            "Clo_OC_" + (j + 1),
+            "Clothing index of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
         }
       }
 
       return dObject;
+    }
+
+    #endregion
+
+    #region インスタンスメソッド
+
+    public void OutputBACnetObjectInfo
+      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
+    {
+      List<string> tLst = new List<string>();
+      List<uint> iLst = new List<uint>();
+      List<string> nLst = new List<string>();
+      List<string> dLst = new List<string>();
+      List<string> vLst = new List<string>();
+      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
+      {
+        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
+        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
+        nLst.Add(bObj.PROP_OBJECT_NAME);
+        dLst.Add(bObj.PROP_DESCRIPTION);
+        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
+        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
+        else vLst.Add(null);
+      }
+      types = tLst.ToArray();
+      instances = iLst.ToArray();
+      names = nLst.ToArray();
+      descriptions = dLst.ToArray();
+      values = vLst.ToArray();
     }
 
     #endregion
@@ -115,7 +144,7 @@ namespace Shizuku2.BACnet
 
     public void EndService()
     {
-      Communicator.EndService();
+      communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime)
@@ -127,7 +156,7 @@ namespace Shizuku2.BACnet
 
         //執務者の数
         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber));
-        ((AnalogInput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (int)tenants.Tenants[i].StayWorkerNumber;
+        ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (int)tenants.Tenants[i].StayWorkerNumber;
 
         ImmutableOccupant[] ocs = tenants.Tenants[i].Occupants;
         for (int j = 0; j < ocs.Length; j++)
@@ -136,15 +165,15 @@ namespace Shizuku2.BACnet
 
           //在不在
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(baseNum + MemberNumber.Availability));
-          ((BinaryInput)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = ocs[j].Worker.StayInOffice ? 1u : 0u;
+          ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = ocs[j].Worker.StayInOffice ? 1u : 0u;
 
           //温冷感
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation));
-          ((AnalogInput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = convertVote(ocs[j].OCModel.Vote);
+          ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = convertVote(ocs[j].OCModel.Vote);
 
           //温冷感
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
-          ((AnalogInput<float>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ocs[j].CloValue;
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ocs[j].CloValue;
         }
       }
     }
@@ -174,7 +203,7 @@ namespace Shizuku2.BACnet
 
     public void StartService()
     {
-      Communicator.StartService();
+      communicator.StartService();
     }
 
     #endregion

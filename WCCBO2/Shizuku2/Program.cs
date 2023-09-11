@@ -42,13 +42,13 @@ namespace Shizuku2
     private const int V_MAJOR = 0;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 4;
+    private const int V_MINOR = 5;
 
     /// <summary>バージョン（リビジョン）</summary>
     private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.08.26";
+    private const string V_DATE = "2023.09.11";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -125,6 +125,9 @@ namespace Shizuku2
     /// <summary>VRFスケジューラ</summary>
     private static IBACnetController? vrfSchedl;
 
+    /// <summary>ダミーデバイス</summary>
+    private static DummyDevice dummyDv = new DummyDevice(); //ダミーデバイス
+
     #endregion
 
     #endregion
@@ -152,7 +155,8 @@ namespace Shizuku2
       ventSystem = new VentilationSystem(building);
 
       //気象データを生成
-      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["rseed3"],
+      int wSd = (initSettings["use_rsw"] == 1) ? initSettings["rseed_w"] : DateTime.Now.Millisecond;
+      WeatherLoader wetLoader = new WeatherLoader((uint)wSd,
         initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
         initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
         initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
@@ -168,8 +172,11 @@ namespace Shizuku2
         new Sun(26.2123, 127.6791, 135);
 
       //テナントを生成//生成と行動で乱数シードを分ける
-      tenants = new TenantList((uint)initSettings["rseed1"], building, vrfs);
-      tenants.ResetRandomSeed((uint)initSettings["rseed2"]);
+      tenants = new TenantList((uint)initSettings["rseed_oprm"], building, vrfs);
+      if (initSettings["use_rso"] == 1)
+        tenants.ResetRandomSeed((uint)initSettings["rseed_obhv"]);
+      else
+        tenants.ResetRandomSeed((uint)DateTime.Now.Millisecond);
       tenants.OutputOccupantsInfo("occupants.csv");
 
       //日時コントローラを用意して助走計算
@@ -188,8 +195,8 @@ namespace Shizuku2
       switch (initSettings["controller"])
       {
         case 0:
-          vrfCtrl = new BACnet.Original.VRFController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new BACnet.Original.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          vrfCtrl = new VRFController(vrfs);
+          if (initSettings["scheduller"] == 1) vrfSchedl = new VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         case 1:
           vrfCtrl = new BACnet.Daikin.VRFController(vrfs);
@@ -207,7 +214,6 @@ namespace Shizuku2
       envMntr = new EnvironmentMonitor(building, vrfs); //外気モニタ
       ocMntr = new OccupantMonitor(tenants); //執務者モニタ
       ventCtrl = new VentilationController(ventSystem); //換気システムコントローラ
-      DummyDevice dummyDv = new DummyDevice(); //ダミーデバイス
 
       //BACnet Device起動
       dtCtrl.StartService();
@@ -216,6 +222,8 @@ namespace Shizuku2
       ocMntr.StartService();
       ventCtrl.StartService();
       dummyDv.StartService();
+      //BACnet Deviceの情報を書き出す
+      saveBACnetDeviceInfo();
 
       //BACnet controllerの登録を待つ
       Console.WriteLine("Waiting for BACnet controller registration.");
@@ -224,10 +232,7 @@ namespace Shizuku2
       vrfSchedl?.StartService();
       int key;
       while ((key = Console.Read()) != -1)
-      {
         if ((char)key == (char)ConsoleKey.Enter) break;
-      }
-      //while (Console.ReadKey().Key != ConsoleKey.Enter);
 
       //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
@@ -990,6 +995,45 @@ namespace Shizuku2
       {
         fWriter.Write(oBytes.ToArray());
       }
+    }
+
+    private static void saveBACnetDeviceInfo()
+    {
+      Console.Write("Saving BACnet Object Information...");
+      using (StreamWriter sWriter = new StreamWriter("BACnetObjectInfo.csv"))
+      {
+        uint[] instances;
+        string[] types, names, descriptions, values;
+
+        sWriter.WriteLine("Instance number,Type,Name,Description,Initial value");
+
+        sWriter.WriteLine("Dummy Device");
+        dummyDv.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        for (int i = 0; i < instances.Length; i++)
+          sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
+
+        sWriter.WriteLine("DateTime Controller");
+        dtCtrl.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        for (int i = 0; i < instances.Length; i++)
+          sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
+
+        sWriter.WriteLine("VRF Controller");
+        ((VRFController)vrfCtrl).OutputBACnetObjectInfo
+          (out instances, out types, out names, out descriptions, out values);
+        for (int i = 0; i < instances.Length; i++)
+          sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
+
+        sWriter.WriteLine("Environment Monitor");
+        envMntr.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        for (int i = 0; i < instances.Length; i++)
+          sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
+
+        sWriter.WriteLine("Occupant Monitor");
+        ocMntr.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        for (int i = 0; i < instances.Length; i++)
+          sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
+      }
+      Console.WriteLine("done.");
     }
 
     #endregion

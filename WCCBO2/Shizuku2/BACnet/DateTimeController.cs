@@ -124,6 +124,8 @@ namespace Shizuku2.BACnet
 
     #endregion
 
+    #region インスタンスメソッド
+
     /// <summary>加速度を考慮しながら計算時刻を進める</summary>
     /// <returns>計算を進めるべきであればTrue</returns>
     public bool TryProceed(out bool isDelayed)
@@ -138,6 +140,32 @@ namespace Shizuku2.BACnet
       }
       else return false;
     }
+    public void OutputBACnetObjectInfo
+      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
+    {
+      List<string> tLst = new List<string>();
+      List<uint> iLst = new List<uint>();
+      List<string> nLst = new List<string>();
+      List<string> dLst = new List<string>();
+      List<string> vLst = new List<string>();
+      foreach (BaCSharpObject bObj in Communicator.BACnetDevice.ObjectsList)
+      {
+        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
+        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
+        nLst.Add(bObj.PROP_OBJECT_NAME);
+        dLst.Add(bObj.PROP_DESCRIPTION);
+        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
+        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
+        else vLst.Add(null);
+      }
+      types = tLst.ToArray();
+      instances = iLst.ToArray();
+      names = nLst.ToArray();
+      descriptions = dLst.ToArray();
+      values = vLst.ToArray();
+    }
+
+    #endregion
 
     #region IBACnetController実装
 
