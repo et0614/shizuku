@@ -103,7 +103,22 @@ namespace Shizuku2.BACnet
     public T? ReadPresentValue<T>(BacnetAddress bacAddress, BacnetObjectTypes boType, uint instanceNumber, out bool succeeded)
     {
       BacnetObjectId boID = new BacnetObjectId(boType, instanceNumber);
-      if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+
+      //日付型の場合には処理が特殊
+      if (typeof(T) == typeof(DateTime) && boType == BacnetObjectTypes.OBJECT_DATETIME_VALUE)
+      {
+        if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+        {
+          succeeded = true;
+          DateTime dt1 = (DateTime)val[0].Value;
+          DateTime dt2 = (DateTime)val[1].Value;
+          return (T)(object)(new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second));
+        }
+        succeeded = false;
+        return default;
+      }
+      //その他の型
+      else if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (T)val[0].Value;

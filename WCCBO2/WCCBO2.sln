@@ -17,7 +17,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExcelController", "ExcelCon
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shizuku2Lib", "Shizuku2Lib\Shizuku2Lib.csproj", "{28349F19-DAAC-4989-8F16-BC4CA84B9D49}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaseStudyProcessor", "CaseStudyProcessor\CaseStudyProcessor.csproj", "{A422AE28-3033-4045-80B1-0C1589B7B533}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CaseStudyProcessor", "CaseStudyProcessor\CaseStudyProcessor.csproj", "{A422AE28-3033-4045-80B1-0C1589B7B533}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DummyDeviceController", "DummyDeviceController\DummyDeviceController.csproj", "{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +59,10 @@ Global
 		{A422AE28-3033-4045-80B1-0C1589B7B533}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A422AE28-3033-4045-80B1-0C1589B7B533}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A422AE28-3033-4045-80B1-0C1589B7B533}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

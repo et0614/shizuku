@@ -30,7 +30,6 @@ namespace Shizuku2
     {
       //傾斜面の作成(四方位)//////////////
       Incline incN = new Incline(Incline.Orientation.N, 0.5 * Math.PI);
-      Incline incE = new Incline(Incline.Orientation.E, 0.5 * Math.PI);
       Incline incW = new Incline(Incline.Orientation.W, 0.5 * Math.PI);
       Incline incS = new Incline(Incline.Orientation.S, 0.5 * Math.PI);
 

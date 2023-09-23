@@ -16,6 +16,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="schedule_samples.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="schedule.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
