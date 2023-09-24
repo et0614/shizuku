@@ -73,7 +73,7 @@ namespace Shizuku2.BACnet
     /// <param name="id">通信に使うBACnet DeviceのID</param>
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
     /// <param name="description">通信に使うBACnet Deviceの説明</param>
-    /// <param name="ipAddress">WeatherモニタのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+    /// <param name="ipAddress">OccupantモニタのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
     public OccupantCommunicator(uint id, string name, string ipAddress = "127.0.0.1")
       : base(id, name)
     {

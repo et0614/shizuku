@@ -94,7 +94,6 @@ namespace DummyDeviceController
     static void writeProperty(string objType, string value)
     {
       bool suc = false;
-      object result = "";
       Console.Write("Writing present value... ");
       switch (objType)
       {
@@ -132,10 +131,10 @@ namespace DummyDeviceController
           communicator.WriteMultiStateOutput(uint.Parse(value), out suc);
           break;
         case "mi":
-          //Multi State inputは書き込みできない
+          //MultiState inputは書き込みできない
           break;
         case "dt":
-          //result = communicator.ReadDateTime(out suc);
+          //DateTimeは書き込みできない
           break;
         default:
           Console.WriteLine("Undefined object type.");
