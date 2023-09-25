@@ -28,7 +28,7 @@ class EnvironmentCommunicator():
 
 # endregion
 
-    def __init__(self, id, name='envComm', target_ip='127.0.0.1', time_out_sec=0.5):
+    def __init__(self, id, name='envComm', target_ip='127.0.0.1', time_out_sec=1.0):
         """インスタンスを初期化する
 
         Args:

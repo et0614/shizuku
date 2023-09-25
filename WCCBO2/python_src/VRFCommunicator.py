@@ -90,7 +90,7 @@ class VRFCommunicator():
 
 # endregion
 
-    def __init__(self, id, name='vrfComm', target_ip='127.0.0.1', time_out_sec=0.5):
+    def __init__(self, id, name='vrfComm', target_ip='127.0.0.1', time_out_sec=1.0):
         """インスタンスを初期化する
 
         Args:
@@ -262,7 +262,7 @@ class VRFCommunicator():
         Args:
             oUnitIndex (int): 室外機番号（1～4）
             iUnitIndex (int): 室内機番号（1～5）
-            mode (FanSpeed): ファン風量
+            speed (FanSpeed): ファン風量
             comAsync(bool):非同期で命令するか否か
         Returns:
             bool:命令が成功したか否か

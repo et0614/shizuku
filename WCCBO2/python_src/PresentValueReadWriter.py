@@ -62,7 +62,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         # idが0 (47808)以外だとWhoisが効かない。修正必要。
         # self.who_is()
 
-        # 具体的な処理はわからんが、これでiocb.waite()が高速化する
+        # 具体的な処理はわからんが、これでiocb.wait()が高速化する
         # おそらく通信処理の合間に待機する処理が有効になるのだろう
         enable_sleeping()
 
