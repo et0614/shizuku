@@ -8,7 +8,7 @@ class VentilationSystemCommunicator():
 
 # region 定数宣言
 
-    VENTCTRL_DEVICE_ID = 5
+    VENTCTRL_DEVICE_ID = 6
 
     VENTCTRL_EXCLUSIVE_PORT = 0xBAC0 + VENTCTRL_DEVICE_ID
 
@@ -40,7 +40,7 @@ class VentilationSystemCommunicator():
 
 # region コンストラクタ他
 
-    def __init__(self, id, name='envComm', target_ip='127.0.0.1', time_out_sec=1.0):
+    def __init__(self, id, name='vntComm', target_ip='127.0.0.1', time_out_sec=1.0):
         """インスタンスを初期化する
 
         Args:
@@ -80,7 +80,7 @@ class VentilationSystemCommunicator():
             list: 読み取り成功の真偽,南側テナントのCO2濃度[ppm]
         """        
         inst = 'analogInput:' + str(self._member.SouthCO2Level.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.comm.read_present_value(self.target_ip,inst,Unsigned)
     
 
     def get_north_tenant_CO2_level(self):
@@ -89,7 +89,7 @@ class VentilationSystemCommunicator():
             list: 読み取り成功の真偽,北側テナントのCO2濃度[ppm]
         """        
         inst = 'analogInput:' + str(self._member.NorthCO2Level.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.comm.read_present_value(self.target_ip,inst,Unsigned)
 
 # endregion    
 
@@ -189,7 +189,7 @@ class VentilationSystemCommunicator():
         Returns:
             list(bool,FanSpeed): 読み取り成功の真偽,ファン風量
         """        
-        inst = 'multiStateInput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexFanSpeed.value)
+        inst = 'multiStateOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexFanSpeed.value)
         val = self.comm.read_present_value(self.target_ip,inst,Unsigned)
 
         return val[0], self.FanSpeed.Low if val[1] == 1 else (self.FanSpeed.Middle if val[1] == 2 else self.FanSpeed.High)
@@ -214,15 +214,24 @@ def main():
         val = vCom.get_north_tenant_CO2_level()
         print('CO2 level of north tenant' + (' = ' + str(val[1]) if val[0] else ' 通信失敗'))
 
-        
-        vCom.start_ventilation(1,1)
-        print('Occupant in north tenant' + (' = ' + str(val[1]) if val[0] else ' 通信失敗'))
+        print('turn on HEX1-1...',end='')
+        rslt = vCom.start_ventilation(1,1)
+        print('success' if rslt[0] else 'failed')
 
-        val = vCom.is_occupant_stay_in_office(OccupantCommunicator.Tenant.South, 1)
-        print('Occupant 1 stay in office' + (' = ' + str(val[1]) if val[0] else ' 通信失敗'))
+        print('turn off HEX1-1...',end='')
+        rslt = vCom.stop_ventilation(1,1)
+        print('success' if rslt[0] else 'failed')
 
-        val = vCom.get_thermal_sensation(OccupantCommunicator.Tenant.South, 1)
-        print('Thermal sensation of occupant 1 ' + (' = ' + str(val[1]) if val[0] else ' 通信失敗'))
+        val = vCom.get_fan_speed(1,1)
+        print('Fan speed of HEX1-1' + (' = ' + str(val[1]) if val[0] else ' 通信失敗'))
+
+        print('change fan speed of HEX1-1...',end='')
+        fs = VentilationSystemCommunicator.FanSpeed.High if val[1] == VentilationSystemCommunicator.FanSpeed.Low else  VentilationSystemCommunicator.FanSpeed.Low
+        rslt = vCom.change_fan_speed(1,1,fs)
+        print('success' if rslt[0] else 'failed')
+
+        val = vCom.get_fan_speed(1,1)
+        print('Fan speed of HEX1-1' + (' = ' + str(val[1]) if val[0] else ' 通信失敗'))
 
         time.sleep(1)
 
