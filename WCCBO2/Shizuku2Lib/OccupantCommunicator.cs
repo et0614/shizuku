@@ -31,19 +31,17 @@ namespace Shizuku2.BACnet
       Availability = 2,
       /// <summary>温冷感</summary>
       ThermalSensation = 3,
+      /// <summary>着衣量</summary>
+      ClothingIndex = 4
     }
 
     /// <summary>テナント</summary>
     public enum Tenant
     {
-      /// <summary>南西テナント</summary>
-      SouthWest = 1,
-      /// <summary>南東テナント</summary>
-      SouthEast = 2,
-      /// <summary>北西テナント</summary>
-      NorthWest = 3,
-      /// <summary>北東テナント</summary>
-      NorthEast = 4
+      /// <summary>南テナント</summary>
+      South = 1,
+      /// <summary>北テナント</summary>
+      North = 2
     }
 
     /// <summary>温冷感申告値</summary>
@@ -117,6 +115,18 @@ namespace Shizuku2.BACnet
       uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.ThermalSensation);
       return convertVote(ReadPresentValue<int>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded));
+    }
+
+    /// <summary>着衣量を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="occupantIndex">執務者番号（1～）</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>着衣量</returns>
+    public float GetClothingIndex(Tenant tenant, int occupantIndex, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.ClothingIndex);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
     private ThermalSensation convertVote(int vote)
