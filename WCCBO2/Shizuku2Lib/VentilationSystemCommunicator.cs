@@ -68,18 +68,18 @@ namespace Shizuku2.BACnet
     /// <summary>南側テナントのCO2濃度[ppm]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>南側テナントのCO2濃度[ppm]</returns>
-    public float GetSouthTenantCO2Level(out bool succeeded)
+    public uint GetSouthTenantCO2Level(out bool succeeded)
     {
-      return ReadPresentValue<float>
+      return ReadPresentValue<uint>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)member.SouthCO2Level, out succeeded);
     }
 
     /// <summary>北側テナントのCO2濃度[ppm]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>北側テナントのCO2濃度[ppm]</returns>
-    public float GetNorthTenantCO2Level(out bool succeeded)
+    public uint GetNorthTenantCO2Level(out bool succeeded)
     {
-      return ReadPresentValue<float>
+      return ReadPresentValue<uint>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)member.NorthCO2Level, out succeeded);
     }
 
@@ -186,7 +186,7 @@ namespace Shizuku2.BACnet
 
     /// <summary>インスタンス番号を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="member">項目</param>
     /// <returns>インスタンス番号</returns>
     private static uint getInstanceNumber
@@ -215,17 +215,6 @@ namespace Shizuku2.BACnet
         return false;
 
       return true;
-    }
-
-    /// <summary>室外機の番号が有効か否かを判定する</summary>
-    /// <param name="oUnitIndex">室外機番号</param>
-    /// <returns>室外機の番号が有効か否か</returns>
-    private static bool isIndexValid(uint oUnitIndex)
-    {
-      if (oUnitIndex <= 0 || 4 < oUnitIndex)
-        return false;
-
-      else return true;
     }
 
     #endregion
