@@ -23,7 +23,8 @@ namespace Shizuku2.BACnet
 
     #region 列挙型
 
-    public enum MemberNumber
+    /// <summary>項目</summary>
+    private enum memberNumber
     {
       AnalogValueInt = 1,
       AnalogOutputInt = 2,
@@ -64,7 +65,7 @@ namespace Shizuku2.BACnet
     public int ReadAnalogValueInt(out bool succeeded)
     {
       return ReadPresentValue<int>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)MemberNumber.AnalogValueInt, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)memberNumber.AnalogValueInt, out succeeded);
     }
 
     /// <summary>Analog Outputの値を取得する</summary>
@@ -73,7 +74,7 @@ namespace Shizuku2.BACnet
     public int ReadAnalogOutputInt(out bool succeeded)
     {
       return ReadPresentValue<int>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.AnalogOutputInt, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)memberNumber.AnalogOutputInt, out succeeded);
     }
 
     /// <summary>Analog Inputの値を取得する</summary>
@@ -82,7 +83,7 @@ namespace Shizuku2.BACnet
     public int ReadAnalogInputInt(out bool succeeded)
     {
       return ReadPresentValue<int>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.AnalogInputInt, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.AnalogInputInt, out succeeded);
     }
 
     /// <summary>Analog Valueの値を取得する</summary>
@@ -91,7 +92,7 @@ namespace Shizuku2.BACnet
     public float ReadAnalogValueReal(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)MemberNumber.AnalogValueReal, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)memberNumber.AnalogValueReal, out succeeded);
     }
 
     /// <summary>Analog Outputの値を取得する</summary>
@@ -100,7 +101,7 @@ namespace Shizuku2.BACnet
     public float ReadAnalogOutputReal(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.AnalogOutputReal, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)memberNumber.AnalogOutputReal, out succeeded);
     }
 
     /// <summary>Analog Inputの値を取得する</summary>
@@ -109,7 +110,7 @@ namespace Shizuku2.BACnet
     public float ReadAnalogInputReal(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.AnalogInputReal, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.AnalogInputReal, out succeeded);
     }
 
     /// <summary>Binary Valueの値を取得する</summary>
@@ -118,7 +119,7 @@ namespace Shizuku2.BACnet
     public bool ReadBinaryValue(out bool succeeded)
     {
       return 1 == ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)MemberNumber.BinaryValue, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)memberNumber.BinaryValue, out succeeded);
     }
 
     /// <summary>Binary Outputの値を取得する</summary>
@@ -127,7 +128,7 @@ namespace Shizuku2.BACnet
     public bool ReadBinaryOutput(out bool succeeded)
     {
       return 1 == ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)MemberNumber.BinaryOutput, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)memberNumber.BinaryOutput, out succeeded);
     }
 
     /// <summary>Binary Inputの値を取得する</summary>
@@ -136,7 +137,7 @@ namespace Shizuku2.BACnet
     public bool ReadBinaryInput(out bool succeeded)
     {
       return 1 == ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)MemberNumber.BinaryInput, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)memberNumber.BinaryInput, out succeeded);
     }
 
     /// <summary>MultiStateValueの値を取得する</summary>
@@ -145,7 +146,7 @@ namespace Shizuku2.BACnet
     public uint ReadMultiStateValue(out bool succeeded)
     {
       return ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_MULTI_STATE_VALUE, (uint)MemberNumber.MultiStateValue, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_MULTI_STATE_VALUE, (uint)memberNumber.MultiStateValue, out succeeded);
     }
 
     /// <summary>MultiStateOutputの値を取得する</summary>
@@ -154,7 +155,7 @@ namespace Shizuku2.BACnet
     public uint ReadMultiStateOutput(out bool succeeded)
     {
       return ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)MemberNumber.MultiStateOutput, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)memberNumber.MultiStateOutput, out succeeded);
     }
 
     /// <summary>MultiStateInputの値を取得する</summary>
@@ -163,7 +164,7 @@ namespace Shizuku2.BACnet
     public uint ReadMultiStateInput(out bool succeeded)
     {
       return ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)MemberNumber.MultiStateInput, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)memberNumber.MultiStateInput, out succeeded);
     }
 
     /// <summary>DateTimeの値を取得する</summary>
@@ -172,7 +173,7 @@ namespace Shizuku2.BACnet
     public DateTime ReadDateTime(out bool succeeded)
     {
       return ReadPresentValue<DateTime>
-        (bacAddress, BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.DateTime, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)memberNumber.DateTime, out succeeded);
     }
 
     #endregion
@@ -186,7 +187,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
        BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-       (uint)MemberNumber.AnalogValueInt,
+       (uint)memberNumber.AnalogValueInt,
        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, value),
        out succeeded);
     }
@@ -198,7 +199,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
        BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-       (uint)MemberNumber.AnalogValueReal,
+       (uint)memberNumber.AnalogValueReal,
        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, value),
        out succeeded);
     }
@@ -210,7 +211,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
        BacnetObjectTypes.OBJECT_ANALOG_OUTPUT,
-       (uint)MemberNumber.AnalogOutputInt,
+       (uint)memberNumber.AnalogOutputInt,
        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, value),
        out succeeded);
     }
@@ -222,7 +223,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
        BacnetObjectTypes.OBJECT_ANALOG_OUTPUT,
-       (uint)MemberNumber.AnalogOutputReal,
+       (uint)memberNumber.AnalogOutputReal,
        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, value),
        out succeeded);
     }
@@ -234,7 +235,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
        BacnetObjectTypes.OBJECT_BINARY_VALUE,
-       (uint)MemberNumber.BinaryValue,
+       (uint)memberNumber.BinaryValue,
        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED,
        value ? BacnetBinaryPv.BINARY_ACTIVE : BacnetBinaryPv.BINARY_INACTIVE),
        out succeeded);
@@ -247,7 +248,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
        BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-       (uint)MemberNumber.BinaryOutput,
+       (uint)memberNumber.BinaryOutput,
        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED,
        value ? BacnetBinaryPv.BINARY_ACTIVE : BacnetBinaryPv.BINARY_INACTIVE),
        out succeeded);
@@ -260,7 +261,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_VALUE,
-       (uint)MemberNumber.MultiStateValue,
+       (uint)memberNumber.MultiStateValue,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, value),
         out succeeded);
     }
@@ -272,7 +273,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-       (uint)MemberNumber.MultiStateOutput,
+       (uint)memberNumber.MultiStateOutput,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, value),
         out succeeded);
     }

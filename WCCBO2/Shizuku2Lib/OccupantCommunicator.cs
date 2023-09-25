@@ -23,7 +23,7 @@ namespace Shizuku2.BACnet
     #region 列挙型
 
     /// <summary>項目</summary>
-    public enum OccupantMonitorMember
+    private enum memberNumber
     {
       /// <summary>執務者の数</summary>
       OccupantNumber = 1,
@@ -88,7 +88,7 @@ namespace Shizuku2.BACnet
     /// <returns>在室している執務者数</returns>
     public int GetOccupantNumber(Tenant tenant, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + (int)OccupantMonitorMember.OccupantNumber);
+      uint instNum = (uint)(10000 * (int)tenant + (int)memberNumber.OccupantNumber);
       return ReadPresentValue<int>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
@@ -100,7 +100,7 @@ namespace Shizuku2.BACnet
     /// <returns>在室しているか否か</returns>
     public bool IsOccupantStayInOffice(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.Availability);
+      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)memberNumber.Availability);
       return 1 == ReadPresentValue<uint>
         (bacAddress, BacnetObjectTypes.OBJECT_BINARY_INPUT, instNum, out succeeded);
     }
@@ -112,7 +112,7 @@ namespace Shizuku2.BACnet
     /// <returns>温冷感</returns>
     public ThermalSensation GetThermalSensation(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.ThermalSensation);
+      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)memberNumber.ThermalSensation);
       return convertVote(ReadPresentValue<int>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded));
     }
@@ -124,7 +124,7 @@ namespace Shizuku2.BACnet
     /// <returns>着衣量</returns>
     public float GetClothingIndex(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)OccupantMonitorMember.ClothingIndex);
+      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)memberNumber.ClothingIndex);
       return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }

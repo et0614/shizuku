@@ -23,7 +23,7 @@ namespace Shizuku2.BACnet
     #region 列挙型
 
     /// <summary>項目</summary>
-    private enum member
+    private enum memberNumber
     {
       /// <summary>On/Offの設定</summary>
       OnOff_Setting = 1,
@@ -136,7 +136,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress, 
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.OnOff_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.OnOff_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE), 
         out succeeded);
     }
@@ -150,7 +150,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.OnOff_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.OnOff_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
         out succeeded);
     }
@@ -165,7 +165,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress, 
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.OnOff_Status), 
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.OnOff_Status), 
         out succeeded);
     }
 
@@ -182,7 +182,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.OperationMode_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.OperationMode_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, mode == Mode.Cooling ? 1u : 2u),
         out succeeded);
     }
@@ -196,7 +196,7 @@ namespace Shizuku2.BACnet
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.OperationMode_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.OperationMode_Status),
         out succeeded))
       {
         case 1: 
@@ -222,7 +222,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.Setpoint_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.Setpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, setpointTemperature),
         out succeeded);
     }
@@ -237,7 +237,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.Setpoint_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.Setpoint_Status),
         out succeeded);
     }
 
@@ -251,7 +251,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.MeasuredRoomTemperature),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.MeasuredRoomTemperature),
         out succeeded);
     }
 
@@ -265,7 +265,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.MeasuredRelativeHumidity),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.MeasuredRelativeHumidity),
         out succeeded);
     }
 
@@ -284,7 +284,7 @@ namespace Shizuku2.BACnet
       uint spd = (speed == FanSpeed.Low ? 1u : speed == FanSpeed.Middle ? 2u : 3u);
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.FanSpeed_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.FanSpeed_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, spd),
         out succeeded);
     }
@@ -299,7 +299,7 @@ namespace Shizuku2.BACnet
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.FanSpeed_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.FanSpeed_Status),
         out succeeded))
       {
         case 1u:
@@ -331,7 +331,7 @@ namespace Shizuku2.BACnet
 
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.AirflowDirection_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.AirflowDirection_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, dir),
         out succeeded);
     }
@@ -346,7 +346,7 @@ namespace Shizuku2.BACnet
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.AirflowDirection_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.AirflowDirection_Status),
         out succeeded))
       {
         case 1u:
@@ -375,7 +375,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.RemoteControllerPermittion_Setpoint_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.RemoteControllerPermittion_Setpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE),
         out succeeded);
     }
@@ -389,7 +389,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.RemoteControllerPermittion_Setpoint_Setting),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.RemoteControllerPermittion_Setpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
         out succeeded);
     }
@@ -404,7 +404,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.RemoteControllerPermittion_Setpoint_Status),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.RemoteControllerPermittion_Setpoint_Status),
         out succeeded);
     }
 
@@ -419,7 +419,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_VALUE,
-        getInstanceNumber(oUnitIndex, member.ForcedRefrigerantTemperature_Setting),
+        getInstanceNumber(oUnitIndex, memberNumber.ForcedRefrigerantTemperature_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE),
         out succeeded);
     }
@@ -431,7 +431,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
          BacnetObjectTypes.OBJECT_BINARY_VALUE,
-         getInstanceNumber(oUnitIndex, member.ForcedRefrigerantTemperature_Setting),
+         getInstanceNumber(oUnitIndex, memberNumber.ForcedRefrigerantTemperature_Setting),
          new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
          out succeeded);
     }
@@ -444,7 +444,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        getInstanceNumber(oUnitIndex, member.ForcedRefrigerantTemperature_Setting),
+        getInstanceNumber(oUnitIndex, memberNumber.ForcedRefrigerantTemperature_Setting),
         out succeeded);
     }
 
@@ -461,7 +461,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-        getInstanceNumber(oUnitIndex, member.EvaporatingTemperatureSetpoint_Setting),
+        getInstanceNumber(oUnitIndex, memberNumber.EvaporatingTemperatureSetpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, evaporatingTemperature),
         out succeeded);
     }
@@ -474,7 +474,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, member.EvaporatingTemperatureSetpoint_Status),
+        getInstanceNumber(oUnitIndex, memberNumber.EvaporatingTemperatureSetpoint_Status),
         out succeeded);
     }
 
@@ -487,7 +487,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_VALUE,
-        getInstanceNumber(oUnitIndex, member.CondensingTemperatureSetpoint_Setting),
+        getInstanceNumber(oUnitIndex, memberNumber.CondensingTemperatureSetpoint_Setting),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, condensingTemperature),
         out succeeded);
     }
@@ -500,7 +500,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, member.CondensingTemperatureSetpoint_Status),
+        getInstanceNumber(oUnitIndex, memberNumber.CondensingTemperatureSetpoint_Status),
         out succeeded);
     }
 
@@ -517,7 +517,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.Electricity),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.Electricity),
         out succeeded);
     }
 
@@ -529,7 +529,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, member.Electricity),
+        getInstanceNumber(oUnitIndex, memberNumber.Electricity),
         out succeeded);
     }
 
@@ -546,7 +546,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HeatLoad),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HeatLoad),
         out succeeded);
     }
 
@@ -558,7 +558,7 @@ namespace Shizuku2.BACnet
     {
       return ReadPresentValue<float>(bacAddress,
         BacnetObjectTypes.OBJECT_ANALOG_INPUT,
-        getInstanceNumber(oUnitIndex, member.HeatLoad),
+        getInstanceNumber(oUnitIndex, memberNumber.HeatLoad),
         out succeeded);
     }
 
@@ -572,7 +572,7 @@ namespace Shizuku2.BACnet
     /// <param name="member">項目</param>
     /// <returns>インスタンス番号</returns>
     private static uint getInstanceNumber
-      (uint oUnitIndex, uint iUnitIndex, member member)
+      (uint oUnitIndex, uint iUnitIndex, memberNumber member)
     {
       if (!isIndexValid(oUnitIndex, iUnitIndex))
         throw new Exception("Index of outdoor/indoor unit is invalid.");
@@ -586,7 +586,7 @@ namespace Shizuku2.BACnet
     /// <returns>インスタンス番号</returns>
     /// <exception cref="Exception"></exception>
     private static uint getInstanceNumber
-      (uint oUnitIndex, member member)
+      (uint oUnitIndex, memberNumber member)
     {
       if (!isIndexValid(oUnitIndex))
         throw new Exception("Index of outdoor unit is invalid.");

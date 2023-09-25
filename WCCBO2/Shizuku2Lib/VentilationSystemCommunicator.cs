@@ -3,6 +3,8 @@ using System.IO.BACnet.Base;
 
 namespace Shizuku2.BACnet
 {
+
+  /// <summary>Shizuku2のVentilationコントローラとの通信ユーティリティクラス</summary>
   public class VentilationSystemCommunicator : PresentValueReadWriter
   {
 
@@ -22,7 +24,7 @@ namespace Shizuku2.BACnet
     #region 列挙型
 
     /// <summary>項目</summary>
-    private enum member
+    private enum memberNumber
     {
       /// <summary>南側CO2濃度</summary>
       SouthCO2Level = 1,
@@ -71,7 +73,7 @@ namespace Shizuku2.BACnet
     public uint GetSouthTenantCO2Level(out bool succeeded)
     {
       return ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)member.SouthCO2Level, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.SouthCO2Level, out succeeded);
     }
 
     /// <summary>北側テナントのCO2濃度[ppm]を取得する</summary>
@@ -80,7 +82,7 @@ namespace Shizuku2.BACnet
     public uint GetNorthTenantCO2Level(out bool succeeded)
     {
       return ReadPresentValue<uint>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)member.NorthCO2Level, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.NorthCO2Level, out succeeded);
     }
 
     #endregion
@@ -96,7 +98,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HexOnOff),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexOnOff),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE),
         out succeeded);
     }
@@ -110,7 +112,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HexOnOff),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexOnOff),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
         out succeeded);
     }
@@ -124,7 +126,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HexBypassEnabled),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexBypassEnabled),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE),
         out succeeded);
     }
@@ -138,7 +140,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HexBypassEnabled),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexBypassEnabled),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE),
         out succeeded);
     }
@@ -152,7 +154,7 @@ namespace Shizuku2.BACnet
     {
       WritePresentValue(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HexFanSpeed),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexFanSpeed),
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 
         fanSpeed == FanSpeed.Low ? 1u : 
         fanSpeed == FanSpeed.Middle ? 2u : 3u),
@@ -168,7 +170,7 @@ namespace Shizuku2.BACnet
     {
       switch (ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
-        getInstanceNumber(oUnitIndex, iUnitIndex, member.HexFanSpeed),
+        getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexFanSpeed),
         out succeeded))
       {
         case 1:
@@ -190,7 +192,7 @@ namespace Shizuku2.BACnet
     /// <param name="member">項目</param>
     /// <returns>インスタンス番号</returns>
     private static uint getInstanceNumber
-      (uint oUnitIndex, uint iUnitIndex, member member)
+      (uint oUnitIndex, uint iUnitIndex, memberNumber member)
     {
       if (!isIndexValid(oUnitIndex, iUnitIndex))
         throw new Exception("Index of outdoor/indoor unit is invalid.");
