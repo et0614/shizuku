@@ -184,7 +184,7 @@ namespace Shizuku2.BACnet.MitsubishiElectric
       if (
         port == DateTimeController.EXCLUSIVE_PORT &&
         monitoredObjectIdentifier.type == BacnetObjectTypes.OBJECT_ANALOG_OUTPUT &&
-        monitoredObjectIdentifier.instance == (uint)DateTimeController.MemberNumber.AccerarationRate)
+        monitoredObjectIdentifier.instance == (uint)DateTimeController.MemberNumber.Acceleration)
       {
         //この処理は汚いが・・・
         foreach (BacnetPropertyValue value in values)
@@ -246,8 +246,8 @@ namespace Shizuku2.BACnet.MitsubishiElectric
       //COV通告登録処理
       communicator.Client.OnCOVNotification += Client_OnCOVNotification;
       BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
-      communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)DateTimeController.MemberNumber.AccerarationRate, false, false, 3600);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.Acceleration);
+      communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)DateTimeController.MemberNumber.Acceleration, false, false, 3600);
 
       //Who is送信
       communicator.Client.WhoIs();

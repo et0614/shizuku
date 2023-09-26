@@ -36,7 +36,7 @@ namespace Shizuku2.BACnet
       set
       {
         dtAccelerator.AccelerationRate = value;
-        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.AccerarationRate);
+        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.Acceleration);
         ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = value;
       }
       get { return dtAccelerator.AccelerationRate; }
@@ -65,7 +65,7 @@ namespace Shizuku2.BACnet
     public enum MemberNumber
     {
       CurrentDateTimeInSimulation = 1,
-      AccerarationRate = 2,
+      Acceleration = 2,
       BaseRealDateTime = 3,
       BaseAcceleratedDateTime = 4,
     }
@@ -91,15 +91,15 @@ namespace Shizuku2.BACnet
       //シミュレーション内の現在日時（タイムステップで離散化された値）
       BacnetDateTime dTime1 = new BacnetDateTime(
         (int)MemberNumber.CurrentDateTimeInSimulation,
-        "Current date and time on the simulation",
-        "Current date and time on the simulation. This value might been accelerated.");
+        "Current date and time",
+        "Current date and time in the simulation. This value might been accelerated.");
       dTime1.m_PresentValue = CurrentDateTime;
       dObject.AddBacnetObject(dTime1);
 
       //加速度
       dObject.AddBacnetObject(new AnalogOutput<int>
-        ((int)MemberNumber.AccerarationRate,
-        "Acceraration rate",
+        ((int)MemberNumber.Acceleration,
+        "Acceleration rate",
         "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS)
       { m_PROP_LOW_LIMIT = 0 });
 
@@ -174,7 +174,7 @@ namespace Shizuku2.BACnet
       BacnetObjectId boID;
 
       //加速度
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.AccerarationRate);
+      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.Acceleration);
       AccelerationRate = ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
     }
 

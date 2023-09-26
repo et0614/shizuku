@@ -46,7 +46,7 @@ namespace Shizuku2.BACnet
     private string dtCtrlIP = "127.0.0.1";
 
     /// <summary>加速度を取得する</summary>
-    public int AccerarationRate { get; private set; } = 0;
+    public int AccelerationRate { get; private set; } = 0;
 
     /// <summary>現実時間の基準日時を取得する</summary>
     public DateTime BaseRealDateTime { get; private set; } = new DateTime(1999, 1, 1, 0, 0, 0);
@@ -60,7 +60,7 @@ namespace Shizuku2.BACnet
       get
       {
         return BaseAcceleratedDateTime.AddSeconds
-          ((DateTime.Now - BaseRealDateTime).TotalSeconds * AccerarationRate);
+          ((DateTime.Now - BaseRealDateTime).TotalSeconds * AccelerationRate);
       }
     }
 
@@ -202,7 +202,7 @@ namespace Shizuku2.BACnet
       //加速度を取得
       for (int i = 0; i < maxTrial; i++)
       {
-        AccerarationRate = ReadPresentValue<int>(bacAddDT, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate, out bool suc);
+        AccelerationRate = ReadPresentValue<int>(bacAddDT, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate, out bool suc);
         if (suc) break;
         if (i == maxTrial - 1) throw new Exception("Can't update date time");
         Thread.Sleep(trialIntervalMSec);

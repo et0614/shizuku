@@ -237,7 +237,7 @@ namespace Shizuku2
       //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
       dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //基準現在時刻を更新
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.AccerarationRate);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.Acceleration);
       List<BacnetValue> values = new List<BacnetValue>();
       values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, dtCtrl.AccelerationRate));
       dtCtrl.Communicator.Client.WritePropertyRequest(
@@ -500,7 +500,7 @@ namespace Shizuku2
     #region 書き出し処理
 
     private static void outputStatus(
-  StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
+      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
     {
       //タイトル行
       if (isTitleLine)
