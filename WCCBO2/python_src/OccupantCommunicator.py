@@ -4,7 +4,7 @@ import time
 from enum import Enum
 from bacpypes.primitivedata import Real, Integer, Enumerated
 
-class OccupantCommunicator():
+class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
 # region 定数宣言
 
@@ -58,29 +58,10 @@ class OccupantCommunicator():
         Args:
             id (int): 通信用のDeviceのID
             name (str): 通信用のDeviceの名前
-            ip_address (str): Occupant MonitorのIP Address（xxx.xxx.xxx.xxx:port）
+            ip_address (str): エミュレータのIP Address（xxx.xxx.xxx.xxx）
         """
+        super().__init__(id,name,target_ip,time_out_sec)
         self.target_ip = target_ip + ':' + str(self.OCCUPANTMONITOR_EXCLUSIVE_PORT)
-        self.comm = PresentValueReadWriter.PresentValueReadWriter(id,name,time_out_sec)
-
-    def subscribe_date_time_cov(self, monitored_ip):
-        """シミュレーション日時の加速度に関するCOVを登録する
-
-        Args:
-            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxx:xxxxの形式)
-
-        Returns:
-            bool: 登録が成功したか否か
-        """
-        return self.comm.subscribe_date_time_cov(monitored_ip)
-    
-    def current_date_time(self):
-        """現在の日時を取得する
-
-        Returns:
-            datetime: 現在の日時
-        """        
-        return self.comm.current_date_time()
 
 # endregion
 
@@ -92,7 +73,7 @@ class OccupantCommunicator():
             list: 読み取り成功の真偽,在室している執務者数
         """
         inst = 'analogInput:' + str(10000 * int(tenant.value) + self._member.OccupantNumber.value)       
-        return self.comm.read_present_value(self.target_ip,inst,Integer)
+        return self.read_present_value(self.target_ip,inst,Integer)
     
 
     def is_occupant_stay_in_office(self, tenant, occupant_index):
@@ -104,7 +85,7 @@ class OccupantCommunicator():
             list(bool,bool): 読み取り成功の真偽,在室しているか否か
         """
         inst = 'binaryInput:' + str(10000 * int(tenant.value) + 100 * occupant_index + self._member.Availability.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Enumerated)
+        val = self.read_present_value(self.target_ip,inst,Enumerated)
         return val[0], (val[1] == 1)
 
 
@@ -117,7 +98,7 @@ class OccupantCommunicator():
             list: 読み取り成功の真偽,温冷感
         """        
         inst = 'analogInput:' + str(10000 * int(tenant.value) + 100 * occupant_index + self._member.ThermalSensation.value)
-        return self.comm.read_present_value(self.target_ip,inst,Integer)
+        return self.read_present_value(self.target_ip,inst,Integer)
 
 
     def get_clothing_index(self, tenant, occupant_index):
@@ -129,11 +110,11 @@ class OccupantCommunicator():
             list: 読み取り成功の真偽,着衣量
         """        
         inst = 'analogInput:' + str(10000 * int(tenant.value) + 100 * occupant_index + self._member.ClothingIndex.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
 
 
 def main():
-    oCom = OccupantCommunicator(1000)
+    oCom = OccupantCommunicator(15)
 
     while True:
         val = oCom.get_occupant_number(OccupantCommunicator.Tenant.South)

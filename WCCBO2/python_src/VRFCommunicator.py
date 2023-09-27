@@ -1,10 +1,9 @@
 import PresentValueReadWriter
-import time
 
 from enum import Enum
 from bacpypes.primitivedata import Enumerated, Real, Unsigned
 
-class VRFCommunicator():
+class VRFCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
 # region 定数宣言
 
@@ -96,29 +95,10 @@ class VRFCommunicator():
         Args:
             id (int): 通信用のDeviceのID
             name (str): 通信用のDeviceの名前
-            ip_address (str): VRF ControllerのIP Address（xxx.xxx.xxx.xxx:port）
+            target_ip (str): エミュレータのIP Address（xxx.xxx.xxx.xxx）
         """
+        super().__init__(id,name,target_ip,time_out_sec)
         self.target_ip = target_ip + ':' + str(self.VRFCTRL_EXCLUSIVE_PORT)
-        self.comm = PresentValueReadWriter.PresentValueReadWriter(id,name,time_out_sec)
-
-    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1'):
-        """シミュレーション日時の加速度に関するCOVを登録する
-
-        Args:
-            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxx:xxxxの形式)
-
-        Returns:
-            bool: 登録が成功したか否か
-        """
-        return self.comm.subscribe_date_time_cov(monitored_ip)
-    
-    def current_date_time(self):
-        """現在の日時を取得する
-
-        Returns:
-            datetime: 現在の日時
-        """        
-        return self.comm.current_date_time()
 
 # region 発停関連
 
@@ -133,10 +113,10 @@ class VRFCommunicator():
         """        
         inst = 'binaryOutput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.OnOff_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(1), None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(1), None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(1))
+            return self.write_present_value(self.target_ip,inst,Enumerated(1))
 
     def turn_off(self, oUnitIndex, iUnitIndex, comAsync=False):
         """室内機を停止する
@@ -149,10 +129,10 @@ class VRFCommunicator():
         """        
         inst = 'binaryOutput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.OnOff_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(0), None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(0), None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(0))
+            return self.write_present_value(self.target_ip,inst,Enumerated(0))
 
     def is_turned_on(self, oUnitIndex, iUnitIndex):
         """起動しているか否か
@@ -163,7 +143,7 @@ class VRFCommunicator():
             list(bool,bool): 読み取り成功の真偽,起動しているか否か
         """
         inst = 'binaryInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.OnOff_Status.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Enumerated)
+        val = self.read_present_value(self.target_ip,inst,Enumerated)
         return val[0], (val[1] == 1)
 
 # endregion
@@ -182,10 +162,10 @@ class VRFCommunicator():
         """        
         inst = 'multiStateOutput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.OperationMode_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Unsigned(mode.value),None)
+            self.write_present_value_async(self.target_ip,inst,Unsigned(mode.value),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Unsigned(mode.value))
+            return self.write_present_value(self.target_ip,inst,Unsigned(mode.value))
 
     def get_mode(self, oUnitIndex, iUnitIndex):
         """運転モードを取得する
@@ -196,7 +176,7 @@ class VRFCommunicator():
             list(bool,Mode): 読み取り成功の真偽,運転モード
         """        
         inst = 'multiStateInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.OperationMode_Status.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Unsigned)
+        val = self.read_present_value(self.target_ip,inst,Unsigned)
         return val[0], self.Mode.Cooling if val[1] == 1 else (self.Mode.Heating if val[1] == 2 else self.Mode.ThermoOff)
 
 # endregion
@@ -215,10 +195,10 @@ class VRFCommunicator():
             """
         inst = 'analogValue:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.Setpoint_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Real(sp),None)
+            self.write_present_value_async(self.target_ip,inst,Real(sp),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Real(sp))
+            return self.write_present_value(self.target_ip,inst,Real(sp))
     
     def get_setpoint_temperature(self, oUnitIndex, iUnitIndex):
         """室温設定値[C]を取得する
@@ -229,7 +209,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,室温設定値[C]
         """
         inst = 'analogInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.Setpoint_Status.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
     
     def get_return_air_temperature(self, oUnitIndex, iUnitIndex):
         """還空気の温度[C]を取得する
@@ -240,7 +220,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,還空気の温度[C]
         """
         inst = 'analogInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.MeasuredRoomTemperature.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
     
     def get_return_air_relative_humidity(self, oUnitIndex, iUnitIndex):
         """還空気の相対湿度[%]を取得する
@@ -251,7 +231,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,相対湿度[%]
         """
         inst = 'analogInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.MeasuredRelativeHumidity.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
 
 # endregion
 
@@ -269,10 +249,10 @@ class VRFCommunicator():
         """        
         inst = 'multiStateOutput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.FanSpeed_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Unsigned(speed.value),None)
+            self.write_present_value_async(self.target_ip,inst,Unsigned(speed.value),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Unsigned(speed.value))
+            return self.write_present_value(self.target_ip,inst,Unsigned(speed.value))
     
     def get_fan_speed(self, oUnitIndex, iUnitIndex):
         """ファン風量を取得する
@@ -283,7 +263,7 @@ class VRFCommunicator():
             list(bool,FanSpeed): 読み取り成功の真偽,ファン風量
         """        
         inst = 'multiStateInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.FanSpeed_Status.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Unsigned)
+        val = self.read_present_value(self.target_ip,inst,Unsigned)
 
         return val[0], self.FanSpeed.Low if val[1] == 1 else (self.FanSpeed.Middle if val[1] == 2 else self.FanSpeed.High)
 
@@ -303,10 +283,10 @@ class VRFCommunicator():
         """        
         inst = 'multiStateOutput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.AirflowDirection_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Unsigned(direction.value),None)
+            self.write_present_value_async(self.target_ip,inst,Unsigned(direction.value),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Unsigned(direction.value))
+            return self.write_present_value(self.target_ip,inst,Unsigned(direction.value))
     
     def get_direction(self, oUnitIndex, iUnitIndex):
         """風向を取得する
@@ -317,7 +297,7 @@ class VRFCommunicator():
             list(bool,Direction): 読み取り成功の真偽,風向
         """        
         inst = 'multiStateInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.AirflowDirection_Status.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Unsigned)
+        val = self.read_present_value(self.target_ip,inst,Unsigned)
 
         if(val[1] == 1):
             return val[0], self.Direction.Horizontal
@@ -345,10 +325,10 @@ class VRFCommunicator():
         """        
         inst = 'binaryValue:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.RemoteControllerPermittion_Setpoint_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(1),None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(1),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(1))
+            return self.write_present_value(self.target_ip,inst,Enumerated(1))
 
     def prohibit_local_control(self, oUnitIndex, iUnitIndex, comAsync=False):
         """手元リモコン操作を禁止する
@@ -361,10 +341,10 @@ class VRFCommunicator():
         """        
         inst = 'binaryValue:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.RemoteControllerPermittion_Setpoint_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(0),None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(0),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(0))
+            return self.write_present_value(self.target_ip,inst,Enumerated(0))
 
     def is_turned_on(self, oUnitIndex, iUnitIndex):
         """手元リモコン操作が許可されているか否か
@@ -375,7 +355,7 @@ class VRFCommunicator():
             list(bool,bool): 読み取り成功の真偽,手元リモコン操作が許可されているか否か
         """
         inst = 'binaryInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.RemoteControllerPermittion_Setpoint_Status.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Enumerated)
+        val = self.read_present_value(self.target_ip,inst,Enumerated)
         return val[0], (val[1] == 1)
 
 # endregion
@@ -392,10 +372,10 @@ class VRFCommunicator():
         """        
         inst = 'binaryValue:' + self._get_ou_objNum(oUnitIndex,self._member.ForcedRefrigerantTemperature_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(1),None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(1),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(1))
+            return self.write_present_value(self.target_ip,inst,Enumerated(1))
 
     def disable_refrigerant_temperatureControl(self, oUnitIndex, comAsync=False):
         """冷媒温度強制制御を無効にする
@@ -407,10 +387,10 @@ class VRFCommunicator():
         """        
         inst = 'binaryValue:' + self._get_ou_objNum(oUnitIndex,self._member.ForcedRefrigerantTemperature_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(0),None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(0),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(0))
+            return self.write_present_value(self.target_ip,inst,Enumerated(0))
 
     def is_refrigerant_temperature_control_enabled(self, oUnitIndex):
         """冷媒温度強制制御が有効か否かを取得する
@@ -420,7 +400,7 @@ class VRFCommunicator():
             list(bool,bool): 読み取り成功の真偽,冷媒温度強制制御が有効か否か
         """
         inst = 'binaryInput:' + self._get_ou_objNum(oUnitIndex,self._member.ForcedRefrigerantTemperature_Status.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Enumerated)
+        val = self.read_present_value(self.target_ip,inst,Enumerated)
         return val[0], (val[1] == 1)
 
 # endregion
@@ -438,10 +418,10 @@ class VRFCommunicator():
         """
         inst = 'analogValue:' + self._get_ou_objNum(oUnitIndex,self._member.EvaporatingTemperatureSetpoint_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Real(evaporatingTemperature),None)
+            self.write_present_value_async(self.target_ip,inst,Real(evaporatingTemperature),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Real(evaporatingTemperature))
+            return self.write_present_value(self.target_ip,inst,Real(evaporatingTemperature))
     
     def get_evaporating_temperature(self, oUnitIndex):
         """蒸発温度設定値[C]を取得する
@@ -451,7 +431,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,蒸発温度設定値[C]
         """
         inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.CondensingTemperatureSetpoint_Status.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
     
     def change_condensing_temperature(self, oUnitIndex, condensingTemperature, comAsync=False):
         """凝縮温度設定値[C]を変える
@@ -464,10 +444,10 @@ class VRFCommunicator():
             """
         inst = 'analogValue:' + self._get_ou_objNum(oUnitIndex,self._member.CondensingTemperatureSetpoint_Setting.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Real(condensingTemperature),None)
+            self.write_present_value_async(self.target_ip,inst,Real(condensingTemperature),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Real(condensingTemperature))
+            return self.write_present_value(self.target_ip,inst,Real(condensingTemperature))
     
     def get_condensing_temperature(self, oUnitIndex):
         """凝縮温度設定値[C]を取得する
@@ -477,7 +457,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,凝縮温度設定値[C]
         """
         inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.CondensingTemperatureSetpoint_Status.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
 
 # endregion
 
@@ -492,7 +472,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,室内機の消費電力[kW]
         """
         inst = 'analogInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.Electricity.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
     
     def get_outdoor_unit_electricity(self, oUnitIndex):
         """室外機の消費電力[kW]を取得する
@@ -502,7 +482,7 @@ class VRFCommunicator():
             list(bool,float): 読み取り成功の真偽,室外機の消費電力[kW]
         """
         inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.Electricity.value)
-        return self.comm.read_present_value(self.target_ip,inst,Real)
+        return self.read_present_value(self.target_ip,inst,Real)
 
 # endregion
 
@@ -519,7 +499,7 @@ class VRFCommunicator():
 # region サンプル
 
 def main():
-    vrfCom = VRFCommunicator(999)
+    vrfCom = VRFCommunicator(12)
 
     # 起動
     turn_on(vrfCom)
@@ -553,7 +533,6 @@ def turn_on(vrfCom):
 
             print('turn on...',end='')
             rslt = vrfCom.turn_on(i+1,j+1)
-            print(rslt)
             print('success' if rslt[0] else 'failed')
 
             print('change mode...',end='')

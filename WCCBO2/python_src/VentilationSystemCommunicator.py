@@ -4,7 +4,7 @@ import time
 from enum import Enum
 from bacpypes.primitivedata import Real, Unsigned, Enumerated
 
-class VentilationSystemCommunicator():
+class VentilationSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
 # region 定数宣言
 
@@ -46,21 +46,21 @@ class VentilationSystemCommunicator():
         Args:
             id (int): 通信用のDeviceのID
             name (str): 通信用のDeviceの名前
-            ip_address (str): Ventilation ControllerのIP Address（xxx.xxx.xxx.xxx:port）
+            ip_address (str): エミュレータのIP Address（xxx.xxx.xxx.xxx）
         """
+        super().__init__(id,name,target_ip,time_out_sec)
         self.target_ip = target_ip + ':' + str(self.VENTCTRL_EXCLUSIVE_PORT)
-        self.comm = PresentValueReadWriter.PresentValueReadWriter(id,name,time_out_sec)
 
     def subscribe_date_time_cov(self, monitored_ip):
         """シミュレーション日時の加速度に関するCOVを登録する
 
         Args:
-            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxx:xxxxの形式)
+            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxxの形式)
 
         Returns:
             bool: 登録が成功したか否か
         """
-        return self.comm.subscribe_date_time_cov(monitored_ip)
+        return self.subscribe_date_time_cov(monitored_ip)
     
     def current_date_time(self):
         """現在の日時を取得する
@@ -68,7 +68,7 @@ class VentilationSystemCommunicator():
         Returns:
             datetime: 現在の日時
         """        
-        return self.comm.current_date_time()
+        return self.current_date_time()
 
 # endregion
 
@@ -80,7 +80,7 @@ class VentilationSystemCommunicator():
             list: 読み取り成功の真偽,南側テナントのCO2濃度[ppm]
         """        
         inst = 'analogInput:' + str(self._member.SouthCO2Level.value)
-        return self.comm.read_present_value(self.target_ip,inst,Unsigned)
+        return self.read_present_value(self.target_ip,inst,Unsigned)
     
 
     def get_north_tenant_CO2_level(self):
@@ -89,7 +89,7 @@ class VentilationSystemCommunicator():
             list: 読み取り成功の真偽,北側テナントのCO2濃度[ppm]
         """        
         inst = 'analogInput:' + str(self._member.NorthCO2Level.value)
-        return self.comm.read_present_value(self.target_ip,inst,Unsigned)
+        return self.read_present_value(self.target_ip,inst,Unsigned)
 
 # endregion    
 
@@ -106,10 +106,10 @@ class VentilationSystemCommunicator():
         """        
         inst = 'binaryOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexOnOff.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(1), None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(1), None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(1))
+            return self.write_present_value(self.target_ip,inst,Enumerated(1))
 
 
     def stop_ventilation(self, oUnitIndex, iUnitIndex, comAsync=False):
@@ -123,10 +123,10 @@ class VentilationSystemCommunicator():
         """        
         inst = 'binaryOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexOnOff.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(0), None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(0), None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(0))
+            return self.write_present_value(self.target_ip,inst,Enumerated(0))
 
 
     def enable_bypass_control(self, oUnitIndex, iUnitIndex, comAsync=False):
@@ -140,10 +140,10 @@ class VentilationSystemCommunicator():
         """        
         inst = 'binaryOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexBypassEnabled.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(1), None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(1), None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(1))
+            return self.write_present_value(self.target_ip,inst,Enumerated(1))
 
 
     def disable_bypass_control(self, oUnitIndex, iUnitIndex, comAsync=False):
@@ -157,10 +157,10 @@ class VentilationSystemCommunicator():
         """        
         inst = 'binaryOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexBypassEnabled.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Enumerated(0), None)
+            self.write_present_value_async(self.target_ip,inst,Enumerated(0), None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Enumerated(0))
+            return self.write_present_value(self.target_ip,inst,Enumerated(0))
 
 
     def change_fan_speed(self, oUnitIndex, iUnitIndex, speed, comAsync=False):
@@ -175,10 +175,10 @@ class VentilationSystemCommunicator():
         """        
         inst = 'multiStateOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexFanSpeed.value)
         if(comAsync):
-            self.comm.write_present_value_async(self.target_ip,inst,Unsigned(speed.value),None)
+            self.write_present_value_async(self.target_ip,inst,Unsigned(speed.value),None)
             return False
         else:
-            return self.comm.write_present_value(self.target_ip,inst,Unsigned(speed.value))
+            return self.write_present_value(self.target_ip,inst,Unsigned(speed.value))
     
 
     def get_fan_speed(self, oUnitIndex, iUnitIndex):
@@ -190,7 +190,7 @@ class VentilationSystemCommunicator():
             list(bool,FanSpeed): 読み取り成功の真偽,ファン風量
         """        
         inst = 'multiStateOutput:' + self._get_instance_number(oUnitIndex,iUnitIndex,self._member.HexFanSpeed.value)
-        val = self.comm.read_present_value(self.target_ip,inst,Unsigned)
+        val = self.read_present_value(self.target_ip,inst,Unsigned)
 
         return val[0], self.FanSpeed.Low if val[1] == 1 else (self.FanSpeed.Middle if val[1] == 2 else self.FanSpeed.High)
 

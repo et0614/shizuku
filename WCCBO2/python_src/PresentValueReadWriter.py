@@ -23,12 +23,13 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
     DATETIMECONTROLLER_EXCLUSIVE_PORT = 0xBAC0 + DATETIMECONTROLLER_DEVICE_ID
 
-    def __init__(self, id, name, time_out_sec = 1.0):
+    def __init__(self, id, name = 'anonymous device', target_ip='127.0.0.1', time_out_sec = 1.0):
         """インスタンスを初期化する
 
         Args:
             id (int): 通信に使うDeviceのID
             name (str): 通信に使うDeviceの名前
+            target_ip (str): エミュレータのIP Address（xxx.xxx.xxx.xxx）
         """
 
         # タイムアウトまでの時間
@@ -36,6 +37,9 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
         # idを保存
         self.id = id
+
+        # DateTimeControllerのIPアドレスを保存
+        self.dtc_id = target_ip + ':' + str(self.DATETIMECONTROLLER_EXCLUSIVE_PORT)
 
         # DateTimeのCOV登録状況
         self.dtcov_scribed = False
@@ -56,7 +60,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         self.core.start()
 
         # BACnetコントローラを用意
-        BIPSimpleApplication.__init__(self, this_device, '127.0.0.1:' + str(0xBAC0 + id))
+        BIPSimpleApplication.__init__(self, this_device, target_ip + ':' + str(0xBAC0 + id))
         time.sleep(1) # 起動まで待機が必要のようだ
 
         # idが0 (47808)以外だとWhoisが効かない。修正必要。
@@ -243,7 +247,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
 # region datetime COV関連
 
-    def subscribe_date_time_cov(self, monitored_ip='127.0.0.1'):
+    def subscribe_date_time_cov(self):
         """シミュレーション日時の加速度に関するCOVを登録する
 
         Args:
@@ -252,8 +256,6 @@ class PresentValueReadWriter(BIPSimpleApplication):
         Returns:
             bool: 登録が成功したか否か
         """        
-        # 監視IPアドレスを保存
-        self.mon_id = monitored_ip + ':' + str(self.DATETIMECONTROLLER_EXCLUSIVE_PORT)
 
         # 既に登録されている場合には日時だけ更新して二重登録を回避
         if self.dtcov_scribed:
@@ -265,7 +267,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
             monitoredPropertyIdentifier=PropertyReference(propertyIdentifier='presentValue'),
             covIncrement=0,
         )
-        request.pduDestination = Address(self.mon_id)
+        request.pduDestination = Address(self.dtc_id)
 
         iocb = IOCB(request)
         # iocb.set_timeout(self.time_out, err=TimeoutError)
@@ -288,7 +290,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
     def do_UnconfirmedCOVNotificationRequest(self, apdu):
         if(
-            apdu.pduSource == self.mon_id and
+            apdu.pduSource == self.dtc_id and
             apdu.monitoredObjectIdentifier == ("analogOutput",2) and
             apdu.listOfValues[0].propertyIdentifier == 'presentValue'):
                 # 別スレッドで日時を更新
@@ -297,16 +299,16 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
     def _update_date_time(self):
         success = True
-        val = self.read_present_value(self.mon_id, 'analogOutput:2', Integer)
+        val = self.read_present_value(self.dtc_id, 'analogOutput:2', Integer)
         self.acc_rate = val[1] if val[0] else 0
         # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
-        val = self.read_present_value(self.mon_id, 'datetimeValue:3', DateTime)
+        val = self.read_present_value(self.dtc_id, 'datetimeValue:3', DateTime)
         if val[0]:
             self.base_real_datetime = val[1]
         else:
             success = False
         # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
-        val = self.read_present_value(self.mon_id, 'datetimeValue:4', DateTime)
+        val = self.read_present_value(self.dtc_id, 'datetimeValue:4', DateTime)
         if val[0]:
             self.base_sim_datetime = val[1]
         else:
@@ -348,7 +350,7 @@ def main():
     pv_rw.who_is()
 
     # 日時のCOVを登録
-    print('Subscribe COV: ' + str(pv_rw.subscribe_date_time_cov('127.0.0.1:47809')))    
+    print('Subscribe COV: ' + str(pv_rw.subscribe_date_time_cov()))    
 
     # 同期でread property
     pValue = pv_rw.read_present_value('127.0.0.1:47817', 'analogValue:1', Integer)
@@ -439,7 +441,7 @@ def main():
     # 無限ループで日時を表示
     while True:
         print(pv_rw.current_date_time().strftime('%Y/%m/%d %H:%M:%S'))
-        time.sleep(0.2)
+        time.sleep(1.0)
         pass
 
 def my_call_back_read(addr, obj_id, success, value):
