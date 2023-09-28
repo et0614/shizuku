@@ -4,7 +4,7 @@ import PresentValueReadWriter
 pvrw = PresentValueReadWriter.PresentValueReadWriter(10)
 
 # 現在時刻の加速度のCOVイベントへ登録する（current_date_timeが有効になる）
-print('Subscribe COV...')
+print('Subscribe COV...',end='')
 while not pvrw.subscribe_date_time_cov():
     time.sleep(0.1)
 print('success')

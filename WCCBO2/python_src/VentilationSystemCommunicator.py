@@ -38,7 +38,7 @@ class VentilationSystemCommunicator(PresentValueReadWriter.PresentValueReadWrite
 
 # endregion
 
-# region コンストラクタ他
+# region コンストラクタ
 
     def __init__(self, id, name='vntComm', target_ip='127.0.0.1', time_out_sec=1.0):
         """インスタンスを初期化する
@@ -50,25 +50,6 @@ class VentilationSystemCommunicator(PresentValueReadWriter.PresentValueReadWrite
         """
         super().__init__(id,name,target_ip,time_out_sec)
         self.target_ip = target_ip + ':' + str(self.VENTCTRL_EXCLUSIVE_PORT)
-
-    def subscribe_date_time_cov(self, monitored_ip):
-        """シミュレーション日時の加速度に関するCOVを登録する
-
-        Args:
-            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxxの形式)
-
-        Returns:
-            bool: 登録が成功したか否か
-        """
-        return self.subscribe_date_time_cov(monitored_ip)
-    
-    def current_date_time(self):
-        """現在の日時を取得する
-
-        Returns:
-            datetime: 現在の日時
-        """        
-        return self.current_date_time()
 
 # endregion
 

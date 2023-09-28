@@ -536,19 +536,19 @@ def turn_on(vrfCom):
             print('success' if rslt[0] else 'failed')
 
             print('change mode...',end='')
-            vrfCom.change_mode(i+1,j+1,VRFCommunicator.Mode.Cooling)
+            rslt = vrfCom.change_mode(i+1,j+1,VRFCommunicator.Mode.Cooling)
             print('success' if rslt[0] else 'failed')
 
             print('change set point temperature...',end='')
-            vrfCom.change_setpoint_temperature(i+1,j+1,26)
+            rslt = vrfCom.change_setpoint_temperature(i+1,j+1,26)
             print('success' if rslt[0] else 'failed')
 
             print('change fanspeed...',end='')
-            vrfCom.change_fan_speed(i+1,j+1,VRFCommunicator.FanSpeed.Middle)
+            rslt = vrfCom.change_fan_speed(i+1,j+1,VRFCommunicator.FanSpeed.Middle)
             print('success' if rslt[0] else 'failed')
 
             print('change direction...',end='')
-            vrfCom.change_direction(i+1,j+1,VRFCommunicator.Direction.Degree_450)
+            rslt = vrfCom.change_direction(i+1,j+1,VRFCommunicator.Direction.Degree_450)
             print('success' if rslt[0] else 'failed')
 
 if __name__ == "__main__":
