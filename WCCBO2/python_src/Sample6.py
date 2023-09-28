@@ -1,5 +1,5 @@
 import time, datetime
-import VRFCommunicator as vrc
+import VRFSystemCommunicator as vrc
 import VentilationSystemCommunicator as vsc
 
 def main():
@@ -22,10 +22,10 @@ def main():
         print(dt.strftime('%Y/%m/%d %H:%M:%S'))
 
         # Change mode, air flow direction, and set point temperature depends on season
-        is_summer = 5 <= dt.month and dt.month <= 10
-        mode = vrc.VRFCommunicator.Mode.Cooling if is_summer else vrc.VRFCommunicator.Mode.Heating
-        dir = vrc.VRFCommunicator.Direction.Horizontal if is_summer else vrc.VRFCommunicator.Direction.Vertical
-        sp = 26 if is_summer else 22
+        is_s = 5 <= dt.month and dt.month <= 10
+        mode = vrc.VRFSystemCommunicator.Mode.Cooling if is_s else vrc.VRFSystemCommunicator.Mode.Heating
+        dir = vrc.VRFSystemCommunicator.Direction.Horizontal if is_s else vrc.VRFSystemCommunicator.Direction.Vertical
+        sp = 26 if is_s else 22
 
         # When the HVAC changed to operating hours
         if(not(is_hvac_time(last_dt)) and is_hvac_time(dt)):
@@ -50,7 +50,7 @@ def main():
                     print('success' if rslt[0] else 'failed: ' + rslt[1])
 
                     print('Changing fanspeed of ' + v_name + ' to Middle...',end='')
-                    rslt = vrCom.change_fan_speed(i+1,j+1,vrc.VRFCommunicator.FanSpeed.Middle)
+                    rslt = vrCom.change_fan_speed(i+1,j+1,vrc.VRFSystemCommunicator.FanSpeed.Middle)
                     print('success' if rslt[0] else 'failed: ' + rslt[1])
 
                     print('Changing direction of ' + v_name + ' to ' + str(dir) + '...',end='')

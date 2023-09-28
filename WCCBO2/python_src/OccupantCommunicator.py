@@ -50,7 +50,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
 # endregion
 
-# region コンストラクタ他
+# region コンストラクタ
 
     def __init__(self, id, name='occComm', target_ip='127.0.0.1', time_out_sec=1.0):
         """インスタンスを初期化する
@@ -65,6 +65,8 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
 # endregion
 
+# region テナント・ゾーン別
+
     def get_occupant_number(self, tenant):
         """在室している執務者数を取得する
         Args:
@@ -74,7 +76,46 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         """
         inst = 'analogInput:' + str(10000 * int(tenant.value) + self._member.OccupantNumber.value)       
         return self.read_present_value(self.target_ip,inst,Integer)
+
+
+    def get_zone_occupant_number(self, tenant, zone_number):
+        """ゾーンに在室している執務者数を取得する
+        Args:
+            tenant (Tenant): テナント
+            zone_number (Unsigned): ゾーン番号
+        Returns:
+            list: 読み取り成功の真偽,ゾーンに在室している執務者数
+        """
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.OccupantNumber.value)       
+        return self.read_present_value(self.target_ip,inst,Integer)
+
+
+    def get_averaged_thermal_sensation(self, tenant, zone_number):
+        """ゾーンに在室している執務者数の平均温冷感を取得する
+        Args:
+            tenant (Tenant): テナント
+            zone_number (Unsigned): ゾーン番号（1~9）
+        Returns:
+            list: 読み取り成功の真偽,平均温冷感
+        """        
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.ThermalSensation.value)
+        return self.read_present_value(self.target_ip,inst,Real)
     
+
+    def get_averaged_clothing_index(self, tenant, zone_number):
+        """ゾーンに在室している執務者数の平均着衣量を取得する
+        Args:
+            tenant (Tenant): テナント
+            zone_number (Unsigned): ゾーン番号（1~9）
+        Returns:
+            list: 読み取り成功の真偽,平均着衣量
+        """        
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.ClothingIndex.value)
+        return self.read_present_value(self.target_ip,inst,Real)
+
+# endregion
+
+# region 執務者別    
 
     def is_occupant_stay_in_office(self, tenant, occupant_index):
         """在室しているか否かを取得する
@@ -84,7 +125,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Returns:
             list(bool,bool): 読み取り成功の真偽,在室しているか否か
         """
-        inst = 'binaryInput:' + str(10000 * int(tenant.value) + 100 * occupant_index + self._member.Availability.value)
+        inst = 'binaryInput:' + str(10000 * int(tenant.value) + 10 * occupant_index + self._member.Availability.value)
         val = self.read_present_value(self.target_ip,inst,Enumerated)
         return val[0], (val[1] == 1)
 
@@ -97,7 +138,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Returns:
             list: 読み取り成功の真偽,温冷感
         """        
-        inst = 'analogInput:' + str(10000 * int(tenant.value) + 100 * occupant_index + self._member.ThermalSensation.value)
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 10 * occupant_index + self._member.ThermalSensation.value)
         return self.read_present_value(self.target_ip,inst,Integer)
 
 
@@ -109,9 +150,10 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Returns:
             list: 読み取り成功の真偽,着衣量
         """        
-        inst = 'analogInput:' + str(10000 * int(tenant.value) + 100 * occupant_index + self._member.ClothingIndex.value)
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 10 * occupant_index + self._member.ClothingIndex.value)
         return self.read_present_value(self.target_ip,inst,Real)
 
+# endregion
 
 def main():
     oCom = OccupantCommunicator(15)

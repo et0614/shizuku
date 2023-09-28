@@ -3,7 +3,7 @@ import PresentValueReadWriter
 from enum import Enum
 from bacpypes.primitivedata import Enumerated, Real, Unsigned
 
-class VRFCommunicator(PresentValueReadWriter.PresentValueReadWriter):
+class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
 # region 定数宣言
 
@@ -499,7 +499,7 @@ class VRFCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 # region サンプル
 
 def main():
-    vrfCom = VRFCommunicator(12)
+    vrfCom = VRFSystemCommunicator(12)
 
     # 起動
     turn_on(vrfCom)
@@ -536,7 +536,7 @@ def turn_on(vrfCom):
             print('success' if rslt[0] else 'failed')
 
             print('change mode...',end='')
-            rslt = vrfCom.change_mode(i+1,j+1,VRFCommunicator.Mode.Cooling)
+            rslt = vrfCom.change_mode(i+1,j+1,VRFSystemCommunicator.Mode.Cooling)
             print('success' if rslt[0] else 'failed')
 
             print('change set point temperature...',end='')
@@ -544,11 +544,11 @@ def turn_on(vrfCom):
             print('success' if rslt[0] else 'failed')
 
             print('change fanspeed...',end='')
-            rslt = vrfCom.change_fan_speed(i+1,j+1,VRFCommunicator.FanSpeed.Middle)
+            rslt = vrfCom.change_fan_speed(i+1,j+1,VRFSystemCommunicator.FanSpeed.Middle)
             print('success' if rslt[0] else 'failed')
 
             print('change direction...',end='')
-            rslt = vrfCom.change_direction(i+1,j+1,VRFCommunicator.Direction.Degree_450)
+            rslt = vrfCom.change_direction(i+1,j+1,VRFSystemCommunicator.Direction.Degree_450)
             print('success' if rslt[0] else 'failed')
 
 if __name__ == "__main__":
