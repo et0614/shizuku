@@ -4,7 +4,7 @@ using System.IO.BACnet.Base;
 namespace Shizuku2.BACnet
 {
   /// <summary>Shizuku2のVRFコントローラとの通信ユーティリティクラス</summary>
-  public class VRFCommunicator : PresentValueReadWriter
+  public class VRFSystemCommunicator : PresentValueReadWriter
   {
 
     #region 定数宣言
@@ -117,7 +117,7 @@ namespace Shizuku2.BACnet
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
     /// <param name="description">通信に使うBACnet Deviceの説明</param>
     /// <param name="ipAddress">VRFコントローラのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
-    public VRFCommunicator(uint id, string name, string ipAddress = "127.0.0.1")
+    public VRFSystemCommunicator(uint id, string name, string ipAddress = "127.0.0.1")
       : base(id, name)
     {
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + VRFCONTROLLER_EXCLUSIVE_PORT.ToString());

@@ -80,7 +80,7 @@ namespace Shizuku2.BACnet
 
     #endregion
 
-    #region インスタンスメソッド
+    #region テナント・ゾーン別
 
     /// <summary>在室している執務者数を取得する</summary>
     /// <param name="tenant">テナント</param>
@@ -93,6 +93,46 @@ namespace Shizuku2.BACnet
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
+    /// <summary>ゾーンに在室している執務者数を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="zoneNumber">ゾーン番号</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>ゾーンに在室している執務者数</returns>
+    public int GetOccupantNumber(Tenant tenant, int zoneNumber, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.OccupantNumber);
+      return ReadPresentValue<int>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    /// <summary>ゾーンに在室している執務者の平均温冷感申告値を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="zoneNumber">ゾーン番号</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>ゾーンに在室している執務者の平均温冷感申告値</returns>
+    public float GetAveragedThermalSensation(Tenant tenant, int zoneNumber, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.ThermalSensation);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    /// <summary>ゾーンに在室している執務者の平均着衣量を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="zoneNumber">ゾーン番号</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>ゾーンに在室している執務者の平均着衣量</returns>
+    public float GetAveragedClothingIndex(Tenant tenant, int zoneNumber, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.ClothingIndex);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    #endregion
+
+    #region 執務者別
+
     /// <summary>在室しているか否かを取得する</summary>
     /// <param name="tenant">テナント</param>
     /// <param name="occupantIndex">執務者番号（1～）</param>
@@ -100,7 +140,7 @@ namespace Shizuku2.BACnet
     /// <returns>在室しているか否か</returns>
     public bool IsOccupantStayInOffice(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)memberNumber.Availability);
+      uint instNum = (uint)(10000 * (int)tenant + 10 * occupantIndex + (int)memberNumber.Availability);
       return 1 == ReadPresentValue<uint>
         (bacAddress, BacnetObjectTypes.OBJECT_BINARY_INPUT, instNum, out succeeded);
     }
@@ -112,7 +152,7 @@ namespace Shizuku2.BACnet
     /// <returns>温冷感</returns>
     public ThermalSensation GetThermalSensation(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)memberNumber.ThermalSensation);
+      uint instNum = (uint)(10000 * (int)tenant + 10 * occupantIndex + (int)memberNumber.ThermalSensation);
       return convertVote(ReadPresentValue<int>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded));
     }
@@ -124,10 +164,14 @@ namespace Shizuku2.BACnet
     /// <returns>着衣量</returns>
     public float GetClothingIndex(Tenant tenant, int occupantIndex, out bool succeeded)
     {
-      uint instNum = (uint)(10000 * (int)tenant + 100 * occupantIndex + (int)memberNumber.ClothingIndex);
+      uint instNum = (uint)(10000 * (int)tenant + 10 * occupantIndex + (int)memberNumber.ClothingIndex);
       return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
+
+    #endregion
+
+    #region privateメソッド
 
     private ThermalSensation convertVote(int vote)
     {

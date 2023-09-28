@@ -3,7 +3,7 @@ using System.IO.BACnet;
 
 namespace Shizuku2.BACnet
 {
-  internal class VentilationController : IBACnetController
+  internal class VentilationSystemController : IBACnetController
   {
 
     //BACnet Object IDは以下のルールで付与
@@ -57,7 +57,7 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public VentilationController(VentilationSystem ventSystem)
+    public VentilationSystemController(VentilationSystem ventSystem)
     {
       this.ventSystem = ventSystem;
 
@@ -106,7 +106,7 @@ namespace Shizuku2.BACnet
           dObject.AddBacnetObject(new MultiStateOutput
            ((int)(bBase + MemberNumber.HexFanSpeed),
            "Fan speed (" + hexName + ")",
-           "This object is used to control or monitor fan speed of " + hexName + ". 1:Low, 2:Middle, 3:High", 3, 3));
+           "This object is used to control or monitor fan speed of " + hexName + ". 1:Low; 2:Middle; 3:High", 3, 3));
         }
       }
 

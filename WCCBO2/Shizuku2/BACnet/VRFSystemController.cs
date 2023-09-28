@@ -6,7 +6,7 @@ using System.IO.BACnet;
 namespace Shizuku2.BACnet
 {
     /// <summary>オリジナルVRFコントローラ</summary>
-    public class VRFController : IBACnetController
+    public class VRFSystemController : IBACnetController
     {
 
         //BACnet Object IDは以下のルールで付与
@@ -98,7 +98,7 @@ namespace Shizuku2.BACnet
 
         #region コンストラクタ
 
-        public VRFController(ExVRFSystem[] vrfs)
+        public VRFSystemController(ExVRFSystem[] vrfs)
         {
             vrfSystems = vrfs;
 
@@ -228,7 +228,7 @@ namespace Shizuku2.BACnet
                     dObject.AddBacnetObject(new MultiStateInput
                       ((int)(bBase + MemberNumber.AirflowDirection_Status),
                       "AirDirectionStatus_" + vrfName.ToString(),
-                      "This object is used to monitor the indoor unit's airflow direction setting. 1: Horizontal; 2: 22.5deg; 3: 45deg; 4: 67.5deg; 5: Vertical", 5, 5, false));
+                      "This object is used to monitor the indoor unit's airflow direction. 1: Horizontal; 2: 22.5deg; 3: 45deg; 4: 67.5deg; 5: Vertical", 5, 5, false));
 
                     dObject.AddBacnetObject(new BinaryValue
                       ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting),

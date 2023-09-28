@@ -84,8 +84,8 @@ namespace ExcelController
 
             //Mode
             string sMode = wSheet.GetRow(line).GetCell(col++).StringCellValue;
-            VRFCommunicator.Mode mode = 
-              sMode == "Cool" ? VRFCommunicator.Mode.Cooling : VRFCommunicator.Mode.Heating;
+            VRFSystemCommunicator.Mode mode = 
+              sMode == "Cool" ? VRFSystemCommunicator.Mode.Cooling : VRFSystemCommunicator.Mode.Heating;
             if (line == 3 || ic.mode[ic.mode.Count - 1].Item2 != mode)
               ic.mode.Add(Tuple.Create(dTime, mode));
 
@@ -96,19 +96,19 @@ namespace ExcelController
 
             //Fan speed
             string sFs = wSheet.GetRow(line).GetCell(col++).StringCellValue;
-            VRFCommunicator.FanSpeed fs = 
-              sFs == "Low" ? VRFCommunicator.FanSpeed.Low : 
-              sFs == "Middle" ? VRFCommunicator.FanSpeed.Middle : VRFCommunicator.FanSpeed.High;
+            VRFSystemCommunicator.FanSpeed fs = 
+              sFs == "Low" ? VRFSystemCommunicator.FanSpeed.Low : 
+              sFs == "Middle" ? VRFSystemCommunicator.FanSpeed.Middle : VRFSystemCommunicator.FanSpeed.High;
             if (line == 3 || ic.fanSpeed[ic.fanSpeed.Count - 1].Item2 != fs)
               ic.fanSpeed.Add(Tuple.Create(dTime, fs));
 
             //Direction
             string sDir = wSheet.GetRow(line).GetCell(col++).StringCellValue;
-            VRFCommunicator.Direction dir = 
-              sDir == "Horizontal" ? VRFCommunicator.Direction.Horizontal :
-              sDir == "22.5deg" ? VRFCommunicator.Direction.Degree_225 :
-              sDir == "45.0deg" ? VRFCommunicator.Direction.Degree_450:
-              sDir == "67.5deg" ? VRFCommunicator.Direction.Degree_675 : VRFCommunicator.Direction.Vertical;
+            VRFSystemCommunicator.Direction dir = 
+              sDir == "Horizontal" ? VRFSystemCommunicator.Direction.Horizontal :
+              sDir == "22.5deg" ? VRFSystemCommunicator.Direction.Degree_225 :
+              sDir == "45.0deg" ? VRFSystemCommunicator.Direction.Degree_450:
+              sDir == "67.5deg" ? VRFSystemCommunicator.Direction.Degree_675 : VRFSystemCommunicator.Direction.Vertical;
             if (line == 3 || ic.direction[ic.direction.Count - 1].Item2 != dir)
               ic.direction.Add(Tuple.Create(dTime, dir));
 
@@ -143,7 +143,7 @@ namespace ExcelController
       Console.WriteLine(" done.");
 
       //コントローラを用意して開始
-      VRFCommunicator vrfCom = new VRFCommunicator(DEVICE_ID, "Excel controller(VRF)");
+      VRFSystemCommunicator vrfCom = new VRFSystemCommunicator(DEVICE_ID, "Excel controller(VRF)");
       VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 1, "Excel controller (Vent)");
       vrfCom.StartService();
       ventCom.StartService();
@@ -365,16 +365,16 @@ namespace ExcelController
       public List<Tuple<DateTime, bool>> onOff = new List<Tuple<DateTime, bool>>();
 
       /// <summary>運転モード</summary>
-      public List<Tuple<DateTime, VRFCommunicator.Mode>> mode = new List<Tuple<DateTime, VRFCommunicator.Mode>>();
+      public List<Tuple<DateTime, VRFSystemCommunicator.Mode>> mode = new List<Tuple<DateTime, VRFSystemCommunicator.Mode>>();
 
       /// <summary>温度設定値</summary>
       public List<Tuple<DateTime, float>> spTemp = new List<Tuple<DateTime, float>>();
 
       /// <summary>ファン風量</summary>
-      public List<Tuple<DateTime, VRFCommunicator.FanSpeed>> fanSpeed = new List<Tuple<DateTime, VRFCommunicator.FanSpeed>>();
+      public List<Tuple<DateTime, VRFSystemCommunicator.FanSpeed>> fanSpeed = new List<Tuple<DateTime, VRFSystemCommunicator.FanSpeed>>();
 
       /// <summary>羽根角度</summary>
-      public List<Tuple<DateTime, VRFCommunicator.Direction>> direction = new List<Tuple<DateTime, VRFCommunicator.Direction>>();
+      public List<Tuple<DateTime, VRFSystemCommunicator.Direction>> direction = new List<Tuple<DateTime, VRFSystemCommunicator.Direction>>();
 
       /// <summary>コントローラ許可</summary>
       public List<Tuple<DateTime, bool>> permitRCtrl = new List<Tuple<DateTime, bool>>();

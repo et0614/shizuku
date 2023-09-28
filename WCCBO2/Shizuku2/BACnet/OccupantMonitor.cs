@@ -2,6 +2,7 @@
 using System.IO.BACnet;
 using Shizuku.Models;
 using Popolo.HumanBody;
+using Popolo.ThermalLoad;
 
 namespace Shizuku2.BACnet
 {
@@ -9,7 +10,8 @@ namespace Shizuku2.BACnet
   {
 
     //BACnet Object IDは以下のルールで付与
-    //10000*テナント番号 + 100*執務者番号 + Member Number
+    //10000*テナント番号 + 1000*ゾーン番号 + Member Number
+    //10000*テナント番号 + 10*執務者番号 + Member Number
     //ただしテナント全体に関わる項目は執務者番号=0とする
 
     #region 定数宣言
@@ -77,10 +79,36 @@ namespace Shizuku2.BACnet
           "Occupant number",
           "Number of occupants stay in office (tenant-" + (i + 1) + ").", 0, BacnetUnitsId.UNITS_NO_UNITS));
 
+        //ゾーン別
+        ImmutableZone[] zones = tenants.Tenants[i].Zones;
+        for (int j = 0; j < zones.Length; j++)
+        {
+          int baseNum = 10000 * (i + 1) + 1000 * (j + 1);
+
+          //在室人数
+          dObject.AddBacnetObject(new AnalogInput<int>
+            (baseNum + (int)MemberNumber.OccupantNumber,
+            "Occupant number_ZN" + (j + 1) + "_TNT" + (i + 1),
+            "Number of occupants stay in zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+
+          //温冷感
+          dObject.AddBacnetObject(new AnalogInput<float>
+            (baseNum + (int)MemberNumber.ThermalSensation,
+            "Ave_T_Sensation_ZN" + (j + 1) + "_TNT" + (i + 1),
+            "Averaged thermal sensation of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+
+          //着衣量
+          dObject.AddBacnetObject(new AnalogInput<float>
+            (baseNum + (int)MemberNumber.ClothingIndex,
+          "Ave_Clo_ZN" + (j + 1) + "_TNT" + (i + 1),
+            "Averaged clothing index of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+        }
+
+        //執務者別
         ImmutableOccupant[] ocs = tenants.Tenants[i].Occupants;
         for (int j = 0; j < ocs.Length; j++)
         {
-          int baseNum = 10000 * (i + 1) + 100 * (j + 1);
+          int baseNum = 10000 * (i + 1) + 10 * (j + 1);
           string name = " (" + ocs[j].FirstName + " " + ocs[j].LastName + ")";
 
           //在不在
@@ -158,10 +186,49 @@ namespace Shizuku2.BACnet
         boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber));
         ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (int)tenants.Tenants[i].StayWorkerNumber;
 
+        //ゾーン別
+        ImmutableZone[] zones = tenants.Tenants[i].Zones;
+        for (int j = 0; j < zones.Length; j++)
+        {
+          baseNum = 10000 * (i + 1) + 1000 * (j + 1);
+
+          ImmutableOccupant[] ocs2 = tenants.Tenants[i].GetOccupants(zones[j]);
+          int number = 0;
+          double ths = 0;
+          double clo = 0;
+          for (int k = 0; k < ocs2.Length; k++)
+          {
+            if (ocs2[k].Worker.StayInOffice)
+            {
+              number++;
+              ths += convertVote(ocs2[k].OCModel.Vote);
+              clo += ocs2[k].CloValue;
+            }
+          }
+          if (number != 0)
+          {
+            ths /= number;
+            clo /= number;
+          }
+
+          //在室人数
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber));
+          ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = number;
+
+          //温冷感
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ths;
+
+          //着衣量
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)clo;
+        }
+
+        //執務者別
         ImmutableOccupant[] ocs = tenants.Tenants[i].Occupants;
         for (int j = 0; j < ocs.Length; j++)
         {
-          baseNum = 10000 * (i + 1) + 100 * (j + 1);
+          baseNum = 10000 * (i + 1) + 10 * (j + 1);
 
           //在不在
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(baseNum + MemberNumber.Availability));

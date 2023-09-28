@@ -120,7 +120,7 @@ namespace Shizuku2
     private static OccupantMonitor ocMntr;
 
     /// <summary>換気システムコントローラ</summary>
-    private static VentilationController ventCtrl;
+    private static VentilationSystemController ventCtrl;
 
     /// <summary>VRFスケジューラ</summary>
     private static IBACnetController? vrfSchedl;
@@ -195,7 +195,7 @@ namespace Shizuku2
       switch (initSettings["controller"])
       {
         case 0:
-          vrfCtrl = new VRFController(vrfs);
+          vrfCtrl = new VRFSystemController(vrfs);
           if (initSettings["scheduller"] == 1) vrfSchedl = new VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         case 1:
@@ -213,7 +213,7 @@ namespace Shizuku2
       //その他のBACnet Device      
       envMntr = new EnvironmentMonitor(building, vrfs); //外気モニタ
       ocMntr = new OccupantMonitor(tenants); //執務者モニタ
-      ventCtrl = new VentilationController(ventSystem); //換気システムコントローラ
+      ventCtrl = new VentilationSystemController(ventSystem); //換気システムコントローラ
 
       //BACnet Device起動
       dtCtrl.StartService();
@@ -1018,7 +1018,7 @@ namespace Shizuku2
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
 
         sWriter.WriteLine("VRF Controller");
-        ((VRFController)vrfCtrl).OutputBACnetObjectInfo
+        ((VRFSystemController)vrfCtrl).OutputBACnetObjectInfo
           (out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
@@ -1030,6 +1030,11 @@ namespace Shizuku2
 
         sWriter.WriteLine("Occupant Monitor");
         ocMntr.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        for (int i = 0; i < instances.Length; i++)
+          sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
+
+        sWriter.WriteLine("Ventilation System Controller");
+        ventCtrl.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
       }

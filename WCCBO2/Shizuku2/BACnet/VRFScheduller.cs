@@ -82,7 +82,7 @@ namespace Shizuku2.BACnet
 
                                     //VRF************************
                                     //On/Off
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VRFController.MemberNumber.OnOff_Setting));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VRFSystemController.MemberNumber.OnOff_Setting));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
@@ -90,7 +90,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //Mode
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFController.MemberNumber.OperationMode_Setting));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFSystemController.MemberNumber.OperationMode_Setting));
                                     bool isCooling = 5 <= dtAccl.AcceleratedDateTime.Month && dtAccl.AcceleratedDateTime.Month <= 10;
                                     values = new List<BacnetValue>
                           {
@@ -99,7 +99,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //SP
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + VRFController.MemberNumber.Setpoint_Setting));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + VRFSystemController.MemberNumber.Setpoint_Setting));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, isCooling ? 26f : 22f)
@@ -107,7 +107,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //風量
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFController.MemberNumber.FanSpeed_Setting));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFSystemController.MemberNumber.FanSpeed_Setting));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 2u)  //1:Low, 2:Midddle, 3:High
@@ -115,7 +115,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //角度
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFController.MemberNumber.AirflowDirection_Setting));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VRFSystemController.MemberNumber.AirflowDirection_Setting));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 3u) //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
@@ -124,7 +124,7 @@ namespace Shizuku2.BACnet
 
                                     //HEX************************
                                     //On/Off
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexOnOff));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationSystemController.MemberNumber.HexOnOff));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_ACTIVE)
@@ -132,7 +132,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(hexCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //Bypass
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexBypassEnabled));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationSystemController.MemberNumber.HexBypassEnabled));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
@@ -140,7 +140,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(hexCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //ファン風量
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexFanSpeed));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + VentilationSystemController.MemberNumber.HexFanSpeed));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, 3u)  //1:Low, 2:Midddle, 3:High
@@ -162,7 +162,7 @@ namespace Shizuku2.BACnet
                                     int bBase = 1000 * (oHex + 1) + 100 * (iHex + 1);
 
                                     //VRF On/Off
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VRFController.MemberNumber.OnOff_Setting));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VRFSystemController.MemberNumber.OnOff_Setting));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
@@ -170,7 +170,7 @@ namespace Shizuku2.BACnet
                                     communicator.Client.WritePropertyRequest(vrfCtrlBAdd, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
                                     //HEX On/Off
-                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationController.MemberNumber.HexOnOff));
+                                    boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + VentilationSystemController.MemberNumber.HexOnOff));
                                     values = new List<BacnetValue>
                           {
                     new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, BacnetBinaryPv.BINARY_INACTIVE)
