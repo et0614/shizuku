@@ -24,5 +24,6 @@ while True:
     val = eCom.get_zone_relative_humidity(2,4)
     print('{:.1f}'.format(val[1]) + ' %' if val[0] else ' Failed')
 
+    print('')
     time.sleep(1)
 

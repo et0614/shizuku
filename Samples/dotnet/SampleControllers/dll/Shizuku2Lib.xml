@@ -1,0 +1,837 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Shizuku2Lib</name>
+    </assembly>
+    <members>
+        <member name="T:Shizuku2.BACnet.DummyDeviceCommunicator">
+            <summary>Shizuku2のDummy Deviceとの通信ユーティリティクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DummyDeviceCommunicator.DUMMY_DEVICE_ID">
+            <summary>Device ID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DummyDeviceCommunicator.DUMMY_DEVICE_EXCLUSIVE_PORT">
+            <summary>排他的ポート番号</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DummyDeviceCommunicator.bacAddress">
+            <summary>Dummy DeviceのBACnetアドレス</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.DummyDeviceCommunicator.memberNumber">
+            <summary>項目</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.#ctor(System.UInt32,System.String,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+            <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadAnalogValueInt(System.Boolean@)">
+            <summary>Analog Valueの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Analog Valueの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadAnalogOutputInt(System.Boolean@)">
+            <summary>Analog Outputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Analog Outputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadAnalogInputInt(System.Boolean@)">
+            <summary>Analog Inputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Analog Inputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadAnalogValueReal(System.Boolean@)">
+            <summary>Analog Valueの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Analog Valueの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadAnalogOutputReal(System.Boolean@)">
+            <summary>Analog Outputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Analog Outputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadAnalogInputReal(System.Boolean@)">
+            <summary>Analog Inputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Analog Inputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadBinaryValue(System.Boolean@)">
+            <summary>Binary Valueの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Binary Valueの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadBinaryOutput(System.Boolean@)">
+            <summary>Binary Outputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Binary Outputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadBinaryInput(System.Boolean@)">
+            <summary>Binary Inputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>Binary Inputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadMultiStateValue(System.Boolean@)">
+            <summary>MultiStateValueの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>MultiStateValueの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadMultiStateOutput(System.Boolean@)">
+            <summary>MultiStateOutputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>MultiStateOutputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadMultiStateInput(System.Boolean@)">
+            <summary>MultiStateInputの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>MultiStateInputの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.ReadDateTime(System.Boolean@)">
+            <summary>DateTimeの値を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>DateTimeの値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteAnalogValue(System.Int32,System.Boolean@)">
+            <summary>Analog Valueの値を書き込む</summary>
+            <param name="value">Analog Valueの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteAnalogValue(System.Single,System.Boolean@)">
+            <summary>Analog Valueの値を書き込む</summary>
+            <param name="value">Analog Valueの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteAnalogOutput(System.Int32,System.Boolean@)">
+            <summary>Analog Outputの値を書き込む</summary>
+            <param name="value">Analog Outputの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteAnalogOutput(System.Single,System.Boolean@)">
+            <summary>Analog Outputの値を書き込む</summary>
+            <param name="value">Analog Outputの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteBinaryValue(System.Boolean,System.Boolean@)">
+            <summary>Binary Valueの値を書き込む</summary>
+            <param name="value">Binary Valueの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteBinaryOutput(System.Boolean,System.Boolean@)">
+            <summary>Binary Outputの値を書き込む</summary>
+            <param name="value">Binary Outputの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteMultiStateValue(System.UInt32,System.Boolean@)">
+            <summary>MultiState Valueの値を書き込む</summary>
+            <param name="value">MultiState Valueの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DummyDeviceCommunicator.WriteMultiStateOutput(System.UInt32,System.Boolean@)">
+            <summary>MultiState Outputの値を書き込む</summary>
+            <param name="value">MultiState Outputの値</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="T:Shizuku2.BACnet.EnvironmentCommunicator">
+            <summary>Shizuku2のEnvironmentモニタとの通信ユーティリティクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.ENVIRONMENTMONITOR_DEVICE_ID">
+            <summary>Device ID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.ENVIRONMENTMONITOR_EXCLUSIVE_PORT">
+            <summary>排他的ポート番号</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.bacAddress">
+            <summary>WeatherモニタのBACnetアドレス</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber">
+            <summary>項目</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.DrybulbTemperature">
+            <summary>乾球温度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.RelativeHumdity">
+            <summary>相対湿度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.GlobalHorizontalRadiation">
+            <summary>水平面全天日射</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.NocturnalRadiation">
+            <summary>夜間放射</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.#ctor(System.UInt32,System.String,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+            <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetDrybulbTemperature(System.Boolean@)">
+            <summary>乾球温度[C]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>乾球温度[C]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetRelativeHumidity(System.Boolean@)">
+            <summary>相対湿度[%]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>相対湿度[%]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetGlobalHorizontalRadiation(System.Boolean@)">
+            <summary>水平面全天日射[W/m2]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>水平面全天日射[W/m2]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetNocturnalRadiation(System.Boolean@)">
+            <summary>夜間放射[W/m2]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>夜間放射[W/m2]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetZoneDrybulbTemperature(System.Int32,System.Int32,System.Boolean@)">
+            <summary>ゾーン（下部空間）の乾球温度[C]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～8）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーン（下部空間）の乾球温度[C]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetZoneRelativeHumidity(System.Int32,System.Int32,System.Boolean@)">
+            <summary>ゾーン（下部空間）の相対湿度[%]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～8）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーン（下部空間）の相対湿度[%]</returns>
+        </member>
+        <member name="T:Shizuku2.BACnet.OccupantCommunicator">
+            <summary>Shizuku2のOccupantモニタとの通信ユーティリティクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.OCCUPANTMONITOR_DEVICE_ID">
+            <summary>Device ID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.OCCUPANTMONITOR_EXCLUSIVE_PORT">
+            <summary>排他的ポート番号</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.bacAddress">
+            <summary>OccupantモニタのBACnetアドレス</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.OccupantCommunicator.memberNumber">
+            <summary>項目</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.OccupantNumber">
+            <summary>執務者の数</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.Availability">
+            <summary>在室状況</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.ThermalSensation">
+            <summary>温冷感</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.ClothingIndex">
+            <summary>着衣量</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.OccupantCommunicator.Tenant">
+            <summary>テナント</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.Tenant.South">
+            <summary>南テナント</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.Tenant.North">
+            <summary>北テナント</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation">
+            <summary>温冷感申告値</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.Cold">
+            <summary>Cold</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.Cool">
+            <summary>Cool</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.SlightlyCool">
+            <summary>Slightly Cool</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.Neutral">
+            <summary>Neutral</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.SlightlyWarm">
+            <summary>Slightly Warm</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.Warm">
+            <summary>Warm</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.ThermalSensation.Hot">
+            <summary>Hot</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.#ctor(System.UInt32,System.String,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+            <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetOccupantNumber(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Boolean@)">
+            <summary>在室している執務者数を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>在室している執務者数</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetOccupantNumber(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>ゾーンに在室している執務者数を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="zoneNumber">ゾーン番号</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーンに在室している執務者数</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetAveragedThermalSensation(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>ゾーンに在室している執務者の平均温冷感申告値を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="zoneNumber">ゾーン番号</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーンに在室している執務者の平均温冷感申告値</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetAveragedClothingIndex(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>ゾーンに在室している執務者の平均着衣量を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="zoneNumber">ゾーン番号</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーンに在室している執務者の平均着衣量</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.IsOccupantStayInOffice(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>在室しているか否かを取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="occupantIndex">執務者番号（1～）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>在室しているか否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetThermalSensation(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>温冷感を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="occupantIndex">執務者番号（1～）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>温冷感</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetClothingIndex(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>着衣量を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="occupantIndex">執務者番号（1～）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>着衣量</returns>
+        </member>
+        <member name="T:Shizuku2.BACnet.PresentValueReadWriter">
+            <summary>BACnet通信でPresent valueを読み書きするクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DATETIMECONTROLLER_DEVICE_ID">
+            <summary>DateTimeコントローラのデバイスID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DATETIMECONTROLLER_EXCLUSIVE_PORT">
+            <summary>DateTimeコントローラの排他的ポート番号</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember">
+            <summary>項目</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.CurrentDateTimeInSimulation">
+            <summary>シミュレーション内の加速された日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.AccerarationRate">
+            <summary>加速度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.BaseRealDateTime">
+            <summary>現実時間の基準日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.BaseAcceleratedDateTime">
+            <summary>シミュレーション内の基準日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.covSubscribed">
+            <summary>COV登録済みか否か</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.communicator">
+            <summary>BACnet通信用オブジェクト</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.dtCtrlIP">
+            <summary>DateTimeコントローラのIPアドレス</summary>
+        </member>
+        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.AccelerationRate">
+            <summary>加速度を取得する</summary>
+        </member>
+        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.BaseRealDateTime">
+            <summary>現実時間の基準日時を取得する</summary>
+        </member>
+        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.BaseAcceleratedDateTime">
+            <summary>シミュレーション内の基準日時を取得する</summary>
+        </member>
+        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.CurrentDateTime">
+            <summary>シミュレーション内の現在日時を取得する</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.#ctor(System.UInt32,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.StartService">
+            <summary>サービスを開始する</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.EndService">
+            <summary>リソースを解放する</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.ReadPresentValue``1(System.IO.BACnet.BacnetAddress,System.IO.BACnet.BacnetObjectTypes,System.UInt32,System.Boolean@)">
+            <summary>PresentValueを読み取る</summary>
+            <typeparam name="T">データの種類</typeparam>
+            <param name="bacAddress">通信相手のBACnetアドレス</param>
+            <param name="boType">BACnetオブジェクトタイプ</param>
+            <param name="instanceNumber">インスタンス番号</param>
+            <param name="succeeded">読み取り成功の真偽</param>
+            <returns>読み取ったPresentValue</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.WritePresentValue(System.IO.BACnet.BacnetAddress,System.IO.BACnet.BacnetObjectTypes,System.UInt32,System.IO.BACnet.BacnetValue,System.Boolean@)">
+            <summary>PresentValueを書き込む</summary>
+            <typeparam name="T">データの種類</typeparam>
+            <param name="bacAddress">通信相手のBACnetアドレス</param>
+            <param name="boType">BACnetオブジェクトタイプ</param>
+            <param name="instanceNumber">インスタンス番号</param>
+            <param name="tag">タグ</param>
+            <param name="val">書き込むPresentValue</param>
+            <param name="succeeded">書き込み成功の真偽</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.SubscribeDateTimeCOV(System.String)">
+            <summary>シミュレーション日時の加速度に関するCOVを登録する</summary>
+            <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
+            <returns>登録成功の真偽</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.updateDateTime(System.Int32,System.Int32)">
+            <summary>日時を更新する</summary>
+            <param name="maxTrial">日時更新の最大試行回数[回]</param>
+            <param name="trialIntervalMSec">試行間の時間間隔[msec]</param>
+        </member>
+        <member name="T:Shizuku2.BACnet.VentilationSystemCommunicator">
+            <summary>Shizuku2のVentilationコントローラとの通信ユーティリティクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.VENTCTRL_DEVICE_ID">
+            <summary>Device ID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.VENTCTRL_EXCLUSIVE_PORT">
+            <summary>排他的ポート番号</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.bacAddress">
+            <summary>WeatherモニタのBACnetアドレス</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber">
+            <summary>項目</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber.SouthCO2Level">
+            <summary>南側CO2濃度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber.NorthCO2Level">
+            <summary>北側CO2濃度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber.HexOnOff">
+            <summary>全熱交換器On/Off</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber.HexBypassEnabled">
+            <summary>全熱交換器バイパス有効無効</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber.HexFanSpeed">
+            <summary>全熱交換器ファン風量</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.VentilationSystemCommunicator.FanSpeed">
+            <summary>ファン風量</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.FanSpeed.Low">
+            <summary>弱</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.FanSpeed.Middle">
+            <summary>中</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VentilationSystemCommunicator.FanSpeed.High">
+            <summary>強</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.#ctor(System.UInt32,System.String,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+            <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.GetSouthTenantCO2Level(System.Boolean@)">
+            <summary>南側テナントのCO2濃度[ppm]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>南側テナントのCO2濃度[ppm]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.GetNorthTenantCO2Level(System.Boolean@)">
+            <summary>北側テナントのCO2濃度[ppm]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>北側テナントのCO2濃度[ppm]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.StartVentilation(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>換気（全熱交換器）を起動する</summary>
+            <param name="oUnitIndex">VRFの室外機番号（1～4）</param>
+            <param name="iUnitIndex">VRFの室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.StopVentilation(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>換気（全熱交換器）を停止する</summary>
+            <param name="oUnitIndex">VRFの室外機番号（1～4）</param>
+            <param name="iUnitIndex">VRFの室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.EnableBypassControl(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>バイパス制御を有効にする</summary>
+            <param name="oUnitIndex">VRFの室外機番号（1～4）</param>
+            <param name="iUnitIndex">VRFの室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.DisableBypassControl(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>バイパス制御を無効にする</summary>
+            <param name="oUnitIndex">VRFの室外機番号（1～4）</param>
+            <param name="iUnitIndex">VRFの室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.ChangeFanSpeed(System.UInt32,System.UInt32,Shizuku2.BACnet.VentilationSystemCommunicator.FanSpeed,System.Boolean@)">
+            <summary>ファン風量を変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="fanSpeed">ファン風量</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.GetFanSpeed(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>ファン風量を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ファン風量</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.getInstanceNumber(System.UInt32,System.UInt32,Shizuku2.BACnet.VentilationSystemCommunicator.memberNumber)">
+            <summary>インスタンス番号を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="member">項目</param>
+            <returns>インスタンス番号</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VentilationSystemCommunicator.isIndexValid(System.UInt32,System.UInt32)">
+            <summary>室内外機の番号が有効か否かを判定する</summary>
+            <param name="oUnitIndex">室外機番号</param>
+            <param name="iUnitIndex">室内機番号</param>
+            <returns>室内外機の番号が有効か否か</returns>
+        </member>
+        <member name="T:Shizuku2.BACnet.VRFSystemCommunicator">
+            <summary>Shizuku2のVRFコントローラとの通信ユーティリティクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.VRFCONTROLLER_DEVICE_ID">
+            <summary>VRFコントローラのデバイスID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.VRFCONTROLLER_EXCLUSIVE_PORT">
+            <summary>VRFコントローラの排他的ポート番号</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.bacAddress">
+            <summary>VRFコントローラのBACnetアドレス</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber">
+            <summary>項目</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.OnOff_Setting">
+            <summary>On/Offの設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.OnOff_Status">
+            <summary>On/Offの状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.OperationMode_Setting">
+            <summary>運転モードの設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.OperationMode_Status">
+            <summary>運転モードの状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.Setpoint_Setting">
+            <summary>室温設定値の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.Setpoint_Status">
+            <summary>室温設定値の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.MeasuredRoomTemperature">
+            <summary>還乾球温度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.MeasuredRelativeHumidity">
+            <summary>還相対湿度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.FanSpeed_Setting">
+            <summary>ファン風量の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.FanSpeed_Status">
+            <summary>ファン風量の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.AirflowDirection_Setting">
+            <summary>風向の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.AirflowDirection_Status">
+            <summary>風量の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.RemoteControllerPermittion_Setpoint_Setting">
+            <summary>手元リモコン操作許可の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.RemoteControllerPermittion_Setpoint_Status">
+            <summary>手元リモコン操作許可の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.ForcedRefrigerantTemperature_Setting">
+            <summary>冷媒温度強制制御の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.ForcedRefrigerantTemperature_Status">
+            <summary>冷媒温度強制制御の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.EvaporatingTemperatureSetpoint_Setting">
+            <summary>冷媒蒸発温度設定値の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.EvaporatingTemperatureSetpoint_Status">
+            <summary>冷媒蒸発温度設定値の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.CondensingTemperatureSetpoint_Setting">
+            <summary>冷媒凝縮温度設定値の設定</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.CondensingTemperatureSetpoint_Status">
+            <summary>冷媒凝縮温度設定値の状態</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.Electricity">
+            <summary>消費電力</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.memberNumber.HeatLoad">
+            <summary>熱負荷</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.VRFSystemCommunicator.Mode">
+            <summary>運転モード</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Mode.Cooling">
+            <summary>冷却</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Mode.Heating">
+            <summary>加熱</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Mode.Fan">
+            <summary>ファンのみ</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.VRFSystemCommunicator.FanSpeed">
+            <summary>ファン風量</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.FanSpeed.Low">
+            <summary>弱</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.FanSpeed.Middle">
+            <summary>中</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.FanSpeed.High">
+            <summary>強い</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.VRFSystemCommunicator.Direction">
+            <summary>風向</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Direction.Horizontal">
+            <summary>水平</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Direction.Degree_225">
+            <summary>22.5度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Direction.Degree_450">
+            <summary>45.0度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Direction.Degree_675">
+            <summary>67.5度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.VRFSystemCommunicator.Direction.Vertical">
+            <summary>垂直</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.#ctor(System.UInt32,System.String,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+            <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.TurnOn(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>室内機を起動する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.TurnOff(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>室内機を停止する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.IsTurnedOn(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>起動しているか否かを取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>起動しているか否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ChangeMode(System.UInt32,System.UInt32,Shizuku2.BACnet.VRFSystemCommunicator.Mode,System.Boolean@)">
+            <summary>運転モードを変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="mode">運転モード</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetMode(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>運転モードを取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>運転モード</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ChangeSetpointTemperature(System.UInt32,System.UInt32,System.Single,System.Boolean@)">
+            <summary>室温設定値[C]を変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="setpointTemperature">室温設定値[C]</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetSetpointTemperature(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>室温設定値[C]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>室温設定値[C]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetReturnAirTemperature(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>還空気の温度[C]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>還空気の温度[C]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetReturnAirRelativeHumidity(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>還空気の相対湿度[%]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>還空気の相対湿度[%]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ChangeFanSpeed(System.UInt32,System.UInt32,Shizuku2.BACnet.VRFSystemCommunicator.FanSpeed,System.Boolean@)">
+            <summary>ファン風量を変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="speed">ファン風量</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetFanSpeed(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>ファン風量を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ファン風量</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ChangeDirection(System.UInt32,System.UInt32,Shizuku2.BACnet.VRFSystemCommunicator.Direction,System.Boolean@)">
+            <summary>風向を変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="direction">風向</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetDirection(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>風向を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>風向</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.PermitLocalControl(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>手元リモコン操作を許可する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ProhibitLocalControl(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>手元リモコン操作を禁止する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.IsLocalControlProhibited(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>手元リモコン操作が許可されているか否か</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>手元リモコン操作が許可されているか否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.EnableRefrigerantTemperatureControl(System.UInt32,System.Boolean@)">
+            <summary>冷媒温度強制制御を有効にする</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.DisableRefrigerantTemperatureControl(System.UInt32,System.Boolean@)">
+            <summary>冷媒温度強制制御を無効にする</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.IsRefrigerantTemperatureControlEnabled(System.UInt32,System.Boolean@)">
+            <summary>冷媒温度強制制御が有効か否かを取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>冷媒温度強制制御が有効か否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ChangeEvaporatingTemperature(System.UInt32,System.Single,System.Boolean@)">
+            <summary>蒸発温度設定値[C]を変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="evaporatingTemperature">蒸発温度設定値[C]</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetEvaporatingTemperature(System.UInt32,System.Boolean@)">
+            <summary>蒸発温度設定値[C]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>蒸発温度設定値[C]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.ChangeCondensingTemperature(System.UInt32,System.Single,System.Boolean@)">
+            <summary>凝縮温度設定値[C]を変える</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="condensingTemperature">凝縮温度設定値[C]</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetCondensingTemperature(System.UInt32,System.Boolean@)">
+            <summary>凝縮温度設定値[C]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>凝縮温度設定値[C]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetElectricity(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>室内機の消費電力[kW]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>室内機の消費電力[kW]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetElectricity(System.UInt32,System.Boolean@)">
+            <summary>室外機の消費電力[kW]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>室外機の消費電力[kW]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetHeatLoad(System.UInt32,System.UInt32,System.Boolean@)">
+            <summary>室内機の熱負荷[kW]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>室内機の熱負荷[kW]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetHeatLoad(System.UInt32,System.Boolean@)">
+            <summary>室外機の熱負荷[kW]を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>室外機の熱負荷[kW]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.getInstanceNumber(System.UInt32,System.UInt32,Shizuku2.BACnet.VRFSystemCommunicator.memberNumber)">
+            <summary>インスタンス番号を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
+            <param name="member">項目</param>
+            <returns>インスタンス番号</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.getInstanceNumber(System.UInt32,Shizuku2.BACnet.VRFSystemCommunicator.memberNumber)">
+            <summary>インスタンス番号を取得する</summary>
+            <param name="oUnitIndex">室外機番号（1～4）</param>
+            <param name="member">項目</param>
+            <returns>インスタンス番号</returns>
+            <exception cref="T:System.Exception"></exception>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.isIndexValid(System.UInt32,System.UInt32)">
+            <summary>室内外機の番号が有効か否かを判定する</summary>
+            <param name="oUnitIndex">室外機番号</param>
+            <param name="iUnitIndex">室内機番号</param>
+            <returns>室内外機の番号が有効か否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.isIndexValid(System.UInt32)">
+            <summary>室外機の番号が有効か否かを判定する</summary>
+            <param name="oUnitIndex">室外機番号</param>
+            <returns>室外機の番号が有効か否か</returns>
+        </member>
+    </members>
+</doc>

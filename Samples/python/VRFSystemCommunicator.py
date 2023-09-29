@@ -346,7 +346,7 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         else:
             return self.write_present_value(self.target_ip,inst,Enumerated(0))
 
-    def is_turned_on(self, oUnitIndex, iUnitIndex):
+    def is_local_control_permitted(self, oUnitIndex, iUnitIndex):
         """手元リモコン操作が許可されているか否か
         Args:
             oUnitIndex (int): 室外機番号（1～4）

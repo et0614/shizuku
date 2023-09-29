@@ -71,7 +71,7 @@ namespace Shizuku2.BACnet
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="id">通信に使うBACnet DeviceのID</param>
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
-    public PresentValueReadWriter(uint id, string name)
+    public PresentValueReadWriter(uint id, string name = "anonymous device")
     {
       DeviceObject dObject = new DeviceObject(id, name, name, true);
       communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));

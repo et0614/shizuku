@@ -32,5 +32,6 @@ while True:
     val = oCom.get_clothing_index(occ.OccupantCommunicator.Tenant.South, 3)
     print('{:.2f}'.format(val[1]) + ' Clo' if val[0] else ' Failed')
 
+    print('')
     time.sleep(1)
 

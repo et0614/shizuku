@@ -53,7 +53,7 @@ def main():
                     rslt = vrCom.change_fan_speed(i+1,j+1,vrc.VRFSystemCommunicator.FanSpeed.Middle)
                     print('success' if rslt[0] else 'failed: ' + rslt[1])
 
-                    print('Changing direction of ' + v_name + ' to ' + str(dir) + '...',end='')
+                    print('Changing air flow direction of ' + v_name + ' to ' + str(dir) + '...',end='')
                     rslt = vrCom.change_direction(i+1,j+1,dir)
                     print('success' if rslt[0] else 'failed: ' + rslt[1])
 

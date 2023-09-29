@@ -42,8 +42,8 @@ namespace Shizuku2.BACnet
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="id">通信に使うBACnet DeviceのID</param>
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
-    /// <param name="ipAddress">EnvironmentモニタのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
-    public EnvironmentCommunicator(uint id, string name, string ipAddress = "127.0.0.1")
+    /// <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+    public EnvironmentCommunicator(uint id, string name = "anoymous device", string ipAddress = "127.0.0.1")
       : base(id, name)
     {
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + ENVIRONMENTMONITOR_EXCLUSIVE_PORT.ToString());
