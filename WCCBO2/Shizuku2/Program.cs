@@ -10,6 +10,7 @@ using Shizuku.Models;
 using Popolo.Numerics;
 using Popolo.ThermophysicalProperty;
 using Shizuku2.BACnet;
+using System.Text;
 
 namespace Shizuku2
 {
@@ -42,13 +43,13 @@ namespace Shizuku2
     private const int V_MAJOR = 0;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 5;
+    private const int V_MINOR = 6;
 
     /// <summary>バージョン（リビジョン）</summary>
     private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.09.11";
+    private const string V_DATE = "2023.09.29";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -243,6 +244,9 @@ namespace Shizuku2
       dtCtrl.Communicator.Client.WritePropertyRequest(
         new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString()),
         boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
+
+      //DEBUG
+      //saveScore();
 
       bool finished = false;
       try
@@ -934,22 +938,28 @@ namespace Shizuku2
     /// <summary>スコアを暗号化して保存する</summary>
     private static void saveScore()
     {
+      StringBuilder sBuilder = new StringBuilder();
+      sBuilder.AppendLine("Energy consumption[GJ]:" + totalEnergyConsumption);
+      sBuilder.AppendLine("Average dissatisfied rate[-]:" + averagedDissatisfactionRate);
+      sBuilder.AppendLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
+      foreach(string ky in  initSettings.Keys)
+        sBuilder.AppendLine(ky + ":" + initSettings[ky]);
+      string oText = sBuilder.ToString();
+
       //テキストデータの書き出し********************************
       using (StreamWriter sWriter = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "result.txt"))
       {
-        sWriter.WriteLine("Period:" + (initSettings["period"] == 0 ? "Summer" : "Winter"));
-        sWriter.WriteLine("Energy consumption[GJ]:" + totalEnergyConsumption);
-        sWriter.WriteLine("Average dissatisfied rate[-]:" + averagedDissatisfactionRate);
-        sWriter.WriteLine("User ID:" + initSettings["userid"]);
-        sWriter.WriteLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
+        sWriter.Write(oText);
       }
 
       //暗号化ファイルの書き出し********************************
       //32byteの秘密鍵を生成（固定）
-      MersenneTwister rnd1 = new MersenneTwister(19800614);
-      byte[] key = new byte[32];
-      for (int i = 0; i < key.Length; i++)
-        key[i] = (byte)Math.Ceiling(rnd1.NextDouble() * 256);
+      //MersenneTwister rnd1 = new MersenneTwister(19800614);
+      //byte[] key = new byte[32];
+      //for (int i = 0; i < key.Length; i++)
+      //  key[i] = (byte)Math.Ceiling(rnd1.NextDouble() * 256);
+      //これを開催前に書き換え
+      byte[] key = StringToBytes("401D78C6A96F5BF21AA5084052FEAFA8499EB5B4F4182A62CD2CCC4FD3E38FB8");
 
       //12byteのランダムなナンスを生成
       MersenneTwister rnd2 = new MersenneTwister((uint)DateTime.Now.Millisecond);
@@ -961,33 +971,15 @@ namespace Shizuku2
       ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
 
       //暗号化
-      byte[][] data = new byte[][]
-      {
-        BitConverter.GetBytes(initSettings["period"]), //季節
-        BitConverter.GetBytes(totalEnergyConsumption), //エネルギー消費
-        BitConverter.GetBytes(averagedDissatisfactionRate), //平均不満足者率
-        BitConverter.GetBytes(initSettings["userid"]), //ユーザーID
-        BitConverter.GetBytes(V_MAJOR), //メジャーバージョン
-        BitConverter.GetBytes(V_MINOR), //マイナーバージョン
-        BitConverter.GetBytes(V_REVISION) //リビジョン
-      };
-      int tBytes = 0;
-      for (int i = 0; i < data.Length; i++) tBytes += data[i].Length;
-      byte[] message = new byte[tBytes];
-      tBytes = 0;
-      for (int i = 0; i < data.Length; i++)
-      {
-        Array.Copy(data[i], 0, message, tBytes, data[i].Length);
-        tBytes += data[i].Length;
-      }
+      byte[] message = Encoding.UTF8.GetBytes(oText);
 
       byte[] cipherText = new byte[message.Length];
       byte[] tag = new byte[16];
       cha2.Encrypt(nonce, message, cipherText, tag);
       List<byte> oBytes = new List<byte>();
       for (int i = 0; i < nonce.Length; i++) oBytes.Add(nonce[i]);
-      for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
       for (int i = 0; i < cipherText.Length; i++) oBytes.Add(cipherText[i]);
+      for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
 
       string path = OUTPUT_DIR + Path.DirectorySeparatorChar + RESULT_FILE;
       if (File.Exists(path)) File.Delete(path);
@@ -995,6 +987,15 @@ namespace Shizuku2
       {
         fWriter.Write(oBytes.ToArray());
       }
+    }
+
+    // 16進数文字列 => Byte配列
+    private static byte[] StringToBytes(string str)
+    {
+      var bs = new List<byte>();
+      for (int i = 0; i < str.Length / 2; i++)
+        bs.Add(Convert.ToByte(str.Substring(i * 2, 2), 16));
+      return bs.ToArray();
     }
 
     private static void saveBACnetDeviceInfo()
