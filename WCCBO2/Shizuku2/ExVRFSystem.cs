@@ -27,23 +27,23 @@ namespace Shizuku2
 
     public enum Mode
     {
-      ThermoOff,
-      Cooling,
-      Heating,
-      Auto,
-      Dry,
-      ShutOff
+      ShutOff = 0,
+      ThermoOff = 1,
+      Cooling = 2,
+      Heating = 3,
+      Auto = 4,
+      Dry = 5
     }
 
     /// <summary>ファン風量</summary>
     public enum FanSpeed
     {
       /// <summary>弱</summary>
-      Low,
+      Low = 0,
       /// <summary>中</summary>
-      Middle,
+      Middle = 1,
       /// <summary>強</summary>
-      High
+      High = 2
     }
 
     #endregion

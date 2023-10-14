@@ -14,7 +14,8 @@ using System.Text;
 
 namespace Shizuku2
 {
-    internal class Program
+
+  internal class Program
   {
 
     #region 定数宣言
@@ -46,10 +47,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 0;
+    private const int V_REVISION = 1;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.10.12";
+    private const string V_DATE = "2023.10.14";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -85,7 +86,7 @@ namespace Shizuku2
     /// <summary>計算が遅れているか否か</summary>
     private static bool isDelayed = false;
 
-    /// <summary>平均不満足率（温冷感+ドラフト）</summary>
+    /// <summary>平均不満足率（温冷感+ドラフト+上下温度+CO2）</summary>
     private static double averagedDissatisfactionRate = 0.0;
 
     /// <summary>温冷感による不満足率[-]</summary>
@@ -156,8 +157,8 @@ namespace Shizuku2
       ventSystem = new VentilationSystem(building);
 
       //気象データを生成
-      int wSd = (initSettings["use_rsw"] == 1) ? initSettings["rseed_w"] : DateTime.Now.Millisecond;
-      WeatherLoader wetLoader = new WeatherLoader((uint)wSd,
+      if (initSettings["use_rsw"] == 0) initSettings["rseed_w"] = DateTime.Now.Millisecond;
+      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["use_rsw"],
         initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
         initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
         initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
@@ -174,10 +175,9 @@ namespace Shizuku2
 
       //テナントを生成//生成と行動で乱数シードを分ける
       tenants = new TenantList((uint)initSettings["rseed_oprm"], building, vrfs);
-      if (initSettings["use_rso"] == 1)
-        tenants.ResetRandomSeed((uint)initSettings["rseed_obhv"]);
-      else
-        tenants.ResetRandomSeed((uint)DateTime.Now.Millisecond);
+      if (initSettings["use_rso"] == 0)
+        initSettings["rseed_obhv"] = DateTime.Now.Millisecond;
+      tenants.ResetRandomSeed((uint)initSettings["rseed_obhv"]);
       tenants.OutputOccupantsInfo("occupants.csv");
 
       //日時コントローラを用意して助走計算
@@ -235,7 +235,7 @@ namespace Shizuku2
       while ((key = Console.Read()) != -1)
         if ((char)key == (char)ConsoleKey.Enter) break;
 
-      //コントローラが接続されたら加速開始:BACnetで送信してCOV eventを発生させる
+      //加速開始:BACnetで送信してCOV eventを発生させる
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
       dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //基準現在時刻を更新
       BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.Acceleration);
@@ -275,10 +275,12 @@ namespace Shizuku2
         });
 
         //メイン処理
-        run(wetLoader, sun);
+        StringBuilder summary = new StringBuilder();
+        updateSummary(summary, true);
+        run(wetLoader, sun, ref summary);
         finished = true;
         //結果書き出し
-        saveScore();
+        saveScore(summary);
 
         Console.WriteLine("Emulation finished. Press any key to exit.");
         Console.ReadLine();
@@ -301,7 +303,7 @@ namespace Shizuku2
     /// <summary>期間計算を実行する</summary>
     /// <param name="wetLoader">気象データ</param>
     /// <param name="sun">太陽</param>
-    private static void run(WeatherLoader wetLoader, Sun sun)
+    private static void run(WeatherLoader wetLoader, Sun sun, ref StringBuilder summary)
     {
       DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
       DateTime nextOutput = dtCtrl.CurrentDateTime;
@@ -391,6 +393,7 @@ namespace Shizuku2
             //書き出し
             if (nextOutput <= building.CurrentDateTime)
             {
+              updateSummary(summary, false);
               outputStatus(swGen, swZone, swVRF, swVent, swOcc, false);
               nextOutput = building.CurrentDateTime.AddSeconds(initSettings["outputSpan"]);
             }
@@ -477,32 +480,17 @@ namespace Shizuku2
       }
     }
 
-    /// <summary>デバッグ用高速熱負荷計算用の境界条件を設定する</summary>
-    private static void setDebugBoundary()
-    {
-      bool isSummer = 5 <= building.CurrentDateTime.Month && building.CurrentDateTime.Month <= 10;
-      for (int i = 0; i < 2; i++)
-      {
-        for (int j = 0; j < 18; j++)
-        {
-          if (building.CurrentDateTime.Hour < 8 || 20 < building.CurrentDateTime.Hour)
-          {
-            building.ControlHeatSupply(i, j, 0);
-            building.ControlWaterSupply(i, j, 0);
-          }
-          else
-          {
-            building.ControlDrybulbTemperature(i, j, isSummer ? 26 : 22);
-            building.ControlHumidityRatio(i, j, isSummer ? 0.0105 : 0.0065);
-          }
-        }
-      }
-    }
-
     #endregion
 
-    #region 書き出し処理
+    #region 書き出し関連の処理
 
+    /// <summary>途中経過をCSVファイルに書き出す</summary>
+    /// <param name="swGen">一般情報</param>
+    /// <param name="swZone">ゾーンに関わる情報</param>
+    /// <param name="swVRF">VRFに関わる情報</param>
+    /// <param name="swVent">換気システムに関わる情報</param>
+    /// <param name="swOcc">執務者に関わる情報</param>
+    /// <param name="isTitleLine">タイトル行か否か</param>
     private static void outputStatus(
       StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
     {
@@ -568,8 +556,8 @@ namespace Shizuku2
               name + " Supply humidity [g/kg]" +
               name + " Airflow rate [kg/s]" +
               name + " Setpoint temperature (cooling) [C]" +
-              name + " Setpoint temperature (heating) [C]" +
-              name + " Low blow rate[-]"
+              name + " Setpoint temperature (heating) [C]"// +
+              //name + " Low blow rate[-]"
               );
           }
         }
@@ -588,14 +576,14 @@ namespace Shizuku2
         for (int i = 0; i < tenants.Tenants.Length; i++)
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
             swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Thermal sensation [-]");
-        //上昇要求
+        /*//上昇要求
         for (int i = 0; i < tenants.Tenants.Length; i++)
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
             swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Raise request [-]");
         //下降要求
         for (int i = 0; i < tenants.Tenants.Length; i++)
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
-            swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Lower request [-]");
+            swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Lower request [-]");*/
         swOcc.WriteLine();
       }
 
@@ -669,8 +657,8 @@ namespace Shizuku2
             "," + (1000 * vrfs[i].VRFSystem.IndoorUnits[j].OutletAirHumidityRatio).ToString("F2") +
             "," + vrfs[i].VRFSystem.IndoorUnits[j].AirFlowRate.ToString("F3") +
             "," + vrfs[i].GetSetpoint(j, true).ToString("F0") +
-            "," + vrfs[i].GetSetpoint(j, false).ToString("F0") +
-            "," + vrfs[i].LowZoneBlowRate[j].ToString("F3")
+            "," + vrfs[i].GetSetpoint(j, false).ToString("F0")// +
+            //"," + vrfs[i].LowZoneBlowRate[j].ToString("F3")
             );
         }
       }
@@ -697,7 +685,7 @@ namespace Shizuku2
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
           swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
             ((int)tenants.Tenants[i].Occupants[j].OCModel.Vote).ToString("F0") : ""));
-      //上昇要求
+      /*//上昇要求
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
           swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
@@ -706,28 +694,129 @@ namespace Shizuku2
       for (int i = 0; i < tenants.Tenants.Length; i++)
         for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
           swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
-            (tenants.Tenants[i].Occupants[j].TryToLowerTemperatureSP ? "1" : "0") : ""));
+            (tenants.Tenants[i].Occupants[j].TryToLowerTemperatureSP ? "1" : "0") : ""));*/
       swOcc.WriteLine();
     }
 
-    #endregion
-
-    #region 加湿設定
-
-    /// <summary>加湿する時間帯か否かを取得する</summary>
-    /// <returns>加湿する時間帯か否か</returns>
-    private static bool isHumidifyTime()
+    /// <summary>書き出し用の運転概要文字列を更新する</summary>
+    /// <param name="sBuilder">運転概要文字列</param>
+    /// <param name="isTitleLine">タイトル行か否か</param>
+    private static void updateSummary(StringBuilder sBuilder, bool isTitleLine)
     {
-      return initSettings["period"] == 1 && !(
-        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Saturday |
-        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Sunday |
-        dtCtrl.CurrentDateTime.Hour < HUMID_START |
-        HUMID_END <= dtCtrl.CurrentDateTime.Hour);
+      if (isTitleLine)
+      {
+        sBuilder.Append("date,time,energy,disr");
+        for (int i = 0; i < vrfs.Length; i++)
+        {
+          string oN = "VRF" + (i + 1);
+          sBuilder.Append("," + oN + " evp temp," + oN + "cnd temp");
+          for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
+          {
+            string iN = oN + "-" + (j + 1);
+            string hN = "HEX" + (i + 1) + "-" + (j + 1);
+            sBuilder.Append("," + iN + " mode," + iN + " sp," + iN + " fan spd," + iN + " af dirc," + iN + " rmt ctrl," + hN + " fan spd," + hN + " byps");
+          }
+        }
+        sBuilder.AppendLine();
+      }
+      else
+      {
+        bool isCooling = building.CurrentDateTime.Month == 7;
+        sBuilder.Append(
+          building.CurrentDateTime.ToString("yyyy/MM/dd") + "," + 
+          building.CurrentDateTime.ToString("HH:mm:ss") + "," +
+          instantaneousEnergyConsumption + "," +
+          averagedDissatisfactionRate
+          );
+        for (int i = 0; i < vrfs.Length; i++)
+        {
+          sBuilder.Append("," + vrfs[i].VRFSystem.TargetEvaporatingTemperature.ToString("F2") + "," + vrfs[i].VRFSystem.TargetCondensingTemperature.ToString("F2"));
+          for (int j = 0; j < vrfs[i].VRFSystem.IndoorUnitNumber; j++)
+            sBuilder.Append(
+              "," + (int)vrfs[i].IndoorUnitModes[j] +
+              "," + vrfs[i].GetSetpoint(j, isCooling).ToString("F1") +
+              "," + (int)vrfs[i].FanSpeeds[j] +
+              "," + (vrfs[i].Direction[j] * 180d / Math.PI).ToString("F1") +
+              "," + (vrfs[i].PermitSPControl[j] ? 1 : 0) +
+              "," + (int)ventSystem.GetFanSpeed((uint)i, (uint)j) +
+              "," + (ventSystem.IsBypassControlEnabled((uint)i, (uint)j) ? 1 : 0)
+              );
+        }
+        sBuilder.AppendLine();
+      }
+    }
+
+    /// <summary>スコアを暗号化して保存する</summary>
+    private static void saveScore(StringBuilder summary)
+    {
+      StringBuilder sBuilder = new StringBuilder();
+      sBuilder.AppendLine("Energy consumption[GJ]:" + totalEnergyConsumption);
+      sBuilder.AppendLine("Average dissatisfied rate[-]:" + averagedDissatisfactionRate);
+      sBuilder.AppendLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
+      foreach (string ky in initSettings.Keys)
+        sBuilder.AppendLine(ky + ":" + initSettings[ky]);
+
+      //テキストデータの書き出し********************************
+      using (StreamWriter sWriter = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "result.txt"))
+      {
+        sWriter.Write(sBuilder);
+      }
+
+      //暗号化ファイルに付加する情報
+      sBuilder.AppendLine("Summary:");
+      sBuilder.Append(summary);
+
+      //暗号化ファイルの書き出し********************************
+      //32byteの秘密鍵を生成（固定）
+      //MersenneTwister rnd1 = new MersenneTwister(19800614);
+      //byte[] key = new byte[32];
+      //for (int i = 0; i < key.Length; i++)
+      //  key[i] = (byte)Math.Ceiling(rnd1.NextDouble() * 256);
+      //これを開催前に書き換え
+      byte[] key = StringToBytes("401D78C6A96F5BF21AA5084052FEAFA8499EB5B4F4182A62CD2CCC4FD3E38FB8");
+
+      //12byteのランダムなナンスを生成
+      MersenneTwister rnd2 = new MersenneTwister((uint)DateTime.Now.Millisecond);
+      byte[] nonce = new byte[12];
+      for (int i = 0; i < nonce.Length; i++)
+        nonce[i] = (byte)Math.Ceiling(rnd2.NextDouble() * 256);
+
+      //ChaCha20Poly1305用インスタンスの生成
+      ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
+
+      //暗号化
+      byte[] message = Encoding.UTF8.GetBytes(sBuilder.ToString());
+
+      byte[] cipherText = new byte[message.Length];
+      byte[] tag = new byte[16];
+      cha2.Encrypt(nonce, message, cipherText, tag);
+      List<byte> oBytes = new List<byte>();
+      for (int i = 0; i < nonce.Length; i++) oBytes.Add(nonce[i]);
+      for (int i = 0; i < cipherText.Length; i++) oBytes.Add(cipherText[i]);
+      for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
+
+      string path = OUTPUT_DIR + Path.DirectorySeparatorChar + RESULT_FILE;
+      if (File.Exists(path)) File.Delete(path);
+      using (FileStream fWriter = new FileStream(path, FileMode.Create))
+      {
+        fWriter.Write(oBytes.ToArray());
+      }
+    }
+
+    /// <summary>16進数文字列をByte配列に変換する</summary>
+    /// <param name="str">16進数文字列</param>
+    /// <returns>Byte配列</returns>
+    private static byte[] StringToBytes(string str)
+    {
+      var bs = new List<byte>();
+      for (int i = 0; i < str.Length / 2; i++)
+        bs.Add(Convert.ToByte(str.Substring(i * 2, 2), 16));
+      return bs.ToArray();
     }
 
     #endregion
 
-    #region VRFの制御
+    #region VRFと換気システムの制御
 
     /// <summary>室内機の吸込空気を設定する</summary>
     private static void setVRFInletAir()
@@ -889,6 +978,17 @@ namespace Shizuku2
       }
     }
 
+    /// <summary>加湿する時間帯か否かを取得する</summary>
+    /// <returns>加湿する時間帯か否か</returns>
+    private static bool isHumidifyTime()
+    {
+      return initSettings["period"] == 1 && !(
+        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Saturday |
+        dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Sunday |
+        dtCtrl.CurrentDateTime.Hour < HUMID_START |
+        HUMID_END <= dtCtrl.CurrentDateTime.Hour);
+    }
+
     #endregion
 
     #region 補助関数
@@ -935,69 +1035,7 @@ namespace Shizuku2
       else return false;
     }
 
-    /// <summary>スコアを暗号化して保存する</summary>
-    private static void saveScore()
-    {
-      StringBuilder sBuilder = new StringBuilder();
-      sBuilder.AppendLine("Energy consumption[GJ]:" + totalEnergyConsumption);
-      sBuilder.AppendLine("Average dissatisfied rate[-]:" + averagedDissatisfactionRate);
-      sBuilder.AppendLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
-      foreach(string ky in  initSettings.Keys)
-        sBuilder.AppendLine(ky + ":" + initSettings[ky]);
-      string oText = sBuilder.ToString();
-
-      //テキストデータの書き出し********************************
-      using (StreamWriter sWriter = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "result.txt"))
-      {
-        sWriter.Write(oText);
-      }
-
-      //暗号化ファイルの書き出し********************************
-      //32byteの秘密鍵を生成（固定）
-      //MersenneTwister rnd1 = new MersenneTwister(19800614);
-      //byte[] key = new byte[32];
-      //for (int i = 0; i < key.Length; i++)
-      //  key[i] = (byte)Math.Ceiling(rnd1.NextDouble() * 256);
-      //これを開催前に書き換え
-      byte[] key = StringToBytes("401D78C6A96F5BF21AA5084052FEAFA8499EB5B4F4182A62CD2CCC4FD3E38FB8");
-
-      //12byteのランダムなナンスを生成
-      MersenneTwister rnd2 = new MersenneTwister((uint)DateTime.Now.Millisecond);
-      byte[] nonce = new byte[12];
-      for (int i = 0; i < nonce.Length; i++)
-        nonce[i] = (byte)Math.Ceiling(rnd2.NextDouble() * 256);
-
-      //ChaCha20Poly1305用インスタンスの生成
-      ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
-
-      //暗号化
-      byte[] message = Encoding.UTF8.GetBytes(oText);
-
-      byte[] cipherText = new byte[message.Length];
-      byte[] tag = new byte[16];
-      cha2.Encrypt(nonce, message, cipherText, tag);
-      List<byte> oBytes = new List<byte>();
-      for (int i = 0; i < nonce.Length; i++) oBytes.Add(nonce[i]);
-      for (int i = 0; i < cipherText.Length; i++) oBytes.Add(cipherText[i]);
-      for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
-
-      string path = OUTPUT_DIR + Path.DirectorySeparatorChar + RESULT_FILE;
-      if (File.Exists(path)) File.Delete(path);
-      using (FileStream fWriter = new FileStream(path, FileMode.Create))
-      {
-        fWriter.Write(oBytes.ToArray());
-      }
-    }
-
-    // 16進数文字列 => Byte配列
-    private static byte[] StringToBytes(string str)
-    {
-      var bs = new List<byte>();
-      for (int i = 0; i < str.Length / 2; i++)
-        bs.Add(Convert.ToByte(str.Substring(i * 2, 2), 16));
-      return bs.ToArray();
-    }
-
+    /// <summary>エミュレータ内のBACnet Deviceの情報をCSVで書き出す</summary>
     private static void saveBACnetDeviceInfo()
     {
       Console.Write("Saving BACnet Object Information...");
@@ -1122,7 +1160,29 @@ namespace Shizuku2
 
     #endregion
 
-    #region Debug用
+    #region Debug用の処理
+
+    /// <summary>デバッグ用の高速熱負荷計算用の境界条件を設定する</summary>
+    private static void setDebugBoundary()
+    {
+      bool isSummer = 5 <= building.CurrentDateTime.Month && building.CurrentDateTime.Month <= 10;
+      for (int i = 0; i < 2; i++)
+      {
+        for (int j = 0; j < 18; j++)
+        {
+          if (building.CurrentDateTime.Hour < 8 || 20 < building.CurrentDateTime.Hour)
+          {
+            building.ControlHeatSupply(i, j, 0);
+            building.ControlWaterSupply(i, j, 0);
+          }
+          else
+          {
+            building.ControlDrybulbTemperature(i, j, isSummer ? 26 : 22);
+            building.ControlHumidityRatio(i, j, isSummer ? 0.0105 : 0.0065);
+          }
+        }
+      }
+    }
 
     private static void testBuildingModel()
     {
