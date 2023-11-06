@@ -14,7 +14,6 @@ using System.Text;
 
 namespace Shizuku2
 {
-
   internal class Program
   {
 
@@ -47,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 1;
+    private const int V_REVISION = 2;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.10.14";
+    private const string V_DATE = "2023.11.06";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -158,7 +157,7 @@ namespace Shizuku2
 
       //気象データを生成
       if (initSettings["use_rsw"] == 0) initSettings["rseed_w"] = DateTime.Now.Millisecond;
-      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["use_rsw"],
+      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["rseed_w"],
         initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
         initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
         initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
