@@ -37,6 +37,9 @@ namespace Shizuku.Models
     /// <summary>ゾーンリスト</summary>
     private ImmutableZone[] zones;
 
+    /// <summary>建物内にいる執務者数を取得する</summary>
+    public uint NumberOfOccupantStayInBuilding { get; private set; }
+
     #endregion
 
     #region コンストラクタ
@@ -166,15 +169,16 @@ namespace Shizuku.Models
     /// <param name="stayNumber">建物内執務者数</param>
     /// <param name="aveDissatisfaction_thermal">平均不満足率</param>
     public void GetDissatisfiedInfo(
-      ImmutableBuildingThermalModel bModel, ExVRFSystem[] vrfs, out uint stayNumber, out double aveDissatisfaction_thermal, out double aveDissatisfaction_draft, out double aveDissatisfaction_vTempDif)
+      ImmutableBuildingThermalModel bModel, ExVRFSystem[] vrfs, out double aveDissatisfaction_thermal, out double aveDissatisfaction_draft, out double aveDissatisfaction_vTempDif)
     {
-      stayNumber = tenants[0].StayWorkerNumber + tenants[1].StayWorkerNumber;
+      NumberOfOccupantStayInBuilding = tenants[0].StayWorkerNumber + tenants[1].StayWorkerNumber;
+      //stayNumber = tenants[0].StayWorkerNumber + tenants[1].StayWorkerNumber;
       aveDissatisfaction_thermal = 0;
       aveDissatisfaction_draft = 0;
       aveDissatisfaction_vTempDif = 0;
 
       //執務者0なら計算しない
-      if (stayNumber == 0) return;
+      if (NumberOfOccupantStayInBuilding == 0) return;
 
       //温冷感による不満
       for (int i = 0; i < tenants.Length; i++)
@@ -224,9 +228,9 @@ namespace Shizuku.Models
         }
       }
 
-      aveDissatisfaction_thermal /= stayNumber;
-      aveDissatisfaction_draft /= stayNumber;
-      aveDissatisfaction_vTempDif /= stayNumber;
+      aveDissatisfaction_thermal /= NumberOfOccupantStayInBuilding;
+      aveDissatisfaction_draft /= NumberOfOccupantStayInBuilding;
+      aveDissatisfaction_vTempDif /= NumberOfOccupantStayInBuilding;
     }
 
     /// <summary>ゾーンに滞在する人数を取得する</summary>

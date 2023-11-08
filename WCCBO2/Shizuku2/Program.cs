@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 2;
+    private const int V_REVISION = 3;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.11.06";
+    private const string V_DATE = "2023.11.08";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -258,15 +258,16 @@ namespace Shizuku2
 
           while (!finished)
           {
+            string dis = tenants.NumberOfOccupantStayInBuilding == 0 ?
+            "There are no office workers in the building." :
+            (dissatisfactionRate_thermal.ToString("F4") + " , " +
+            dissatisfactionRate_draft.ToString("F4") + " , " +
+            dissatisfactionRate_vTempDif.ToString("F4") + " , " +
+            ventSystem.DissatisifactionRateFromCO2Level.ToString("F4"));
             Console.WriteLine(
               dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") +
               "  " + totalEnergyConsumption.ToString("F4") + " (" + instantaneousEnergyConsumption.ToString("F4") + ")" +
-              "  " + averagedDissatisfactionRate.ToString("F4") + " (" +
-              dissatisfactionRate_thermal.ToString("F4") + " , " +
-              dissatisfactionRate_draft.ToString("F4") + " , " +
-              dissatisfactionRate_vTempDif.ToString("F4") + " , " +
-              ventSystem.DissatisifactionRateFromCO2Level.ToString("F4") +
-              ")" +
+              "  " + averagedDissatisfactionRate.ToString("F4") + " (" + dis + ")" +
               "  " + (isDelayed ? "DELAYED" : "")
               );
             Thread.Sleep(1000);
@@ -443,9 +444,9 @@ namespace Shizuku2
     private static void updateScore(ref uint totalOccupants) 
     {
       //不満足者率を更新
-      tenants.GetDissatisfiedInfo(building, vrfs, out uint noc, 
+      tenants.GetDissatisfiedInfo(building, vrfs, 
         out dissatisfactionRate_thermal, out dissatisfactionRate_draft, out dissatisfactionRate_vTempDif);
-      uint tNum = noc + totalOccupants;
+      uint tNum = tenants.NumberOfOccupantStayInBuilding + totalOccupants;
       if (tNum != 0)
       {
         double disRate = 1 - 
@@ -453,7 +454,7 @@ namespace Shizuku2
           (1 - dissatisfactionRate_draft) * 
           (1 - dissatisfactionRate_vTempDif) * 
           (1 - ventSystem.DissatisifactionRateFromCO2Level);
-        averagedDissatisfactionRate = (averagedDissatisfactionRate * totalOccupants + disRate * noc) / tNum;
+        averagedDissatisfactionRate = (averagedDissatisfactionRate * totalOccupants + disRate * tenants.NumberOfOccupantStayInBuilding) / tNum;
       }
       totalOccupants = tNum;
 
