@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 3;
+    private const int V_REVISION = 4;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.11.08";
+    private const string V_DATE = "2023.11.20";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -62,6 +62,9 @@ namespace Shizuku2
 
     /// <summary>データ出力ディレクトリ</summary>
     private const string OUTPUT_DIR = "data";
+
+    /// <summary>日時型の文字列変換フォーマット</summary>
+    private const string DT_FORMAT = "yyyy/MM/dd HH:mm:ss";
 
     #endregion
 
@@ -265,7 +268,7 @@ namespace Shizuku2
             dissatisfactionRate_vTempDif.ToString("F4") + " , " +
             ventSystem.DissatisifactionRateFromCO2Level.ToString("F4"));
             Console.WriteLine(
-              dtCtrl.CurrentDateTime.ToString("yyyy/MM/dd HH:mm:ss") +
+              dtCtrl.CurrentDateTime.ToString(DT_FORMAT) +
               "  " + totalEnergyConsumption.ToString("F4") + " (" + instantaneousEnergyConsumption.ToString("F4") + ")" +
               "  " + averagedDissatisfactionRate.ToString("F4") + " (" + dis + ")" +
               "  " + (isDelayed ? "DELAYED" : "")
@@ -755,6 +758,7 @@ namespace Shizuku2
       sBuilder.AppendLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
       foreach (string ky in initSettings.Keys)
         sBuilder.AppendLine(ky + ":" + initSettings[ky]);
+      sBuilder.AppendLine("DateTime:" + DateTime.Now.ToString(DT_FORMAT));
 
       //テキストデータの書き出し********************************
       using (StreamWriter sWriter = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "result.txt"))
