@@ -239,6 +239,7 @@ namespace Shizuku2
       int key;
       while ((key = Console.Read()) != -1)
         if ((char)key == (char)ConsoleKey.Enter) break;
+      Console.ReadLine();
 
       //加速開始:BACnetで送信してCOV eventを発生させる
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
@@ -283,12 +284,12 @@ namespace Shizuku2
         //メイン処理
         StringBuilder summary = new StringBuilder();
         updateSummary(summary, true);
-        run(wetLoader, sun, ref summary);
+        //run(wetLoader, sun, ref summary);
         finished = true;
         //結果書き出し
         saveScore(summary);
 
-        Console.WriteLine("Emulation finished. Press any key to exit.");
+        Console.WriteLine("Emulation finished. Press \"Enter\" key to exit.");
         Console.ReadLine();
       }
       catch (Exception e)
@@ -301,7 +302,7 @@ namespace Shizuku2
 
         Console.WriteLine(e.ToString());
         Console.WriteLine("Emulation aborted. The errors were written out to \"error.log\".");
-        Console.WriteLine("Press any key to exit.");
+        Console.WriteLine("Press \"Enter\" key to exit.");
         Console.ReadLine();
       }
     }
