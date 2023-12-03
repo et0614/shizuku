@@ -284,7 +284,7 @@ namespace Shizuku2
         //メイン処理
         StringBuilder summary = new StringBuilder();
         updateSummary(summary, true);
-        //run(wetLoader, sun, ref summary);
+        run(wetLoader, sun, ref summary);
         finished = true;
         //結果書き出し
         saveScore(summary);
