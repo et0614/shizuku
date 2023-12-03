@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 4;
+    private const int V_REVISION = 5;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.11.20";
+    private const string V_DATE = "2023.12.03";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -72,6 +72,9 @@ namespace Shizuku2
 
     /// <summary>初期設定</summary>
     private static readonly Dictionary<string, int> initSettings = new Dictionary<string, int>();
+
+    /// <summary>パスワード</summary>
+    private static string password;
 
     /// <summary>熱負荷計算モデル</summary>
     private static BuildingThermalModel building;
@@ -758,6 +761,7 @@ namespace Shizuku2
       sBuilder.AppendLine("Version:" + V_MAJOR + "." + V_MINOR + "." + V_REVISION);
       foreach (string ky in initSettings.Keys)
         sBuilder.AppendLine(ky + ":" + initSettings[ky]);
+      sBuilder.AppendLine("userpass:" + password);
       sBuilder.AppendLine("DateTime:" + DateTime.Now.ToString(DT_FORMAT));
 
       //テキストデータの書き出し********************************
@@ -1027,7 +1031,8 @@ namespace Shizuku2
           {
             line = line.Remove(line.IndexOf(';'));
             string[] st = line.Split('=');
-            if (initSettings.ContainsKey(st[0])) 
+            if (st[0] == "userpass") password = st[1];
+            else if (initSettings.ContainsKey(st[0])) 
               initSettings[st[0]] = int.Parse(st[1]);
             else 
               initSettings.Add(st[0], int.Parse(st[1]));
