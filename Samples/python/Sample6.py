@@ -3,7 +3,7 @@ import VRFSystemCommunicator as vrc
 import VentilationSystemCommunicator as vsc
 
 def main():
-    vrCom = vrc.VRFCommunicator(12)
+    vrCom = vrc.VRFSystemCommunicator(12)
     vsCom = vsc.VentilationSystemCommunicator(16)
 
     # Enable current_date_time method
