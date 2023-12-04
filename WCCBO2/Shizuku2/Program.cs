@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 5;
+    private const int V_REVISION = 6;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.12.03";
+    private const string V_DATE = "2023.12.04";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -111,6 +111,18 @@ namespace Shizuku2
 
     /// <summary>瞬時エネルギー消費量[GJ/h]</summary>
     private static double instantaneousEnergyConsumption = 0.0;
+
+    /// <summary>瞬時不満足者率[-]を取得する</summary>
+    public static double InstantaneousDissatisfactionRate
+    {
+      get {
+        return 1 -
+          (1 - dissatisfactionRate_thermal) *
+          (1 - dissatisfactionRate_draft) *
+          (1 - dissatisfactionRate_vTempDif) *
+          (1 - ventSystem.DissatisifactionRateFromCO2Level);
+      }
+    }
 
     #region BACnet Device
 
@@ -453,17 +465,14 @@ namespace Shizuku2
       //不満足者率を更新
       tenants.GetDissatisfiedInfo(building, vrfs, 
         out dissatisfactionRate_thermal, out dissatisfactionRate_draft, out dissatisfactionRate_vTempDif);
-      uint tNum = tenants.NumberOfOccupantStayInBuilding + totalOccupants;
-      if (tNum != 0)
+      if (tenants.NumberOfOccupantStayInBuilding != 0)
       {
-        double disRate = 1 - 
-          (1 - dissatisfactionRate_thermal) * 
-          (1 - dissatisfactionRate_draft) * 
-          (1 - dissatisfactionRate_vTempDif) * 
-          (1 - ventSystem.DissatisifactionRateFromCO2Level);
-        averagedDissatisfactionRate = (averagedDissatisfactionRate * totalOccupants + disRate * tenants.NumberOfOccupantStayInBuilding) / tNum;
+        uint tNum = tenants.NumberOfOccupantStayInBuilding + totalOccupants;
+        averagedDissatisfactionRate = (
+          averagedDissatisfactionRate * totalOccupants + 
+          InstantaneousDissatisfactionRate * tenants.NumberOfOccupantStayInBuilding) / tNum;
+        totalOccupants = tNum;
       }
-      totalOccupants = tNum;
 
       //エネルギー消費関連を更新
       instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_SouthTenant;
@@ -509,7 +518,7 @@ namespace Shizuku2
         swGen.WriteLine(
           ",Outdoor drybulb temperature[C],Outdoor humidity ratio[g/kg],Global horizontal radiation [W/m2]" +
           ",Energy consumption (Total) [GJ],Energy consumption (Current) [GJ/h]" +
-          ",Averaged dissatisfaction[-],Dissatisfaction rate (Thermal comfort)[-],Dissatisfaction rate (Draft)[-],Dissatisfaction rate (Vertical temp. dif)[-],Dissatisfaction rate (CO2 level)[-]");
+          ",Averaged dissatisfaction[-],Dissatisfaction rate (All)[-],Dissatisfaction rate (Thermal comfort)[-],Dissatisfaction rate (Draft)[-],Dissatisfaction rate (Vertical temp. dif)[-],Dissatisfaction rate (CO2 level)[-]");
 
         //ゾーンの情報
         swZone.Write("date,time");
@@ -606,6 +615,7 @@ namespace Shizuku2
         "," + totalEnergyConsumption.ToString("F5") +
         "," + instantaneousEnergyConsumption.ToString("F5") +
         "," + averagedDissatisfactionRate.ToString("F4") +
+        "," + InstantaneousDissatisfactionRate.ToString("F4") + 
         "," + dissatisfactionRate_thermal.ToString("F4") +
         "," + dissatisfactionRate_draft.ToString("F4") +
         "," + dissatisfactionRate_vTempDif.ToString("F4") +
@@ -733,7 +743,7 @@ namespace Shizuku2
           building.CurrentDateTime.ToString("yyyy/MM/dd") + "," + 
           building.CurrentDateTime.ToString("HH:mm:ss") + "," +
           instantaneousEnergyConsumption + "," +
-          averagedDissatisfactionRate
+          InstantaneousDissatisfactionRate
           );
         for (int i = 0; i < vrfs.Length; i++)
         {
