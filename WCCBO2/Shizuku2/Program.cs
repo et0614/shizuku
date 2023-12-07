@@ -1039,15 +1039,18 @@ namespace Shizuku2
         using (StreamReader sReader = new StreamReader(sFile))
         {
           string line;
-          while ((line = sReader.ReadLine()) != null && !line.StartsWith("#"))
+          while ((line = sReader.ReadLine()) != null)
           {
-            line = line.Remove(line.IndexOf(';'));
-            string[] st = line.Split('=');
-            if (st[0] == "userpass") password = st[1];
-            else if (initSettings.ContainsKey(st[0])) 
-              initSettings[st[0]] = int.Parse(st[1]);
-            else 
-              initSettings.Add(st[0], int.Parse(st[1]));
+            if (!line.StartsWith("#") && line != "")
+            {
+              line = line.Remove(line.IndexOf(';'));
+              string[] st = line.Split('=');
+              if (st[0] == "userpass") password = st[1];
+              else if (initSettings.ContainsKey(st[0]))
+                initSettings[st[0]] = int.Parse(st[1]);
+              else
+                initSettings.Add(st[0], int.Parse(st[1]));
+            }
           }
         }
         if (HL_TEST_MODE) initSettings["accelerationRate"] = 1000000;
