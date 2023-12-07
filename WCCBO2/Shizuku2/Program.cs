@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 7;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 6;
+    private const int V_REVISION = 7;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.12.04";
+    private const string V_DATE = "2023.12.07";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -191,10 +191,11 @@ namespace Shizuku2
         new Sun(26.2123, 127.6791, 135);
 
       //テナントを生成//生成と行動で乱数シードを分ける
-      tenants = new TenantList((uint)initSettings["rseed_oprm"], building, vrfs);
+      tenants = new TenantList(1, building, vrfs); //2023.12.07 固定化。誤入力回避用。
+      //tenants = new TenantList((uint)initSettings["rseed_oprm"], building, vrfs);
       if (initSettings["use_rso"] == 0)
-        initSettings["rseed_obhv"] = DateTime.Now.Millisecond;
-      tenants.ResetRandomSeed((uint)initSettings["rseed_obhv"]);
+        initSettings["rseed_o"] = DateTime.Now.Millisecond;
+      tenants.ResetRandomSeed((uint)initSettings["rseed_o"]);
       tenants.OutputOccupantsInfo("occupants.csv");
 
       //日時コントローラを用意して助走計算
