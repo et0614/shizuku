@@ -144,7 +144,7 @@ namespace ExcelController
 
       //コントローラを用意して開始
       VRFSystemCommunicator vrfCom = new VRFSystemCommunicator(DEVICE_ID, "Excel controller(VRF)");
-      VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 1, "Excel controller (Vent)");
+      VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 2, "Excel controller (Vent)");
       vrfCom.StartService();
       ventCom.StartService();
       while (!vrfCom.SubscribeDateTimeCOV()) ; //COV登録が成功するまでは空ループ

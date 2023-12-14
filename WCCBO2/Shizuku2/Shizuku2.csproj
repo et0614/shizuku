@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Copyright>Eisuke Togashi</Copyright>
@@ -17,16 +17,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Resources\Names.txt" />
     <EmbeddedResource Include="Resources\SpecialCharacters.txt" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Popolo" Version="2.3.1.64" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

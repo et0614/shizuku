@@ -43,13 +43,13 @@ namespace Shizuku2
     private const int V_MAJOR = 0;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 7;
+    private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 7;
+    private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.12.07";
+    private const string V_DATE = "2023.12.15";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -196,7 +196,7 @@ namespace Shizuku2
       if (initSettings["use_rso"] == 0)
         initSettings["rseed_o"] = DateTime.Now.Millisecond;
       tenants.ResetRandomSeed((uint)initSettings["rseed_o"]);
-      tenants.OutputOccupantsInfo("occupants.csv");
+      //tenants.OutputOccupantsInfo("occupants.csv");
 
       //日時コントローラを用意して助走計算
       Console.Write("Start precalculation...");
@@ -242,7 +242,7 @@ namespace Shizuku2
       ventCtrl.StartService();
       dummyDv.StartService();
       //BACnet Deviceの情報を書き出す
-      saveBACnetDeviceInfo();
+      //saveBACnetDeviceInfo();
 
       //BACnet controllerの登録を待つ
       Console.WriteLine("Waiting for BACnet controller registration.");
