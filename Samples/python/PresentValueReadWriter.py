@@ -87,7 +87,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
         request = self._make_request(addr, obj_id, True)
 
         iocb = IOCB(request)
-        iocb_id_send=iocb.ioID % 256 #結果のご配信を回避するためIDを一時保存
+        #iocb_id_send=iocb.ioID % 256 #結果の誤配信を回避するためIDを一時保存
         iocb.set_timeout(self.time_out, err=TimeoutError)
         deferred(self.request_io, iocb)
 
@@ -103,10 +103,10 @@ class PresentValueReadWriter(BIPSimpleApplication):
             apdu = iocb.ioResponse
 
             # IDを確認/異なるスレッドのレスポンスが届くことがあるため（参考：https://github.com/JoelBender/bacpypes/issues/333）
-            iocb_id_responce = apdu.apduInvokeID
-            if(iocb_id_responce != iocb_id_send):
-                time.sleep(0.5)
-                return False,'IOCB ID Error'
+            #iocb_id_responce = apdu.apduInvokeID
+            #if(iocb_id_responce != iocb_id_send):
+            #    time.sleep(0.5)
+            #    return False,'IOCB ID Error'
 
             # 型変換して出力
             val = apdu.propertyValue.cast_out(data_type)

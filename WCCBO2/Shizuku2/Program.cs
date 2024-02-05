@@ -3,7 +3,7 @@
 using Popolo.ThermalLoad;
 using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.Weather;
-using System.Security.Cryptography;
+using NSec.Cryptography;
 
 using System.IO.BACnet;
 using Shizuku.Models;
@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 0;
+    private const int V_REVISION = 1;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2023.12.15";
+    private const string V_DATE = "2024.02.05";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -786,6 +786,9 @@ namespace Shizuku2
       sBuilder.AppendLine("Summary:");
       sBuilder.Append(summary);
 
+      //Chacha30poly1305暗号化インスタンス
+      ChaCha20Poly1305 cha2 = new ChaCha20Poly1305();
+
       //暗号化ファイルの書き出し********************************
       //32byteの秘密鍵を生成（固定）
       //MersenneTwister rnd1 = new MersenneTwister(19800614);
@@ -793,7 +796,8 @@ namespace Shizuku2
       //for (int i = 0; i < key.Length; i++)
       //  key[i] = (byte)Math.Ceiling(rnd1.NextDouble() * 256);
       //これを開催前に書き換え
-      byte[] key = StringToBytes("401D78C6A96F5BF21AA5084052FEAFA8499EB5B4F4182A62CD2CCC4FD3E38FB8");
+      byte[] keyByte = StringToBytes("401D78C6A96F5BF21AA5084052FEAFA8499EB5B4F4182A62CD2CCC4FD3E38FB8");
+      Key key = Key.Import(cha2, new Span<byte>(keyByte, 0, keyByte.Length), KeyBlobFormat.RawSymmetricKey);
 
       //12byteのランダムなナンスを生成
       MersenneTwister rnd2 = new MersenneTwister((uint)DateTime.Now.Millisecond);
@@ -801,19 +805,18 @@ namespace Shizuku2
       for (int i = 0; i < nonce.Length; i++)
         nonce[i] = (byte)Math.Ceiling(rnd2.NextDouble() * 256);
 
-      //ChaCha20Poly1305用インスタンスの生成
-      ChaCha20Poly1305 cha2 = new ChaCha20Poly1305(key);
-
       //暗号化
       byte[] message = Encoding.UTF8.GetBytes(sBuilder.ToString());
 
-      byte[] cipherText = new byte[message.Length];
-      byte[] tag = new byte[16];
-      cha2.Encrypt(nonce, message, cipherText, tag);
+      byte[] cipherText = cha2.Encrypt(
+        key,
+        new Span<byte>(nonce, 0, nonce.Length),
+        null,
+        new Span<byte>(message, 0, message.Length));
+
       List<byte> oBytes = new List<byte>();
       for (int i = 0; i < nonce.Length; i++) oBytes.Add(nonce[i]);
       for (int i = 0; i < cipherText.Length; i++) oBytes.Add(cipherText[i]);
-      for (int i = 0; i < tag.Length; i++) oBytes.Add(tag[i]);
 
       string path = OUTPUT_DIR + Path.DirectorySeparatorChar + RESULT_FILE;
       if (File.Exists(path)) File.Delete(path);
