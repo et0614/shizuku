@@ -40,7 +40,7 @@ namespace Sample7
 
             for (int j = 0; j < iUnitNum[i]; j++)
             {
-              VentilationSystemCommunicator.FanSpeed fs = i == 0 ? southFS : northFS;
+              VentilationSystemCommunicator.FanSpeed fs = (i == 0 || i == 1) ? southFS : northFS;
               vsCom.ChangeFanSpeed((uint)(i + 1), (uint)(j + 1), fs, out _);
             }
           }
