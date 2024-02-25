@@ -50,6 +50,9 @@ namespace Shizuku2
 
     #region プロパティ・インスタンス変数
 
+    /// <summary>リセット以降、温度設定値に変更があったか否か</summary>
+    private bool[] spCChanged, spHChanged;
+
     /// <summary>温度設定値[C]</summary>
     private double[] spC, spH;
 
@@ -99,6 +102,8 @@ namespace Shizuku2
       FanSpeeds = new FanSpeed[iuNum];
       spC = new double[iuNum];
       spH = new double[iuNum];
+      spCChanged = new bool[iuNum];
+      spHChanged = new bool[iuNum];
       Direction = new double[iuNum];
       LowZoneBlowRate = new double[iuNum];
       nextControllerbleTime = new DateTime[iuNum];
@@ -281,8 +286,40 @@ namespace Shizuku2
     /// <param name="isCoolingMode">冷却モードか否か</param>
     public void SetSetpoint(double setpoint, int iUnitIndex, bool isCoolingMode)
     {
-      if (isCoolingMode) spC[iUnitIndex] = Math.Max(16, Math.Min(32, setpoint));
-      else spH[iUnitIndex] = Math.Max(16, Math.Min(32, setpoint));
+      if (isCoolingMode)
+      {
+        double newSP = Math.Max(16, Math.Min(32, setpoint));
+        if (spC[iUnitIndex] == newSP) return;
+
+        spCChanged[iUnitIndex] = true;
+        spC[iUnitIndex] = newSP;
+      }
+      else
+      {
+        double newSP = Math.Max(16, Math.Min(32, setpoint));
+        if (spH[iUnitIndex] == newSP) return;
+
+        spHChanged[iUnitIndex] = true;
+        spH[iUnitIndex] = newSP;
+      }
+    }
+
+    /// <summary>設定値が変更されたか否かのフラグを取得する</summary>
+    /// <param name="iUnitIndex">室内機番号</param>
+    /// <param name="isCoolingMode">冷却モードか否か</param>
+    /// <returns></returns>
+    public bool HasSetpointChanged(int iUnitIndex, bool isCoolingMode)
+    {
+      return isCoolingMode ? spCChanged[iUnitIndex] : spHChanged[iUnitIndex];
+    }
+
+    /// <summary>設定値が変更されたか否かのフラグをリセット</summary>
+    /// <param name="iUnitIndex">室内機番号</param>
+    /// <param name="isCoolingMode">冷却モードか否か</param>
+    public void ResetSetpointChangedFlag(int iUnitIndex, bool isCoolingMode)
+    {
+      if (isCoolingMode) spCChanged[iUnitIndex] = false;
+      else spHChanged[iUnitIndex] = false;
     }
 
     /// <summary>給気対象の下部空間の乾球温度[C]を取得する</summary>
