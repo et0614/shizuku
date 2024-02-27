@@ -25,6 +25,12 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         ThermalSensation = 3
         # 着衣量
         ClothingIndex = 4
+        # 熱的な不満足者率
+        Dissatisfied_Thermal = 5
+        # ドラフトによる不満足者率
+        Dissatisfied_Draft = 6
+        # 上下温度分布による不満足者率
+        Dissatisfied_VerticalTemp = 6
 
     class Tenant(Enum):
         # 南テナント
@@ -111,6 +117,39 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list: 読み取り成功の真偽,平均着衣量
         """        
         inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.ClothingIndex.value)
+        return self.read_present_value(self.target_ip,inst,Real)
+    
+    def get_thermally_dissatisfied_rate(self, tenant, zone_number):
+        """ゾーンに在室している執務者の温熱環境に対する不満足者率を取得する
+        Args:
+            tenant (Tenant): テナント
+            zone_number (Unsigned): ゾーン番号（1~9）
+        Returns:
+            list: 読み取り成功の真偽,ゾーンに在室している執務者の温熱環境に対する不満足者率
+        """        
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.Dissatisfied_Thermal.value)
+        return self.read_present_value(self.target_ip,inst,Real)
+    
+    def get_dissatisfied_rate_caused_by_draft(self, tenant, zone_number):
+        """ゾーンに在室している執務者のドラフトに対する不満足者率を取得する
+        Args:
+            tenant (Tenant): テナント
+            zone_number (Unsigned): ゾーン番号（1~9）
+        Returns:
+            list: 読み取り成功の真偽,ゾーンに在室している執務者のドラフトに対する不満足者率
+        """        
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.Dissatisfied_Draft.value)
+        return self.read_present_value(self.target_ip,inst,Real)
+    
+    def get_dissatisfied_rate_caused_by_vertical_temperature_distribution(self, tenant, zone_number):
+        """ゾーンに在室している執務者の上下温度分布に対する不満足者率を取得する
+        Args:
+            tenant (Tenant): テナント
+            zone_number (Unsigned): ゾーン番号（1~9）
+        Returns:
+            list: 読み取り成功の真偽,ゾーンに在室している執務者の上下温度分布に対する不満足者率
+        """        
+        inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.Dissatisfied_VerticalTemp.value)
         return self.read_present_value(self.target_ip,inst,Real)
 
 # endregion

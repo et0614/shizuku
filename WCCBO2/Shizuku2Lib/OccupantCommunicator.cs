@@ -32,7 +32,13 @@ namespace Shizuku2.BACnet
       /// <summary>温冷感</summary>
       ThermalSensation = 3,
       /// <summary>着衣量</summary>
-      ClothingIndex = 4
+      ClothingIndex = 4,
+      /// <summary>熱的な不満足者率</summary>
+      Dissatisfied_Thermal,
+      /// <summary>ドラフトによる不満足者率</summary>
+      Dissatisfied_Draft,
+      /// <summary>上下温度分布による不満足者率</summary>
+      Dissatisfied_VerticalTemp
     }
 
     /// <summary>テナント</summary>
@@ -124,6 +130,42 @@ namespace Shizuku2.BACnet
     public float GetAveragedClothingIndex(Tenant tenant, int zoneNumber, out bool succeeded)
     {
       uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.ClothingIndex);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    /// <summary>ゾーンに在室している執務者の温熱環境に対する不満足者率を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="zoneNumber">ゾーン番号</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>ゾーンに在室している執務者の温熱環境に対する不満足者率</returns>
+    public float GetThermallyDissatisfiedRate(Tenant tenant, int zoneNumber, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.Dissatisfied_Thermal);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    /// <summary>ゾーンに在室している執務者のドラフトに対する不満足者率を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="zoneNumber">ゾーン番号</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>ゾーンに在室している執務者のドラフトに対する不満足者率</returns>
+    public float GetDissatisfiedRateCausedByDraft(Tenant tenant, int zoneNumber, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.Dissatisfied_Draft);
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    /// <summary>ゾーンに在室している執務者の上下温度分布に対する不満足者率を取得する</summary>
+    /// <param name="tenant">テナント</param>
+    /// <param name="zoneNumber">ゾーン番号</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>ゾーンに在室している執務者の上下温度分布に対する不満足者率</returns>
+    public float GetDissatisfiedRateCausedByVerticalTemperatureDistribution(Tenant tenant, int zoneNumber, out bool succeeded)
+    {
+      uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.Dissatisfied_VerticalTemp);
       return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }

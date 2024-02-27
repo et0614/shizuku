@@ -37,6 +37,15 @@ namespace Shizuku.Models
     /// <summary>ゾーンリスト</summary>
     private ImmutableZone[] zones;
 
+    /// <summary>ゾーン別の温冷感による瞬時不満足者率[-]</summary>
+    private double[,] zoneDissatisfactionRate_thermal = new double[2, 9];
+
+    /// <summary>ゾーン別のドラフトによる瞬時不満足者率[-]</summary>
+    private double[,] zoneDissatisfactionRate_draft = new double[2, 9];
+
+    /// <summary>ゾーン別の上下温度分布による瞬時不満足者率[-]</summary>
+    private double[,] zoneDissatisfactionRate_vTempDif = new double[2, 9];
+
     /// <summary>建物内にいる執務者数を取得する</summary>
     public uint NumberOfOccupantStayInBuilding { get; private set; }
 
@@ -185,6 +194,25 @@ namespace Shizuku.Models
         foreach (Occupant oc in tenants[i].Occupants)
           if (oc.Worker.StayInOffice)
             aveDissatisfaction_thermal += oc.OCModel.UncomfortableProbability;
+      //ゾーン別
+      for (int i = 0; i < tenants.Length; i++)
+      {
+        for (int j = 0; j < 9; j++)
+        {
+          zoneDissatisfactionRate_thermal[i, j] = 0;
+          int stOf = 0;
+          ImmutableOccupant[] ocs = tenants[i].GetOccupants(bModel.MultiRoom[i].Zones[j]);
+          foreach (Occupant oc in ocs)
+          {
+            if (oc.Worker.StayInOffice)
+            {
+              stOf++;
+              zoneDissatisfactionRate_thermal[i, j] += oc.OCModel.UncomfortableProbability;
+            }
+          }
+          if (stOf != 0) zoneDissatisfactionRate_thermal[i, j] /= stOf;
+        }
+      }
 
       //上下温度分布による不満
       for (int i = 0; i < 2; i++)
@@ -195,7 +223,9 @@ namespace Shizuku.Models
           double tmpU = bModel.MultiRoom[i].Zones[j + 9].Temperature;
           double dT = Math.Max(0, tmpU - tmpL) / 1.35 * 1.0; //上下空間の距離をもとに足下と頭の高さの温度差を推定
           double pd = Math.Max(0, Math.Min(1, 1.0 / (1 + Math.Exp(5.76 - 0.856 * dT))));
-          aveDissatisfaction_vTempDif += pd * tenants[i].GetStayWorkerNumber(bModel.MultiRoom[i].Zones[j]);
+          uint ocN = tenants[i].GetStayWorkerNumber(bModel.MultiRoom[i].Zones[j]);
+          zoneDissatisfactionRate_vTempDif[i, j] = ocN == 0 ? 0 : pd;
+          aveDissatisfaction_vTempDif += pd * ocN;
         }        
       }
 
@@ -224,6 +254,7 @@ namespace Shizuku.Models
           int iUnt = j < 5 ? j : j - 5;
           if (i == 0) oUnt = j < 5 ? 0 : 1;
           else oUnt = j < 5 ? 2 : 3;
+          zoneDissatisfactionRate_draft[i, j] = (occCold / (double)ocs.Length) * vrfs[oUnt].DissatisfiedRateByJet[iUnt];
           aveDissatisfaction_draft += ocStay * (occCold / (double)ocs.Length) * vrfs[oUnt].DissatisfiedRateByJet[iUnt];
         }
       }
@@ -231,6 +262,33 @@ namespace Shizuku.Models
       aveDissatisfaction_thermal /= NumberOfOccupantStayInBuilding;
       aveDissatisfaction_draft /= NumberOfOccupantStayInBuilding;
       aveDissatisfaction_vTempDif /= NumberOfOccupantStayInBuilding;
+    }
+
+    /// <summary>温冷感による不満足者率を取得する</summary>
+    /// <param name="tenantIndex">テナント番号</param>
+    /// <param name="zoneIndex">ゾーン番号</param>
+    /// <returns>不満足者率</returns>
+    public double GetDissatisfactionRate_thermal(int tenantIndex, int zoneIndex)
+    {
+      return zoneDissatisfactionRate_thermal[tenantIndex, zoneIndex];
+    }
+
+    /// <summary>ドラフトによる不満足者率を取得する</summary>
+    /// <param name="tenantIndex">テナント番号</param>
+    /// <param name="zoneIndex">ゾーン番号</param>
+    /// <returns>不満足者率</returns>
+    public double GetDissatisfactionRate_draft(int tenantIndex, int zoneIndex)
+    {
+      return zoneDissatisfactionRate_draft[tenantIndex, zoneIndex];
+    }
+
+    /// <summary>上下温度分布による不満足者率を取得する</summary>
+    /// <param name="tenantIndex">テナント番号</param>
+    /// <param name="zoneIndex">ゾーン番号</param>
+    /// <returns>不満足者率</returns>
+    public double GetDissatisfactionRate_vTempDif(int tenantIndex, int zoneIndex)
+    {
+      return zoneDissatisfactionRate_vTempDif[tenantIndex, zoneIndex];
     }
 
     /// <summary>ゾーンに滞在する人数を取得する</summary>
@@ -316,6 +374,24 @@ namespace Shizuku.Models
     /// <param name="zone">ゾーン</param>
     /// <returns>ゾーンの潜熱負荷[W]</returns>
     double GetLatentHeat(ImmutableZone zone);
+
+    /// <summary>温冷感による不満足者率を取得する</summary>
+    /// <param name="tenantIndex">テナント番号</param>
+    /// <param name="zoneIndex">ゾーン番号</param>
+    /// <returns>不満足者率</returns>
+    double GetDissatisfactionRate_thermal(int tenantIndex, int zoneIndex);
+
+    /// <summary>ドラフトによる不満足者率を取得する</summary>
+    /// <param name="tenantIndex">テナント番号</param>
+    /// <param name="zoneIndex">ゾーン番号</param>
+    /// <returns>不満足者率</returns>
+    double GetDissatisfactionRate_draft(int tenantIndex, int zoneIndex);
+
+    /// <summary>上下温度分布による不満足者率を取得する</summary>
+    /// <param name="tenantIndex">テナント番号</param>
+    /// <param name="zoneIndex">ゾーン番号</param>
+    /// <returns>不満足者率</returns>
+    double GetDissatisfactionRate_vTempDif(int tenantIndex, int zoneIndex);
 
   }
 

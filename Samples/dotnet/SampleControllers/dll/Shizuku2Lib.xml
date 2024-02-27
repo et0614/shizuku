@@ -224,6 +224,15 @@
         <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.ClothingIndex">
             <summary>着衣量</summary>
         </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.Dissatisfied_Thermal">
+            <summary>熱的な不満足者率</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.Dissatisfied_Draft">
+            <summary>ドラフトによる不満足者率</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.OccupantCommunicator.memberNumber.Dissatisfied_VerticalTemp">
+            <summary>上下温度分布による不満足者率</summary>
+        </member>
         <member name="T:Shizuku2.BACnet.OccupantCommunicator.Tenant">
             <summary>テナント</summary>
         </member>
@@ -289,6 +298,27 @@
             <param name="zoneNumber">ゾーン番号</param>
             <param name="succeeded">通信が成功したか否か</param>
             <returns>ゾーンに在室している執務者の平均着衣量</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetThermallyDissatisfiedRate(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>ゾーンに在室している執務者の温熱環境に対する不満足者率を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="zoneNumber">ゾーン番号</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーンに在室している執務者の温熱環境に対する不満足者率</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetDissatisfiedRateCausedByDraft(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>ゾーンに在室している執務者のドラフトに対する不満足者率を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="zoneNumber">ゾーン番号</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーンに在室している執務者のドラフトに対する不満足者率</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.OccupantCommunicator.GetDissatisfiedRateCausedByVerticalTemperatureDistribution(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
+            <summary>ゾーンに在室している執務者の上下温度分布に対する不満足者率を取得する</summary>
+            <param name="tenant">テナント</param>
+            <param name="zoneNumber">ゾーン番号</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>ゾーンに在室している執務者の上下温度分布に対する不満足者率</returns>
         </member>
         <member name="M:Shizuku2.BACnet.OccupantCommunicator.IsOccupantStayInOffice(Shizuku2.BACnet.OccupantCommunicator.Tenant,System.Int32,System.Boolean@)">
             <summary>在室しているか否かを取得する</summary>

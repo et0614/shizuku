@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 2;
+    private const int V_REVISION = 3;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.02.25";
+    private const string V_DATE = "2024.02.27";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -205,7 +205,7 @@ namespace Shizuku2
         new DateTime(1999, 2, 10, 0, 0, 0); //冬季
       //  new DateTime(1999, 4, 28, 0, 0, 0); //中間期//未対応
       dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
-      dtCtrl.TimeStep = building.TimeStep = initSettings["timestep"];
+      dtCtrl.TimeStep = building.TimeStep = Math.Max(1, Math.Min(120, initSettings["timestep"]));
       //初期化・周期定常化処理
       preRun(dt, wetLoader, sun);
       Console.WriteLine("Done." + Environment.NewLine);
@@ -243,6 +243,13 @@ namespace Shizuku2
       dummyDv.StartService();
       //BACnet Deviceの情報を書き出す
       //saveBACnetDeviceInfo();
+
+      //ユーザーIDが0（Geust）の場合にはwarning表示
+      if (initSettings["userid"] == 0)
+      {
+        Console.WriteLine("Warning: The user ID is set to 0, i.e., run the emulator as guest.");
+        Console.WriteLine();
+      }      
 
       //BACnet controllerの登録を待つ
       Console.WriteLine("Waiting for BACnet controller registration.");
@@ -325,7 +332,7 @@ namespace Shizuku2
     /// <param name="sun">太陽</param>
     private static void run(WeatherLoader wetLoader, Sun sun, ref StringBuilder summary)
     {
-      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(7);
+      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(initSettings["oneday"] == 1 ? 1 : 7);
       DateTime nextOutput = dtCtrl.CurrentDateTime;
       uint ttlOcNum = 0;
       using (StreamWriter swGen = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "general.csv"))
@@ -333,9 +340,10 @@ namespace Shizuku2
       using (StreamWriter swVRF = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "vrf.csv"))
       using (StreamWriter swVent = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "vent.csv"))
       using (StreamWriter swOcc = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "occupant.csv"))
+      using (StreamWriter swDRate = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "dissatisfaction.csv"))
       {
         //タイトル行書き出し
-        outputStatus(swGen, swZone, swVRF, swVent, swOcc, true);
+        outputStatus(swGen, swZone, swVRF, swVent, swOcc, swDRate, true);
 
         //加速度を考慮して計算を進める
         while (true)
@@ -414,7 +422,7 @@ namespace Shizuku2
             if (nextOutput <= building.CurrentDateTime)
             {
               updateSummary(summary, false);
-              outputStatus(swGen, swZone, swVRF, swVent, swOcc, false);
+              outputStatus(swGen, swZone, swVRF, swVent, swOcc, swDRate, false);
               nextOutput = building.CurrentDateTime.AddSeconds(initSettings["outputSpan"]);
             }
           }
@@ -507,9 +515,10 @@ namespace Shizuku2
     /// <param name="swVRF">VRFに関わる情報</param>
     /// <param name="swVent">換気システムに関わる情報</param>
     /// <param name="swOcc">執務者に関わる情報</param>
+    /// <param name="swDRate">不満足者率に関わる情報</param>
     /// <param name="isTitleLine">タイトル行か否か</param>
     private static void outputStatus(
-      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, bool isTitleLine)
+      StreamWriter swGen, StreamWriter swZone, StreamWriter swVRF, StreamWriter swVent, StreamWriter swOcc, StreamWriter swDRate, bool isTitleLine)
     {
       //タイトル行
       if (isTitleLine)
@@ -541,7 +550,9 @@ namespace Shizuku2
                 "," + building.MultiRoom[i].Zones[j].Name + " drybulb temperature [CDB]" +
                 "," + building.MultiRoom[i].Zones[j + znNum].Name + " drybulb temperature [CDB]" +
                 "," + building.MultiRoom[i].Zones[j].Name + " absolute humidity [g/kg]" +
-                "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity [g/kg]"
+                "," + building.MultiRoom[i].Zones[j + znNum].Name + " absolute humidity [g/kg]" +
+                "," + building.MultiRoom[i].Zones[j].Name + " relative humidity [%]" +
+                "," + building.MultiRoom[i].Zones[j + znNum].Name + " relative humidity [%]"
                 );
             }
           }
@@ -602,6 +613,21 @@ namespace Shizuku2
           for (int j = 0; j < tenants.Tenants[i].Occupants.Length; j++)
             swOcc.Write("," + tenants.Tenants[i].Occupants[j].FirstName + " " + tenants.Tenants[i].Occupants[j].LastName + " Lower request [-]");*/
         swOcc.WriteLine();
+
+        //不満足者率
+        swDRate.Write("date,time");
+        for (int i = 0; i < 2; i++)
+        {
+          for (int j = 0; j < 9; j++)
+          {
+            swDRate.Write(
+              "," + building.MultiRoom[i].Zones[j].Name + " dissatisfaction rate (Thermal)" +
+              "," + building.MultiRoom[i].Zones[j].Name + " dissatisfaction rate (Draft)" +
+              "," + building.MultiRoom[i].Zones[j].Name + " dissatisfaction rate (Temperature distribution)"
+              );
+          }
+        }
+        swDRate.WriteLine();
       }
 
       //ここから実際の値
@@ -638,11 +664,15 @@ namespace Shizuku2
           }
           else
           {
+            double rhmdL = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(building.MultiRoom[i].Zones[j].Temperature, building.MultiRoom[i].Zones[j].HumidityRatio, ATM);
+            double rhmdU = MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(building.MultiRoom[i].Zones[j + znNum].Temperature, building.MultiRoom[i].Zones[j + znNum].HumidityRatio, ATM);
             swZone.Write(
               "," + building.MultiRoom[i].Zones[j].Temperature.ToString("F1") +
               "," + building.MultiRoom[i].Zones[j + znNum].Temperature.ToString("F1") +
               "," + (1000 * building.MultiRoom[i].Zones[j].HumidityRatio).ToString("F2") +
-              "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F2")
+              "," + (1000 * building.MultiRoom[i].Zones[j + znNum].HumidityRatio).ToString("F2") +
+              "," + rhmdL.ToString("F1") +
+              "," + rhmdU.ToString("F1")
               );
           }
         }
@@ -714,6 +744,21 @@ namespace Shizuku2
           swOcc.Write("," + (tenants.Tenants[i].Occupants[j].Worker.StayInOffice ?
             (tenants.Tenants[i].Occupants[j].TryToLowerTemperatureSP ? "1" : "0") : ""));*/
       swOcc.WriteLine();
+
+      //不満足者率
+      swDRate.Write(dtHeader);
+      for (int i = 0; i < 2; i++)
+      {
+        for (int j = 0; j < 9; j++)
+        {
+          swDRate.Write(
+            "," + tenants.GetDissatisfactionRate_thermal(i, j).ToString("F3") +
+            "," + tenants.GetDissatisfactionRate_draft(i, j).ToString("F3") +
+            "," + tenants.GetDissatisfactionRate_vTempDif(i, j).ToString("F3")
+            );
+        }
+      }
+      swDRate.WriteLine();
     }
 
     /// <summary>書き出し用の運転概要文字列を更新する</summary>

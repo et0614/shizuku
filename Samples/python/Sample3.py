@@ -32,6 +32,18 @@ while True:
     val = oCom.get_clothing_index(occ.OccupantCommunicator.Tenant.South, 3)
     print('{:.2f}'.format(val[1]) + ' Clo' if val[0] else ' Failed')
 
+    print('Reading thermally dissatisfied rate (south tenant zone-2)... ',end='')
+    val = oCom.get_thermally_dissatisfied_rate(occ.OccupantCommunicator.Tenant.South,2)
+    print('{:.2f}'.format(val[1]) if val[0] else ' Failed')
+
+    print('Reading dissatisfied rate caused by draft (north tenant zone-4)... ',end='')
+    val = oCom.get_dissatisfied_rate_caused_by_draft(occ.OccupantCommunicator.Tenant.North,4)
+    print('{:.2f}'.format(val[1]) if val[0] else ' Failed')
+
+    print('Reading thermally dissatisfied rate (south tenant zone-2)... ',end='')
+    val = oCom.get_dissatisfied_rate_caused_by_vertical_temperature_distribution(occ.OccupantCommunicator.Tenant.North,5)
+    print('{:.2f}'.format(val[1]) if val[0] else ' Failed')
+
     print('')
     time.sleep(1)
 

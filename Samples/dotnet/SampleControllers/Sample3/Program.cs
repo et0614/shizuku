@@ -42,6 +42,19 @@ namespace Sample3
         float ci = oCom.GetClothingIndex(OccupantCommunicator.Tenant.North, 3, out succeeded);
         Console.WriteLine(succeeded ? ci.ToString("F2") : "failed");
 
+        Console.Write("Reading thermally dissatisfied rate (south tenant zone-2)...");
+        float drT = oCom.GetThermallyDissatisfiedRate(OccupantCommunicator.Tenant.South, 2, out succeeded);
+        Console.WriteLine(succeeded ? drT.ToString("F3") : "failed");
+
+        Console.Write("Reading dissatisfied rate caused by draft (north tenant zone-4)...");
+        float drD = oCom.GetDissatisfiedRateCausedByDraft(OccupantCommunicator.Tenant.North, 4, out succeeded);
+        Console.WriteLine(succeeded ? drD.ToString("F3") : "failed");
+
+        Console.Write("Reading dissatisfied rate caused by vtemp. distribution (north tenant zone-5)...");
+        float drV = oCom.GetDissatisfiedRateCausedByVerticalTemperatureDistribution
+          (OccupantCommunicator.Tenant.North, 5, out succeeded);
+        Console.WriteLine(succeeded ? drV.ToString("F3") : "failed");
+
         Console.WriteLine();
         Thread.Sleep(1000);
       }

@@ -42,7 +42,13 @@ namespace Shizuku2.BACnet
       /// <summary>温冷感</summary>
       ThermalSensation = 3,
       /// <summary>着衣量</summary>
-      ClothingIndex = 4
+      ClothingIndex = 4,
+      /// <summary>熱的な不満足者率</summary>
+      Dissatisfied_Thermal,
+      /// <summary>ドラフトによる不満足者率</summary>
+      Dissatisfied_Draft,
+      /// <summary>上下温度分布による不満足者率</summary>
+      Dissatisfied_VerticalTemp
     }
 
     #endregion
@@ -102,6 +108,24 @@ namespace Shizuku2.BACnet
             (baseNum + (int)MemberNumber.ClothingIndex,
           "Ave_Clo_ZN" + (j + 1) + "_TNT" + (i + 1),
             "Averaged clothing index of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+
+          //熱的不満足者率
+          dObject.AddBacnetObject(new AnalogInput<float>
+            (baseNum + (int)MemberNumber.Dissatisfied_Thermal,
+            "DissatisfiedRate_Thermal_ZN" + (j + 1) + "_TNT" + (i + 1),
+            "Rate of thermally dissatisfied occupants of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+
+          //ドラフトによる不満足者率
+          dObject.AddBacnetObject(new AnalogInput<float>
+            (baseNum + (int)MemberNumber.Dissatisfied_Draft,
+            "DissatisfiedRate_Draft_ZN" + (j + 1) + "_TNT" + (i + 1),
+            "Rate of dissatisfied occupants caused by draft of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+
+          //上下温度分布による不満足者率
+          dObject.AddBacnetObject(new AnalogInput<float>
+            (baseNum + (int)MemberNumber.Dissatisfied_VerticalTemp,
+            "DissatisfiedRate_VerticalTemp_ZN" + (j + 1) + "_TNT" + (i + 1),
+            "Rate of dissatisfied occupants caused by vertical temperature difference of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
         }
 
         //執務者別
@@ -222,6 +246,18 @@ namespace Shizuku2.BACnet
           //着衣量
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
           ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)clo;
+
+          //熱的不満足者率
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_Thermal));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)tenants.GetDissatisfactionRate_thermal(i,j);
+
+          //ドラフトによる不満足者率
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_Draft));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)tenants.GetDissatisfactionRate_draft(i,j);
+
+          //上下温度分布による不満足者率
+          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_VerticalTemp));
+          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)tenants.GetDissatisfactionRate_vTempDif(i,j);
         }
 
         //執務者別
