@@ -46,7 +46,7 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 3;
+    private const int V_REVISION = 4;
 
     /// <summary>バージョン（日付）</summary>
     private const string V_DATE = "2024.02.27";

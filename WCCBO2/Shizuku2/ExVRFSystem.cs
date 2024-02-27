@@ -187,7 +187,17 @@ namespace Shizuku2
 
             //冷却
             case VRFSystem.Mode.Cooling:
-              if (spC[i] + 0.5 * ZERO_ENERGY_BAND < VRFSystem.IndoorUnits[i].InletAirTemperature &&
+              if (IndoorUnitModes[i] == Mode.ShutOff)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              else if (IndoorUnitModes[i] == Mode.ThermoOff)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              else if (spC[i] + 0.5 * ZERO_ENERGY_BAND < VRFSystem.IndoorUnits[i].InletAirTemperature &&
                 iUnit.CurrentMode != VRFUnit.Mode.Cooling)
               {
                 VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Cooling);
@@ -203,7 +213,17 @@ namespace Shizuku2
 
             //加熱
             case VRFSystem.Mode.Heating:
-              if (VRFSystem.IndoorUnits[i].InletAirTemperature < spH[i] - 0.5 * ZERO_ENERGY_BAND &&
+              if (IndoorUnitModes[i] == Mode.ShutOff)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ShutOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              else if (IndoorUnitModes[i] == Mode.ThermoOff)
+              {
+                VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.ThermoOff);
+                nextControllerbleTime[i] = now.AddSeconds(CONTROL_INTERVAL);
+              }
+              else if (VRFSystem.IndoorUnits[i].InletAirTemperature < spH[i] - 0.5 * ZERO_ENERGY_BAND &&
                 iUnit.CurrentMode != VRFUnit.Mode.Heating)
               {
                 VRFSystem.SetIndoorUnitMode(i, VRFUnit.Mode.Heating);
