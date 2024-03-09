@@ -443,7 +443,7 @@ namespace Shizuku2.BACnet
     {
       return 1 == ReadPresentValue<uint>(bacAddress,
         BacnetObjectTypes.OBJECT_BINARY_INPUT,
-        getInstanceNumber(oUnitIndex, memberNumber.ForcedRefrigerantTemperature_Setting),
+        getInstanceNumber(oUnitIndex, memberNumber.ForcedRefrigerantTemperature_Status),
         out succeeded);
     }
 

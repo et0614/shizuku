@@ -53,6 +53,10 @@ namespace Sample5
         vCom.ProhibitLocalControl(1,2,out succeeded);
         Console.WriteLine(succeeded ? "success" : "failed");
 
+        Console.Write("Enable Refrigerant temp. control of VRF1...");
+        vCom.EnableRefrigerantTemperatureControl(1, out succeeded);
+        Console.WriteLine(succeeded ? "success" : "failed");
+
         Console.WriteLine();
         Thread.Sleep(1000);
       }
