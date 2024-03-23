@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 4;
+    private const int V_REVISION = 5;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.02.27";
+    private const string V_DATE = "2024.03.23";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -1202,9 +1202,10 @@ namespace Shizuku2
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6)
       });
 
-      //冷媒温度設定
+      //設定
       for (int i = 0; i < 4; i++)
       {
+        //冷媒温度設定
         vrfs[i].MinEvaporatingTemperature = 5;
         vrfs[i].MaxEvaporatingTemperature = 20;
         vrfs[i].MinCondensingTemperature = 30;
@@ -1216,6 +1217,10 @@ namespace Shizuku2
         vrfs[i].CurrentMode = (initSettings["period"] == 0) ? VRFSystem.Mode.Heating : VRFSystem.Mode.Cooling;
         for (int j = 0; j < vrfs[i].IndoorUnitNumber; j++)
           vrfs[i].SetIndoorUnitMode((initSettings["period"] == 0) ? VRFUnit.Mode.Heating : VRFUnit.Mode.Cooling);
+
+        //室内機を回転数制御に
+        for (int j = 0; j < vrfs[i].IndoorUnitNumber; j++)
+          ((VRFUnit)vrfs[i].IndoorUnits[j]).IsInverterControlledFan = true;
       }
 
       //空調対象のゾーンリストを作成
