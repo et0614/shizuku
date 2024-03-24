@@ -46,7 +46,7 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 5;
+    private const int V_REVISION = 6;
 
     /// <summary>バージョン（日付）</summary>
     private const string V_DATE = "2024.03.23";
@@ -200,12 +200,21 @@ namespace Shizuku2
 
       //日時コントローラを用意して助走計算
       Console.Write("Start precalculation...");
-      DateTime dt =
-        initSettings["period"] == 0 ? new DateTime(1999, 7, 21, 0, 0, 0) : //夏季
-        new DateTime(1999, 2, 10, 0, 0, 0); //冬季
-      //  new DateTime(1999, 4, 28, 0, 0, 0); //中間期//未対応
+      DateTime dt;
+      if (initSettings["period"] == 0)
+      {
+        dt = new DateTime(1999, 7, 21, 0, 0, 0); //夏季
+        tenants.ResetClothing(26.0); //基準着衣量を初期化
+      }
+      else
+      {
+        dt = new DateTime(1999, 2, 10, 0, 0, 0); //冬季
+        tenants.ResetClothing(4.0); //基準着衣量を初期化
+      }
+
       dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = Math.Max(1, Math.Min(120, initSettings["timestep"]));
+
       //初期化・周期定常化処理
       preRun(dt, wetLoader, sun);
       Console.WriteLine("Done." + Environment.NewLine);

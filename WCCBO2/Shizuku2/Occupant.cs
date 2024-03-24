@@ -95,8 +95,8 @@ namespace Shizuku.Models
     {
       get
       {
-        return mornClo + 
-          (RollUpSleeves ? -0.08 : 0) + 
+        return mornClo +
+          (RollUpSleeves ? -0.08 : 0) +
           (WearSweater ? 0.3 : 0);
       }
     }
@@ -159,15 +159,15 @@ namespace Shizuku.Models
 
     /// <summary>自席にいるか否か</summary>
     public bool StayAtDesk { get { return DeskZone == CurrentZone; } }
-    
+
     /// <summary>朝の着衣量[Clo]</summary>
     private double mornClo = 1.0;
 
-    /// <summary>夏季の中立申告値</summary>
-    private double NeutralSensationInSummer = 0;
+    /// <summary>夏季の中立申告値を取得する</summary>
+    public double NeutralSensationInSummer { get; private set; } = 0;
 
-    /// <summary>冬季の中立申告値</summary>
-    private double NeutralSensationInWinter = 0;
+    /// <summary>冬季の中立申告値を取得する</summary>
+    public double NeutralSensationInWinter { get; private set; } = 0;
 
     /// <summary>コントローラを操作可能と考えているか否か</summary>
     public bool ThinkControllable { get; set; } = false;
@@ -329,7 +329,7 @@ namespace Shizuku.Models
       }
 
       //入館済：ゾーン間移動のみ
-      if(CurrentZone != null)
+      if (CurrentZone != null)
       {
         while (lastMove.AddSeconds(MOVE_UPDATE_SPAN) <= dTime)
         {
@@ -380,7 +380,7 @@ namespace Shizuku.Models
           else pmv -= Math.Min(PMV_BONUS, pmv - sNeutral);
         }
         OCModel.Update(pmv);
-        
+
         //調整行動を取る
         TryToRaiseTemperatureSP = TryToLowerTemperatureSP = false;
         if (lastAdj.AddSeconds(COMFORT_ADJUST_SPAN) <= dTime)
@@ -389,7 +389,7 @@ namespace Shizuku.Models
           {
             if (RollUpSleeves) RollUpSleeves = false;
             else if (!WearSweater) WearSweater = true;
-            else if(StayAtDesk) TryToRaiseTemperatureSP = true;
+            else if (StayAtDesk) TryToRaiseTemperatureSP = true;
             lastAdj = dTime;
           }
           else if (OCModel.UncomfortablyWarm)
@@ -405,16 +405,26 @@ namespace Shizuku.Models
 
 
     /// <summary>基準着衣量[clo]を更新する</summary>
-    public void UpdateDailyCloValue()
+    /// <param name="oaTempAt6AM">朝6時の外気温度</param>
+    public void UpdateDailyCloValue(double oaTempAt6AM)
     {
       OCModel.IsSummer = isSummer();
       int wPref = OCModel.IsSummer ?
         (0 < OCModel.HighAcceptableSensationInSummer + OCModel.LowAcceptableSensationInSummer ? 1 : 0) :
         (0 < OCModel.HighAcceptableSensationInWinter + OCModel.LowAcceptableSensationInWinter ? 1 : 0);
-      double lgMClo = -0.91 - 0.01 * DeskZone.MultiRoom.OutdoorTemperature + 0.14 * wPref + 0.71 * mornClo + myNRnd.NextDouble() * 0.24;
+      //double lgMClo = -0.91 - 0.01 * DeskZone.MultiRoom.OutdoorTemperature + 0.14 * wPref + 0.71 * mornClo + myNRnd.NextDouble() * 0.24;
+      double lgMClo = -0.91 - 0.01 * oaTempAt6AM + 0.14 * wPref + 0.71 * mornClo;// + myNRnd.NextDouble() * 0.24;
       mornClo = Math.Round(Math.Max(MIN_CLO, Math.Min(MAX_CLO, Math.Exp(lgMClo))), 3);
       WearSweater = false;
       RollUpSleeves = false;
+    }
+
+    /// <summary>着衣量[clo]を初期化する</summary>
+    /// <param name="oaTempAt6AM">朝6時の外気温度</param>
+    public void ResetClothing(double oaTempAt6AM)
+    {
+      for (int i = 0; i < 10; i++)
+        UpdateDailyCloValue(oaTempAt6AM);
     }
 
     /// <summary>豪華ゲストに変更する</summary>
@@ -440,7 +450,7 @@ namespace Shizuku.Models
   }
 
   #region 読み取り専用Occupantクラス
-  
+
   /// <summary>読み取り専用のオフィス滞在者</summary>
   public interface ImmutableOccupant
   {
@@ -478,7 +488,7 @@ namespace Shizuku.Models
     bool WearSweater { get; }
 
     /// <summary>自席のゾーンを取得する</summary>
-    ImmutableZone DeskZone {  get; }
+    ImmutableZone DeskZone { get; }
 
     /// <summary>テナントを取得する</summary>
     ImmutableTenant Tenant { get; }
@@ -496,10 +506,16 @@ namespace Shizuku.Models
     OccupantModel_Langevin OCModel { get; }
 
     /// <summary>温度設定値を上げようとしているか否か</summary>
-    bool TryToRaiseTemperatureSP { get;  } 
+    bool TryToRaiseTemperatureSP { get; }
 
     /// <summary>温度設定値を下げようとしているか否か</summary>
-    bool TryToLowerTemperatureSP { get;  }
+    bool TryToLowerTemperatureSP { get; }
+
+    /// <summary>夏季の中立申告値を取得する</summary>
+    double NeutralSensationInSummer { get; }
+
+    /// <summary>冬季の中立申告値を取得する</summary>
+    double NeutralSensationInWinter { get; }
   }
 
   #endregion

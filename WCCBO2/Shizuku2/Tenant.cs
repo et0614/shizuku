@@ -128,10 +128,19 @@ namespace Shizuku.Models
     }
 
     /// <summary>基準着衣量[clo]を更新する</summary>
-    public void UpdateDailyCloValues()
+    /// <param name="oaTempAt6AM">朝6時の外気温度</param>
+    public void UpdateDailyCloValues(double oaTempAt6AM)
     {
       for (int i = 0; i < occupants.Length; i++)
-        occupants[i].UpdateDailyCloValue();
+        occupants[i].UpdateDailyCloValue(oaTempAt6AM);
+    }
+
+    /// <summary>着衣量[clo]を初期化する</summary>
+    /// <param name="oaTempAt6AM">朝6時の外気温度</param>
+    public void ResetClothing(double oaTempAt6AM)
+    {
+      for (int i = 0; i < occupants.Length; i++)
+        occupants[i].ResetClothing(oaTempAt6AM);
     }
 
     /// <summary>執務者の在不在情報、滞在ゾーン、温冷感を更新する</summary>

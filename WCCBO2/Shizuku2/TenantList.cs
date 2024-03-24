@@ -106,7 +106,7 @@ namespace Shizuku.Models
       //AM6時に着衣量を更新
       if (lastDTimeHour != cTime.Hour && cTime.Hour == 6)
         foreach (Tenant tnt in tenants)
-          tnt.UpdateDailyCloValues();
+          tnt.UpdateDailyCloValues(Tenants[0].Building.OutdoorTemperature);
       lastDTimeHour = cTime.Hour;
 
       //在不在情報・内部発熱を更新
@@ -144,6 +144,14 @@ namespace Shizuku.Models
           }
         }
       }
+    }
+
+    /// <summary>基準着衣量[clo]を初期化する</summary>
+    /// <param name="oaTempAt6AM">朝6時の外気温度</param>
+    public void ResetClothing(double oaTempAt6AM)
+    {
+      foreach (Tenant tnt in tenants)
+        tnt.ResetClothing(oaTempAt6AM);
     }
 
     /// <summary>豪華ゲスト達を登場させる</summary>
