@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 6;
+    private const int V_REVISION = 7;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.03.23";
+    private const string V_DATE = "2024.03.25";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -102,9 +102,6 @@ namespace Shizuku2
 
     /// <summary>上下温度分布による不満足者率[-]</summary>
     private static double dissatisfactionRate_vTempDif = 0.0;
-
-    /// <summary>CO2濃度による不満足者率[-]</summary>
-    private static double dissatisFactionRate_CO2 = 0.0;
 
     /// <summary>積算エネルギー消費量[GJ]</summary>
     private static double totalEnergyConsumption = 0.0;
@@ -655,7 +652,7 @@ namespace Shizuku2
         "," + dissatisfactionRate_thermal.ToString("F4") +
         "," + dissatisfactionRate_draft.ToString("F4") +
         "," + dissatisfactionRate_vTempDif.ToString("F4") +
-        "," + dissatisFactionRate_CO2.ToString("F4"));
+        "," + ventSystem.DissatisifactionRateFromCO2Level.ToString("F4"));
 
       //ゾーンの情報
       swZone.Write(dtHeader);
