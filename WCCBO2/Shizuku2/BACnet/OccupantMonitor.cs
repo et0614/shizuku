@@ -274,7 +274,7 @@ namespace Shizuku2.BACnet
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation));
           ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = convertVote(ocs[j].OCModel.Vote);
 
-          //温冷感
+          //着衣量
           boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
           ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ocs[j].CloValue;
         }

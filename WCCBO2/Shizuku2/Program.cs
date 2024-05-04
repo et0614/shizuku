@@ -46,10 +46,10 @@ namespace Shizuku2
     private const int V_MINOR = 8;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 7;
+    private const int V_REVISION = 8;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.03.25";
+    private const string V_DATE = "2024.05.04";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
