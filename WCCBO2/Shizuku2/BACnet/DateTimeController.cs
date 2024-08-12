@@ -1,5 +1,7 @@
 ﻿using BaCSharp;
 using System.IO.BACnet;
+using System.IO.BACnet.Storage;
+using System.Reflection;
 
 namespace Shizuku2.BACnet
 {
@@ -13,10 +15,6 @@ namespace Shizuku2.BACnet
 
     /// <summary>排他的ポート番号</summary>
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
-
-    const string DEVICE_NAME = "Date and time controller";
-
-    const string DEVICE_DESCRIPTION = "Date and time controller";
 
     #endregion
 
@@ -36,8 +34,11 @@ namespace Shizuku2.BACnet
       set
       {
         dtAccelerator.AccelerationRate = value;
-        BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.Acceleration);
-        ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = value;
+        Communicator.Storage.WriteProperty(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (int)MemberNumber.Acceleration),
+          BacnetPropertyIds.PROP_PRESENT_VALUE,
+          new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)value)
+        );
       }
       get { return dtAccelerator.AccelerationRate; }
     }
@@ -79,47 +80,36 @@ namespace Shizuku2.BACnet
       dtAccelerator = new DateTimeAccelerator(accRate, currentDTime);
       cDTime = currentDTime;
 
-      Communicator = new BACnetCommunicator
-        (makeDeviceObject(), EXCLUSIVE_PORT);
-    }
+      DeviceStorage strg = DeviceStorage.Load(
+        new StreamReader
+        (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.DateTimeControllerStorage.xml"))
+        );
 
-    /// <summary>BACnet Deviceを作成する</summary>
-    private DeviceObject makeDeviceObject()
-    {
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
+      strg.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.CurrentDateTimeInSimulation), 
+        BacnetPropertyIds.PROP_PRESENT_VALUE, 
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, CurrentDateTime)
+        );
 
-      //シミュレーション内の現在日時（タイムステップで離散化された値）
-      BacnetDateTime dTime1 = new BacnetDateTime(
-        (int)MemberNumber.CurrentDateTimeInSimulation,
-        "Current date and time",
-        "Current date and time in the simulation. This value might been accelerated.");
-      dTime1.m_PresentValue = CurrentDateTime;
-      dObject.AddBacnetObject(dTime1);
+      strg.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (int)MemberNumber.Acceleration),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)AccelerationRate)
+        );
 
-      //加速度
-      dObject.AddBacnetObject(new AnalogOutput<int>
-        ((int)MemberNumber.Acceleration,
-        "Acceleration rate",
-        "This object is used to set the acceleration rate to run the emulator.", AccelerationRate, BacnetUnitsId.UNITS_NO_UNITS)
-      { m_PROP_LOW_LIMIT = 0 });
+      strg.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseRealDateTime),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseRealDateTime)
+        );
 
-      //加速の基準となる現実の日時
-      BacnetDateTime dTime2 = new BacnetDateTime(
-        (int)MemberNumber.BaseRealDateTime,
-        "Base real date and time",
-        "Real world date and time starting to accelerate.");
-      dTime2.m_PresentValue = dtAccelerator.BaseRealDateTime;
-      dObject.AddBacnetObject(dTime2);
+      strg.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseAcceleratedDateTime),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
+        );
 
-      //加速の基準となるシミュレーション内の日時
-      BacnetDateTime dTime3 = new BacnetDateTime(
-        (int)MemberNumber.BaseAcceleratedDateTime,
-        "Base date and time in the simulation",
-        "Date and time on the simulation when the acceleration started");
-      dTime3.m_PresentValue = dtAccelerator.BaseAcceleratedDateTime;
-      dObject.AddBacnetObject(dTime3);
-
-      return dObject;
+      Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT);
     }
 
     #endregion
@@ -140,30 +130,6 @@ namespace Shizuku2.BACnet
       }
       else return false;
     }
-    public void OutputBACnetObjectInfo
-      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
-    {
-      List<string> tLst = new List<string>();
-      List<uint> iLst = new List<uint>();
-      List<string> nLst = new List<string>();
-      List<string> dLst = new List<string>();
-      List<string> vLst = new List<string>();
-      foreach (BaCSharpObject bObj in Communicator.BACnetDevice.ObjectsList)
-      {
-        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
-        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
-        nLst.Add(bObj.PROP_OBJECT_NAME);
-        dLst.Add(bObj.PROP_DESCRIPTION);
-        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
-        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
-        else vLst.Add(null);
-      }
-      types = tLst.ToArray();
-      instances = iLst.ToArray();
-      names = nLst.ToArray();
-      descriptions = dLst.ToArray();
-      values = vLst.ToArray();
-    }
 
     #endregion
 
@@ -171,38 +137,43 @@ namespace Shizuku2.BACnet
 
     public void ApplyManipulatedVariables(DateTime dTime)
     {
-      BacnetObjectId boID;
-
       //加速度
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.Acceleration);
-      AccelerationRate = ((AnalogOutput<int>)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+      AccelerationRate = (int)(float)Communicator.Storage.ReadPresentValue(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (int)MemberNumber.Acceleration));
     }
 
-    public void EndService()
-    {
-      Communicator.EndService();
-    }
 
     public void ReadMeasuredValues(DateTime dTime)
     {
-      BacnetObjectId boID;
-
       //現在の日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.CurrentDateTimeInSimulation);
-      ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = CurrentDateTime;
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.CurrentDateTimeInSimulation),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, CurrentDateTime)
+        );
 
       //加速が開始された現実の日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.BaseRealDateTime);
-      ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = dtAccelerator.BaseRealDateTime;
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseRealDateTime),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseRealDateTime)
+        );
 
       //加速された日時における加速開始日時
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)MemberNumber.BaseAcceleratedDateTime);
-      ((BacnetDateTime)Communicator.BACnetDevice.FindBacnetObject(boID)).m_PresentValue = dtAccelerator.BaseAcceleratedDateTime;
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseAcceleratedDateTime),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
+        );
     }
 
     public void StartService()
     {
       Communicator.StartService();
+    }
+    public void EndService()
+    {
+      Communicator.EndService();
     }
 
     #endregion

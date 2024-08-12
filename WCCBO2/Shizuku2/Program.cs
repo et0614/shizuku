@@ -43,13 +43,13 @@ namespace Shizuku2
     private const int V_MAJOR = 0;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 8;
+    private const int V_MINOR = 9;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 8;
+    private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.05.04";
+    private const string V_DATE = "2024.08.11";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -267,15 +267,9 @@ namespace Shizuku2
         if ((char)key == (char)ConsoleKey.Enter) break;
       Console.ReadLine();
 
-      //加速開始:BACnetで送信してCOV eventを発生させる
+      //加速開始
       dtCtrl.AccelerationRate = initSettings["accelerationRate"];
       dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //基準現在時刻を更新
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.Acceleration);
-      List<BacnetValue> values = new List<BacnetValue>();
-      values.Add(new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_SIGNED_INT, dtCtrl.AccelerationRate));
-      dtCtrl.Communicator.Client.WritePropertyRequest(
-        new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString()),
-        boID, BacnetPropertyIds.PROP_PRESENT_VALUE, values);
 
       //DEBUG
       //saveScore();
@@ -1125,33 +1119,33 @@ namespace Shizuku2
         sWriter.WriteLine("Instance number,Type,Name,Description,Initial value");
 
         sWriter.WriteLine("Dummy Device");
-        dummyDv.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        dummyDv.Communicator.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
 
         sWriter.WriteLine("DateTime Controller");
-        dtCtrl.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        dtCtrl.Communicator.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
 
         sWriter.WriteLine("VRF Controller");
-        ((VRFSystemController)vrfCtrl).OutputBACnetObjectInfo
+        ((VRFSystemController)vrfCtrl).Communicator.OutputBACnetObjectInfo
           (out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
 
         sWriter.WriteLine("Environment Monitor");
-        envMntr.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        envMntr.Communicator.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
 
         sWriter.WriteLine("Occupant Monitor");
-        ocMntr.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        ocMntr.Communicator.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
 
         sWriter.WriteLine("Ventilation System Controller");
-        ventCtrl.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
+        ventCtrl.Communicator.OutputBACnetObjectInfo(out instances, out types, out names, out descriptions, out values);
         for (int i = 0; i < instances.Length; i++)
           sWriter.WriteLine(instances[i] + "," + types[i] + "," + names[i] + "," + descriptions[i] + "," + values[i]);
       }

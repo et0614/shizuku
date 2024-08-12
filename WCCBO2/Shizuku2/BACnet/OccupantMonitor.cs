@@ -4,6 +4,9 @@ using Shizuku.Models;
 using Popolo.HumanBody;
 using Popolo.ThermalLoad;
 
+using System.IO.BACnet.Storage;
+using System.Reflection;
+
 namespace Shizuku2.BACnet
 {
   internal class OccupantMonitor: IBACnetController
@@ -21,12 +24,6 @@ namespace Shizuku2.BACnet
 
     /// <summary>排他的ポート番号</summary>
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
-
-    /// <summary>Deviceの名称</summary>
-    const string DEVICE_NAME = "Occupant monitor";
-
-    /// <summary>Deviceの説明</summary>
-    const string DEVICE_DESCRIPTION = "BACnet device monitoring occupants state.";
 
     #endregion
 
@@ -56,7 +53,7 @@ namespace Shizuku2.BACnet
     #region インスタンス変数・プロパティ
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    private BACnetCommunicator communicator;
+    public BACnetCommunicator Communicator;
 
     private ImmutableTenantList tenants;
 
@@ -66,24 +63,43 @@ namespace Shizuku2.BACnet
 
     public OccupantMonitor(ImmutableTenantList tenants)
     {
-      this.tenants = tenants;
+      this.tenants = tenants;      
 
-      communicator = new BACnetCommunicator
-        (makeDeviceObject(), EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT);
     }
 
-    /// <summary>BACnet Deviceを作成する</summary>
-    private DeviceObject makeDeviceObject()
+    #endregion
+
+    #region インスタンスメソッド
+
+    private DeviceStorage makeStorage()
     {
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
+      DeviceStorage strg = DeviceStorage.Load(
+        new StreamReader
+        (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.OccupantMonitorStorage.xml"))
+        );
 
       for (int i = 0; i < tenants.Tenants.Length; i++)
       {
         //執務者の数
-        dObject.AddBacnetObject(new AnalogInput<int>
-          (10000 * (i + 1) + (int)MemberNumber.OccupantNumber,
-          "Occupant number",
-          "Number of occupants stay in office (tenant-" + (i + 1) + ").", 0, BacnetUnitsId.UNITS_NO_UNITS));
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(10000 * (i + 1) + (int)MemberNumber.OccupantNumber),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          Properties = new Property[]
+          {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Number of occupants stay in office (tenant-" + (i + 1) + ")."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (10000 * (i + 1) + (int)MemberNumber.OccupantNumber)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Occupant number"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+          }
+        });
 
         //ゾーン別
         ImmutableZone[] zones = tenants.Tenants[i].Zones;
@@ -92,40 +108,124 @@ namespace Shizuku2.BACnet
           int baseNum = 10000 * (i + 1) + 1000 * (j + 1);
 
           //在室人数
-          dObject.AddBacnetObject(new AnalogInput<int>
-            (baseNum + (int)MemberNumber.OccupantNumber,
-            "Occupant number_ZN" + (j + 1) + "_TNT" + (i + 1),
-            "Number of occupants stay in zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.OccupantNumber),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Number of occupants stay in zone-" + (j + 1) + " of tenant-" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.OccupantNumber)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Occupant number_ZN" + (j + 1) + "_TNT" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
 
           //温冷感
-          dObject.AddBacnetObject(new AnalogInput<float>
-            (baseNum + (int)MemberNumber.ThermalSensation,
-            "Ave_T_Sensation_ZN" + (j + 1) + "_TNT" + (i + 1),
-            "Averaged thermal sensation of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.ThermalSensation),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Averaged thermal sensation of zone-" + (j + 1) + " of tenant-" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.ThermalSensation)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Ave_T_Sensation_ZN" + (j + 1) + "_TNT" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
 
           //着衣量
-          dObject.AddBacnetObject(new AnalogInput<float>
-            (baseNum + (int)MemberNumber.ClothingIndex,
-          "Ave_Clo_ZN" + (j + 1) + "_TNT" + (i + 1),
-            "Averaged clothing index of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.ClothingIndex),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Averaged clothing index of zone-" + (j + 1) + " of tenant-" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.ClothingIndex)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Ave_Clo_ZN" + (j + 1) + "_TNT" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
 
           //熱的不満足者率
-          dObject.AddBacnetObject(new AnalogInput<float>
-            (baseNum + (int)MemberNumber.Dissatisfied_Thermal,
-            "DissatisfiedRate_Thermal_ZN" + (j + 1) + "_TNT" + (i + 1),
-            "Rate of thermally dissatisfied occupants of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.Dissatisfied_Thermal),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Rate of thermally dissatisfied occupants of zone-" + (j + 1) + " of tenant-" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.Dissatisfied_Thermal)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "DissatisfiedRate_Thermal_ZN" + (j + 1) + "_TNT" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
 
           //ドラフトによる不満足者率
-          dObject.AddBacnetObject(new AnalogInput<float>
-            (baseNum + (int)MemberNumber.Dissatisfied_Draft,
-            "DissatisfiedRate_Draft_ZN" + (j + 1) + "_TNT" + (i + 1),
-            "Rate of dissatisfied occupants caused by draft of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.Dissatisfied_Draft),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Rate of dissatisfied occupants caused by draft of zone-" + (j + 1) + " of tenant-" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.Dissatisfied_Draft)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "DissatisfiedRate_Draft_ZN" + (j + 1) + "_TNT" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
 
           //上下温度分布による不満足者率
-          dObject.AddBacnetObject(new AnalogInput<float>
-            (baseNum + (int)MemberNumber.Dissatisfied_VerticalTemp,
-            "DissatisfiedRate_VerticalTemp_ZN" + (j + 1) + "_TNT" + (i + 1),
-            "Rate of dissatisfied occupants caused by vertical temperature difference of zone-" + (j + 1) + " of tenant-" + (i + 1), 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.Dissatisfied_VerticalTemp),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Rate of dissatisfied occupants caused by vertical temperature difference of zone-" + (j + 1) + " of tenant-" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.Dissatisfied_VerticalTemp)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "DissatisfiedRate_VerticalTemp_ZN" + (j + 1) + "_TNT" + (i + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
         }
 
         //執務者別
@@ -136,55 +236,67 @@ namespace Shizuku2.BACnet
           string name = " (" + ocs[j].FirstName + " " + ocs[j].LastName + ")";
 
           //在不在
-          dObject.AddBacnetObject(new BinaryInput
-            (baseNum + (int)MemberNumber.Availability,
-            "Availability_OC_" + (j + 1),
-            "Availability of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name, false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.Availability),
+            Type = BacnetObjectTypes.OBJECT_BINARY_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Availability of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_INPUT:" + (baseNum + (int)MemberNumber.Availability)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Availability_OC_" + (j + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "3"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "1"),
+              new Property(BacnetPropertyIds.PROP_POLARITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            }
+          });
 
           //温冷感
-          dObject.AddBacnetObject(new AnalogInput<int>
-            (baseNum + (int)MemberNumber.ThermalSensation,
-            "T_Sensation_OC_" + (j + 1),
-            "Thermal sensation of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.ThermalSensation),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Thermal sensation of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.ThermalSensation)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "T_Sensation_OC_" + (j + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
 
           //着衣量
-          dObject.AddBacnetObject(new AnalogInput<float>
-            (baseNum + (int)MemberNumber.ClothingIndex,
-            "Clo_OC_" + (j + 1),
-            "Clothing index of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name, 0, BacnetUnitsId.UNITS_NO_UNITS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(baseNum + (int)MemberNumber.ClothingIndex),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Clothing index of occupant-" + (j + 1) + " of tenant-" + (i + 1) + name),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (baseNum + (int)MemberNumber.ClothingIndex)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Clo_OC_" + (j + 1)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "95"),
+            }
+          });
         }
       }
 
-      return dObject;
-    }
-
-    #endregion
-
-    #region インスタンスメソッド
-
-    public void OutputBACnetObjectInfo
-      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
-    {
-      List<string> tLst = new List<string>();
-      List<uint> iLst = new List<uint>();
-      List<string> nLst = new List<string>();
-      List<string> dLst = new List<string>();
-      List<string> vLst = new List<string>();
-      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
-      {
-        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
-        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
-        nLst.Add(bObj.PROP_OBJECT_NAME);
-        dLst.Add(bObj.PROP_DESCRIPTION);
-        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
-        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
-        else vLst.Add(null);
-      }
-      types = tLst.ToArray();
-      instances = iLst.ToArray();
-      names = nLst.ToArray();
-      descriptions = dLst.ToArray();
-      values = vLst.ToArray();
+      return strg;
     }
 
     #endregion
@@ -196,19 +308,21 @@ namespace Shizuku2.BACnet
 
     public void EndService()
     {
-      communicator.EndService();
+      Communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime)
     {
-      BacnetObjectId boID;
       for (int i = 0; i < tenants.Tenants.Length; i++)
       {
         int baseNum = 10000 * (i + 1);
 
         //執務者の数
-        boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber));
-        ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (int)tenants.Tenants[i].StayWorkerNumber;
+        Communicator.Storage.WriteProperty(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber)),
+          BacnetPropertyIds.PROP_PRESENT_VALUE,
+          new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)tenants.Tenants[i].StayWorkerNumber)
+          );
 
         //ゾーン別
         ImmutableZone[] zones = tenants.Tenants[i].Zones;
@@ -236,28 +350,46 @@ namespace Shizuku2.BACnet
           }
 
           //在室人数
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber));
-          ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = number;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.OccupantNumber)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)number)
+            );
 
           //温冷感
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ths;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)ths)
+            );
 
           //着衣量
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)clo;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)clo)
+            );
 
           //熱的不満足者率
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_Thermal));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)tenants.GetDissatisfactionRate_thermal(i,j);
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_Thermal)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)tenants.GetDissatisfactionRate_thermal(i, j))
+            );
 
           //ドラフトによる不満足者率
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_Draft));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)tenants.GetDissatisfactionRate_draft(i,j);
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_Draft)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)tenants.GetDissatisfactionRate_draft(i, j))
+            );
 
           //上下温度分布による不満足者率
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_VerticalTemp));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)tenants.GetDissatisfactionRate_vTempDif(i,j);
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.Dissatisfied_VerticalTemp)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)tenants.GetDissatisfactionRate_vTempDif(i, j))
+            );
         }
 
         //執務者別
@@ -267,16 +399,25 @@ namespace Shizuku2.BACnet
           baseNum = 10000 * (i + 1) + 10 * (j + 1);
 
           //在不在
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(baseNum + MemberNumber.Availability));
-          ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = ocs[j].Worker.StayInOffice ? 1u : 0u;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(baseNum + MemberNumber.Availability)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, ocs[j].Worker.StayInOffice ? 1u : 0u)
+            );
 
           //温冷感
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation));
-          ((AnalogInput<int>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = convertVote(ocs[j].OCModel.Vote);
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ThermalSensation)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)convertVote(ocs[j].OCModel.Vote))
+            );
 
           //着衣量
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)ocs[j].CloValue;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(baseNum + MemberNumber.ClothingIndex)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)ocs[j].CloValue)
+            );
         }
       }
     }
@@ -306,7 +447,7 @@ namespace Shizuku2.BACnet
 
     public void StartService()
     {
-      communicator.StartService();
+      Communicator.StartService();
     }
 
     #endregion

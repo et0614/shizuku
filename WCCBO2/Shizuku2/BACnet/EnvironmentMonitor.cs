@@ -3,6 +3,9 @@ using System.IO.BACnet;
 using Popolo.ThermalLoad;
 using Popolo.ThermophysicalProperty;
 
+using System.IO.BACnet.Storage;
+using System.Reflection;
+
 namespace Shizuku2.BACnet
 {
   internal class EnvironmentMonitor : IBACnetController
@@ -19,12 +22,6 @@ namespace Shizuku2.BACnet
 
     /// <summary>排他的ポート番号</summary>
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
-
-    /// <summary>Deviceの名称</summary>
-    const string DEVICE_NAME = "Environment monitor";
-
-    /// <summary>Deviceの説明</summary>
-    const string DEVICE_DESCRIPTION = "BACnet device monitoring outdoor and room environment.";
 
     #endregion
 
@@ -47,10 +44,10 @@ namespace Shizuku2.BACnet
 
     #region インスタンス変数・プロパティ
 
-    private readonly ExVRFSystem[] vrfSystems;
-
     /// <summary>BACnet通信用オブジェクト</summary>
-    private BACnetCommunicator communicator;
+    public BACnetCommunicator Communicator;
+
+    private readonly ExVRFSystem[] vrfSystems;
 
     /// <summary>熱負荷計算モデル</summary>
     private ImmutableBuildingThermalModel building { get; set; }
@@ -64,39 +61,10 @@ namespace Shizuku2.BACnet
       this.building = model;
       this.vrfSystems = vrfs;
 
-      communicator = new BACnetCommunicator
-        (makeDeviceObject(), EXCLUSIVE_PORT);
-    }
-
-    /// <summary>BACnet Deviceを作成する</summary>
-    private DeviceObject makeDeviceObject()
-    {
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
-
-      //乾球温度
-      dObject.AddBacnetObject(new AnalogInput<float>
-        ((int)MemberNumber.DrybulbTemperature,
-        "Outdoor_DBT",
-        "Outdoor dry-bulb temperature.", 25, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
-
-      //相対湿度
-      dObject.AddBacnetObject(new AnalogInput<float>
-        ((int)MemberNumber.RelativeHumdity,
-        "Outdoor_RHMD",
-        "Outdoor relative humidity.", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
-      { PROP_LOW_LIMIT = 0, PROP_HIGH_LIMIT = 100 });
-
-      //水平面全天日射
-      dObject.AddBacnetObject(new AnalogInput<float>
-        ((int)MemberNumber.GlobalHorizontalRadiation,
-        "G_Radiation",
-        "Global horizontal radiation.", 0, BacnetUnitsId.UNITS_WATTS_PER_SQUARE_METER));
-
-      //夜間放射
-      dObject.AddBacnetObject(new AnalogInput<float>
-        ((int)MemberNumber.NocturnalRadiation,
-        "N_adiation",
-        "Nocturnal radiation.", 0, BacnetUnitsId.UNITS_WATTS_PER_SQUARE_METER));
+      DeviceStorage strg = DeviceStorage.Load(
+        new StreamReader
+        (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.EnvironmentMonitorStorage.xml"))
+        );
 
       for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)
       {
@@ -107,50 +75,50 @@ namespace Shizuku2.BACnet
           string vrfName = "VRF" + (1 + ouIndx) + "-" + (1 + iuIndx);
 
           //乾球温度
-          dObject.AddBacnetObject(new AnalogInput<float>
-            ((int)(bBase + MemberNumber.DrybulbTemperature),
-            "DBT_" + vrfName,
-            "Dry-bulb temperature of zone at " + vrfName + ".", 25, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.DrybulbTemperature),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Dry-bulb temperature of zone at " + vrfName + "."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.DrybulbTemperature)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "DBT_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "25.0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+            }
+          });
 
           //相対湿度
-          dObject.AddBacnetObject(new AnalogInput<float>
-            ((int)(bBase + MemberNumber.RelativeHumdity),
-            "RHMD_" + vrfName,
-            "Relative humidity of zone at " + vrfName + ".", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
-          { PROP_LOW_LIMIT = 0, PROP_HIGH_LIMIT = 100 });
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.RelativeHumdity),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Relative humidity of zone at " + vrfName + "."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.RelativeHumdity)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RHMD_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "50.0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "29"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "100"),
+            }
+          });
         }
       }
 
-      return dObject;
-    }
-
-    #endregion
-
-    #region インスタンスメソッド
-
-    public void OutputBACnetObjectInfo
-      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
-    {
-      List<string> tLst = new List<string>();
-      List<uint> iLst = new List<uint>();
-      List<string> nLst = new List<string>();
-      List<string> dLst = new List<string>();
-      List<string> vLst = new List<string>();
-      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
-      {
-        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
-        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
-        nLst.Add(bObj.PROP_OBJECT_NAME);
-        dLst.Add(bObj.PROP_DESCRIPTION);
-        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
-        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
-        else vLst.Add(null);
-      }
-      types = tLst.ToArray();
-      instances = iLst.ToArray();
-      names = nLst.ToArray();
-      descriptions = dLst.ToArray();
-      values = vLst.ToArray();
+      Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT);
     }
 
     #endregion
@@ -162,29 +130,40 @@ namespace Shizuku2.BACnet
 
     public void EndService()
     {
-      communicator.EndService();
+      Communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime)
     {
-      BacnetObjectId boID;
-
       //乾球温度
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.DrybulbTemperature);
-      ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)building.OutdoorTemperature;
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.DrybulbTemperature),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)building.OutdoorTemperature)
+        );
 
       //相対湿度
-      float rhmd = (float)MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio(building.OutdoorTemperature, building.OutdoorHumidityRatio, 101.325);
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.RelativeHumdity);
-      ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = rhmd;
+      float rhmd = (float)MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
+        (building.OutdoorTemperature, building.OutdoorHumidityRatio, 101.325);
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.RelativeHumdity),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, rhmd)
+        );
 
       //水平面全天日射
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.GlobalHorizontalRadiation);
-      ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)building.Sun.GlobalHorizontalRadiation;
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.GlobalHorizontalRadiation),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)building.Sun.GlobalHorizontalRadiation)
+        );
 
       //夜間放射
-      boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NocturnalRadiation);
-      ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)building.NocturnalRadiation;
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NocturnalRadiation),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)building.NocturnalRadiation)
+        );
 
       for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)
       {
@@ -195,22 +174,27 @@ namespace Shizuku2.BACnet
 
           //乾球温度
           float dbt = (float)vrfSystems[ouIndx].GetLowerZoneTemperature(iuIndx);
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.DrybulbTemperature));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = dbt;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.DrybulbTemperature)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, dbt)
+            );
 
           //相対湿度
           float rhmd2 = (float)MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
             (dbt, (float)vrfSystems[ouIndx].GetLowerZoneAbsoluteHumidity(iuIndx), 101.325);
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.RelativeHumdity));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = rhmd2;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.RelativeHumdity)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, rhmd2)
+            );
         }
       }
-
     }
 
     public void StartService()
     {
-      communicator.StartService();
+      Communicator.StartService();
     }
 
     #endregion

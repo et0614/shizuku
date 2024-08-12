@@ -117,10 +117,17 @@ namespace Shizuku2.BACnet
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
     /// <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
     public VRFSystemCommunicator(uint id, string name = "anoymous device", string ipAddress = "127.0.0.1")
-      : base(id, name)
+      : base(id)
     {
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + VRFCONTROLLER_EXCLUSIVE_PORT.ToString());
     }
+
+    #endregion
+
+    #region インスタンス変数
+
+    /// <summary>VRFの系統数を取得する</summary>
+    public static int VRFNumber { get { return 4; } }
 
     #endregion
 
@@ -621,6 +628,27 @@ namespace Shizuku2.BACnet
         return false;
 
       else return true;
+    }
+
+    /// <summary>室内機の台数を取得する</summary>
+    /// <param name="vrfIndex">VRF系統番号（1~4）</param>
+    /// <returns>室内機の台数</returns>
+    /// <exception cref="Exception"></exception>
+    public static int GetIndoorUnitNumber(int vrfIndex)
+    {
+      switch (vrfIndex)
+      {
+        case 1:
+          return 5;
+        case 2:
+          return 4;
+        case 3:
+          return 5;
+        case 4:
+          return 4;
+        default:
+          throw new Exception("VRF index is invalid.");
+      }
     }
 
     #endregion

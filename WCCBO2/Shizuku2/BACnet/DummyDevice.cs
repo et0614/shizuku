@@ -1,5 +1,6 @@
 ﻿using BaCSharp;
-using System.IO.BACnet;
+using System.IO.BACnet.Storage;
+using System.Reflection;
 
 namespace Shizuku2.BACnet
 {
@@ -23,7 +24,9 @@ namespace Shizuku2.BACnet
     #region インスタンス変数・プロパティ
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    private BACnetCommunicator communicator;
+    private BACnetCommunicator communicator2;
+
+    public BACnetCommunicator Communicator { get { return communicator2; } }
 
     #endregion
 
@@ -53,112 +56,11 @@ namespace Shizuku2.BACnet
     /// <summary>BACnet通信テストのためのダミーDevice</summary>
     public DummyDevice()
     {
-      communicator = new BACnetCommunicator
-        (makeDeviceObject(), EXCLUSIVE_PORT, true);
-    }
-
-    /// <summary>BACnet Deviceを作成する</summary>
-    private DeviceObject makeDeviceObject()
-    {
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
-
-      dObject.AddBacnetObject(new AnalogValue<int>
-        ((int)MemberNumber.AnalogValueInt,
-        "Analog value (int)",
-        "Dummy object to test communication of analog value (int).", 1, BacnetUnitsId.UNITS_NO_UNITS, false));
-
-      dObject.AddBacnetObject(new AnalogOutput<int>
-       ((int)MemberNumber.AnalogOutputInt,
-       "Analog output (int)",
-       "Dummy object to test communication of analog output (int).", 2, BacnetUnitsId.UNITS_NO_UNITS));
-
-      dObject.AddBacnetObject(new AnalogInput<int>
-       ((int)MemberNumber.AnalogInputInt,
-       "Analog input (int)",
-       "Dummy object to test communication of analog input (int).", 3, BacnetUnitsId.UNITS_NO_UNITS));
-
-      dObject.AddBacnetObject(new AnalogValue<float>
-        ((int)MemberNumber.AnalogValueReal,
-        "Analog value (float)",
-        "Dummy object to test communication of analog value (real).", 4f, BacnetUnitsId.UNITS_NO_UNITS, false));
-
-      dObject.AddBacnetObject(new AnalogOutput<float>
-       ((int)MemberNumber.AnalogOutputReal,
-       "Analog output (float)",
-       "Dummy object to test communication of analog output (real).", 5f, BacnetUnitsId.UNITS_NO_UNITS));
-
-      dObject.AddBacnetObject(new AnalogInput<float>
-       ((int)MemberNumber.AnalogInputReal,
-       "Analog input (float)",
-       "Dummy object to test communication of analog input (real).", 6f, BacnetUnitsId.UNITS_NO_UNITS));
-
-      dObject.AddBacnetObject(new BinaryValue
-       ((int)MemberNumber.BinaryValue,
-       "Binary value",
-       "Dummy object to test communication of binary value.", false, false));
-
-      dObject.AddBacnetObject(new BinaryOutput
-      ((int)MemberNumber.BinaryOutput,
-      "Binary output",
-      "Dummy object to test communication of binary output.", false));
-
-      dObject.AddBacnetObject(new BinaryInput
-       ((int)MemberNumber.BinaryInput,
-       "Binary input",
-       "Dummy object to test communication of binary input.", false));
-
-      dObject.AddBacnetObject(new MultiStateValue
-       ((int)MemberNumber.MultiStateValue,
-       "Multistate value",
-       "Dummy object to test communication of multistate value.", 1u, 5, false));
-
-      dObject.AddBacnetObject(new MultiStateOutput
-       ((int)MemberNumber.MultiStateOutput,
-       "Multistate output",
-       "Dummy object to test communication of multistate output.", 2u, 5));
-
-      dObject.AddBacnetObject(new MultiStateInput
-       ((int)MemberNumber.MultiStateInput,
-       "Multistate input",
-       "Dummy object to test communication of multistate input.", 5, 3u, false));
-
-      BacnetDateTime dTime1 = new BacnetDateTime(
-        (int)MemberNumber.DateTime,
-        "BACnet date time",
-        "Dummy object to test communication of bacnet date time.");
-      dTime1.m_PresentValue = new DateTime(1980, 6, 14, 0, 0, 0);
-      dObject.AddBacnetObject(dTime1);
-
-      return dObject;
-    }
-
-    #endregion
-
-    #region インスタンスメソッド
-
-    public void OutputBACnetObjectInfo
-      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
-    {
-      List<string> tLst = new List<string>();
-      List<uint> iLst = new List<uint>();
-      List<string> nLst = new List<string>();
-      List<string> dLst = new List<string>();
-      List<string> vLst = new List<string>();
-      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
-      {
-        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
-        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
-        nLst.Add(bObj.PROP_OBJECT_NAME);
-        dLst.Add(bObj.PROP_DESCRIPTION);
-        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
-        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
-        else vLst.Add(null);
-      }
-      types = tLst.ToArray();
-      instances = iLst.ToArray();
-      names = nLst.ToArray();
-      descriptions = dLst.ToArray();
-      values = vLst.ToArray();
+      DeviceStorage strg = DeviceStorage.Load(
+        new StreamReader
+        (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.DummyDeviceStorage.xml"))
+        );
+      communicator2 = new BACnetCommunicator(strg, EXCLUSIVE_PORT);
     }
 
     #endregion
@@ -169,14 +71,14 @@ namespace Shizuku2.BACnet
 
     public void EndService()
     {
-      communicator.EndService();
+      communicator2.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime) { }
 
     public void StartService()
     {
-      communicator.StartService();
+      communicator2.StartService();
     }
 
     #endregion

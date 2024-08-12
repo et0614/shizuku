@@ -23,7 +23,7 @@ namespace Shizuku2.BACnet.MitsubishiElectric
 
     #region インスタンス変数・プロパティ
 
-    private BACnetCommunicator communicator;
+    private BACnetCommunicator2 communicator;
 
     /// <summary>室内機の台数を取得する</summary>
     public int NumberOfIndoorUnits
@@ -54,7 +54,7 @@ namespace Shizuku2.BACnet.MitsubishiElectric
       if (50 <= NumberOfIndoorUnits)
         throw new Exception("Invalid indoor unit number");
 
-      communicator = new BACnetCommunicator
+      communicator = new BACnetCommunicator2
         (makeDeviceObject(), EXCLUSIVE_PORT);
     }
 

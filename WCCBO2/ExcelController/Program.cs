@@ -9,7 +9,7 @@ namespace ExcelController
     #region 定数宣言
 
     /// <summary>自身のDevice ID</summary>
-    const int DEVICE_ID = 7000;
+    const int DEVICE_ID = 20; // 7000 -> 20に変更 (2024/8/3)
 
     const string FILE_NAME = "schedule.xlsx";
 
@@ -46,9 +46,9 @@ namespace ExcelController
       {
         if (line == 675) break;
 
-        DateTime dt1 = wSheet.GetRow(line).GetCell(0).DateCellValue;
-        DateTime dt2 = wSheet.GetRow(line).GetCell(1).DateCellValue;
-        DateTime dTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
+        DateTime? dt1 = wSheet.GetRow(line).GetCell(0).DateCellValue;
+        DateTime? dt2 = wSheet.GetRow(line).GetCell(1).DateCellValue;
+        DateTime dTime = new DateTime(dt1.Value.Year, dt1.Value.Month, dt1.Value.Day, dt2.Value.Hour, dt2.Value.Minute, dt2.Value.Second);
         int col = 2;
 
         for (int i = 0; i < 4; i++)

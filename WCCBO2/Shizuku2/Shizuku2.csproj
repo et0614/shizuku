@@ -7,27 +7,52 @@
     <Nullable>enable</Nullable>
     <Copyright>Eisuke Togashi</Copyright>
     <PackageProjectUrl>www.wccbo.org</PackageProjectUrl>
-    <AssemblyVersion>0.6.0</AssemblyVersion>
-    <FileVersion>0.6.0</FileVersion>
+    <AssemblyVersion>0.8.9</AssemblyVersion>
+    <FileVersion>0.8.9</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\DateTimeControllerStorage.xml" />
+    <None Remove="Resources\DummyDeviceStorage.xml" />
+    <None Remove="Resources\EnvironmentMonitorStorage.xml" />
     <None Remove="Resources\Names.txt" />
+    <None Remove="Resources\OccupantMonitorStorage.xml" />
     <None Remove="Resources\SpecialCharacters.txt" />
+    <None Remove="Resources\VentilationSystemControllerStorage.xml" />
+    <None Remove="Resources\VRFSystemControllerStorage.xml" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\DateTimeControllerStorage.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\VRFSystemControllerStorage.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\VentilationSystemControllerStorage.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\OccupantMonitorStorage.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\EnvironmentMonitorStorage.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\DummyDeviceStorage.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\Names.txt" />
     <EmbeddedResource Include="Resources\SpecialCharacters.txt" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSec.Cryptography" Version="23.9.0-preview.3" />
-    <PackageReference Include="Popolo" Version="2.3.1.67" />
+    <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
+    <PackageReference Include="Popolo" Version="2.3.1.71" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
+    <ProjectReference Include="..\Shizuku2Lib\Shizuku2Lib.csproj" />
   </ItemGroup>
 
   <ItemGroup>

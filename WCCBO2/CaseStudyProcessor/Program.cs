@@ -15,13 +15,48 @@ namespace CaseStudyProcessor
 
     static void Main(string[] args)
     {
+      killProcess("ExcelController");
+      killProcess("Shizuku2");
+
+      AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
+
       string[] files = Directory.GetFiles("schedules");
       for (int i = 0; i < files.Length; i++)
       {
-        execOne(files[i]);
+        try
+        {
+          execOne(files[i]);
+        }
+        finally 
+        {
+          killProcess("ExcelController");
+          killProcess("Shizuku2");
+        }
 
         //5秒待機
         Thread.Sleep(5000);
+      }
+    }
+
+    static void OnProcessExit(object sender, EventArgs e)
+    {
+      killProcess("ExcelController");
+      killProcess("Shizuku2");
+    }
+
+    private static void killProcess(string procName)
+    {
+      Process[] processes = Process.GetProcessesByName(procName);
+      foreach (Process process in processes)
+      {
+        try
+        {
+          process.Kill();
+        }
+        catch (Exception ex)
+        {
+          Console.WriteLine($"プロセス {process.ProcessName} (ID: {process.Id}) の終了中にエラーが発生しました: {ex.Message}");
+        }
       }
     }
 
@@ -104,20 +139,20 @@ namespace CaseStudyProcessor
         }
       }
       //計算終了
-      else if (e.Data.StartsWith("Emulation finished. Press any key to exit."))
-      {
-        //procS.StandardInput.Write((char)ConsoleKey.Enter);
+      else if (e.Data.StartsWith("Emulation finished. Press \"Enter\" key to exit."))
+      {        
+        procS.StandardInput.WriteLine((char)ConsoleKey.Enter);
         //ExcelControllerを閉じる
         if (procE != null && !procE.HasExited) procE.Kill();
-        if (procS != null && !procS.HasExited) procS.Kill();
+        //if (procS != null && !procS.HasExited) procS.Kill();
       }
       //エラー終了
       else if (e.Data.StartsWith("Press any key to exit."))
       {
-        //procS.StandardInput.Write((char)ConsoleKey.Enter);
+        procS.StandardInput.WriteLine((char)ConsoleKey.Enter);
         //ExcelControllerを閉じる
         if (procE != null && !procE.HasExited) procE.Kill();
-        if (procS != null && !procS.HasExited) procS.Kill();
+        //if (procS != null && !procS.HasExited) procS.Kill();
       }
     }
 
@@ -130,7 +165,7 @@ namespace CaseStudyProcessor
       //Excel読み込み完了時
       if (e.Data.StartsWith("Loading excel data... done."))
       {
-        procS.StandardInput.Write((char)ConsoleKey.Enter);
+        procS.StandardInput.WriteLine((char)ConsoleKey.Enter);
       }
     }
 

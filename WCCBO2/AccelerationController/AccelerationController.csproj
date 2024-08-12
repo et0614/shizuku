@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BACSharp\BACSharp.csproj" />
+    <ProjectReference Include="..\Shizuku2Lib\Shizuku2Lib.csproj" />
   </ItemGroup>
 
 </Project>

@@ -58,7 +58,7 @@ namespace Shizuku2.BACnet
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
     /// <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
     public VentilationSystemCommunicator(uint id, string name = "anoymous device", string ipAddress = "127.0.0.1")
-      : base(id, name)
+      : base(id)
     {
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + VENTCTRL_EXCLUSIVE_PORT.ToString());
     }
@@ -70,18 +70,18 @@ namespace Shizuku2.BACnet
     /// <summary>南側テナントのCO2濃度[ppm]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>南側テナントのCO2濃度[ppm]</returns>
-    public uint GetSouthTenantCO2Level(out bool succeeded)
+    public float GetSouthTenantCO2Level(out bool succeeded)
     {
-      return ReadPresentValue<uint>
+      return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.SouthCO2Level, out succeeded);
     }
 
     /// <summary>北側テナントのCO2濃度[ppm]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>北側テナントのCO2濃度[ppm]</returns>
-    public uint GetNorthTenantCO2Level(out bool succeeded)
+    public float GetNorthTenantCO2Level(out bool succeeded)
     {
-      return ReadPresentValue<uint>
+      return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.NorthCO2Level, out succeeded);
     }
 
@@ -168,10 +168,12 @@ namespace Shizuku2.BACnet
     /// <returns>ファン風量</returns>
     public FanSpeed GetFanSpeed(uint oUnitIndex, uint iUnitIndex, out bool succeeded)
     {
-      switch (ReadPresentValue<uint>(bacAddress,
+      uint fs = ReadPresentValue<uint>
+        (bacAddress,
         BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
         getInstanceNumber(oUnitIndex, iUnitIndex, memberNumber.HexFanSpeed),
-        out succeeded))
+        out succeeded);
+      switch (fs)
       {
         case 1:
           return FanSpeed.Low;

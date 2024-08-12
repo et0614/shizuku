@@ -29,8 +29,8 @@ namespace Sample7
           for (int i = 0; i < iUnitNum.Length; i++)
           {
             bool succeeded;
-            uint southCO2 = vsCom.GetSouthTenantCO2Level(out succeeded);
-            uint northCO2 = vsCom.GetNorthTenantCO2Level(out succeeded);
+            uint southCO2 = (uint)vsCom.GetSouthTenantCO2Level(out succeeded);
+            uint northCO2 = (uint)vsCom.GetNorthTenantCO2Level(out succeeded);
 
             VentilationSystemCommunicator.FanSpeed southFS = getFanSpeed(southCO2);
             VentilationSystemCommunicator.FanSpeed northFS = getFanSpeed(northCO2);

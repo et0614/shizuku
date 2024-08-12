@@ -78,7 +78,7 @@ namespace Shizuku2.BACnet
     /// <param name="name">通信に使うBACnet Deviceの名前</param>
     /// <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
     public OccupantCommunicator(uint id, string name = "anoymous device", string ipAddress = "127.0.0.1")
-      : base(id, name)
+      : base(id)
     {
       bacAddress = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + OCCUPANTMONITOR_EXCLUSIVE_PORT.ToString());
     }
@@ -94,7 +94,7 @@ namespace Shizuku2.BACnet
     public int GetOccupantNumber(Tenant tenant, out bool succeeded)
     {
       uint instNum = (uint)(10000 * (int)tenant + (int)memberNumber.OccupantNumber);
-      return ReadPresentValue<int>
+      return (int)ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
@@ -106,7 +106,7 @@ namespace Shizuku2.BACnet
     public int GetOccupantNumber(Tenant tenant, int zoneNumber, out bool succeeded)
     {
       uint instNum = (uint)(10000 * (int)tenant + 1000 * zoneNumber + (int)memberNumber.OccupantNumber);
-      return ReadPresentValue<int>
+      return (int)ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
 
@@ -194,7 +194,7 @@ namespace Shizuku2.BACnet
     public ThermalSensation GetThermalSensation(Tenant tenant, int occupantIndex, out bool succeeded)
     {
       uint instNum = (uint)(10000 * (int)tenant + 10 * occupantIndex + (int)memberNumber.ThermalSensation);
-      return convertVote(ReadPresentValue<int>
+      return convertVote(ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded));
     }
 
@@ -214,9 +214,10 @@ namespace Shizuku2.BACnet
 
     #region privateメソッド
 
-    private ThermalSensation convertVote(int vote)
+    private ThermalSensation convertVote(float vote)
     {
-      switch (vote)
+      int vote2 = (int)Math.Round(vote);
+      switch (vote2)
       {
         case -3:
           return ThermalSensation.Cold;

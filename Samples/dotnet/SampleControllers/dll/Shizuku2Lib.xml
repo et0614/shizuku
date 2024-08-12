@@ -368,7 +368,7 @@
         <member name="F:Shizuku2.BACnet.PresentValueReadWriter.covSubscribed">
             <summary>COV登録済みか否か</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.communicator">
+        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.client">
             <summary>BACnet通信用オブジェクト</summary>
         </member>
         <member name="F:Shizuku2.BACnet.PresentValueReadWriter.dtCtrlIP">
@@ -386,10 +386,9 @@
         <member name="P:Shizuku2.BACnet.PresentValueReadWriter.CurrentDateTime">
             <summary>シミュレーション内の現在日時を取得する</summary>
         </member>
-        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.#ctor(System.UInt32,System.String)">
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.#ctor(System.UInt32)">
             <summary>インスタンスを初期化する</summary>
             <param name="id">通信に使うBACnet DeviceのID</param>
-            <param name="name">通信に使うBACnet Deviceの名前</param>
         </member>
         <member name="M:Shizuku2.BACnet.PresentValueReadWriter.StartService">
             <summary>サービスを開始する</summary>
@@ -408,11 +407,9 @@
         </member>
         <member name="M:Shizuku2.BACnet.PresentValueReadWriter.WritePresentValue(System.IO.BACnet.BacnetAddress,System.IO.BACnet.BacnetObjectTypes,System.UInt32,System.IO.BACnet.BacnetValue,System.Boolean@)">
             <summary>PresentValueを書き込む</summary>
-            <typeparam name="T">データの種類</typeparam>
             <param name="bacAddress">通信相手のBACnetアドレス</param>
             <param name="boType">BACnetオブジェクトタイプ</param>
             <param name="instanceNumber">インスタンス番号</param>
-            <param name="tag">タグ</param>
             <param name="val">書き込むPresentValue</param>
             <param name="succeeded">書き込み成功の真偽</param>
         </member>
@@ -664,6 +661,9 @@
             <param name="name">通信に使うBACnet Deviceの名前</param>
             <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
         </member>
+        <member name="P:Shizuku2.BACnet.VRFSystemCommunicator.VRFNumber">
+            <summary>VRFの系統数を取得する</summary>
+        </member>
         <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.TurnOn(System.UInt32,System.UInt32,System.Boolean@)">
             <summary>室内機を起動する</summary>
             <param name="oUnitIndex">室外機番号（1～4）</param>
@@ -862,6 +862,12 @@
             <summary>室外機の番号が有効か否かを判定する</summary>
             <param name="oUnitIndex">室外機番号</param>
             <returns>室外機の番号が有効か否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.VRFSystemCommunicator.GetIndoorUnitNumber(System.Int32)">
+            <summary>室内機の台数を取得する</summary>
+            <param name="vrfIndex">VRF系統番号（1~4）</param>
+            <returns>室内機の台数</returns>
+            <exception cref="T:System.Exception"></exception>
         </member>
     </members>
 </doc>

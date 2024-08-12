@@ -1,0 +1,640 @@
+﻿<?xml version="1.0"?>
+<DeviceStorage xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<Objects>
+		
+		<Object Type="OBJECT_DEVICE" Instance="9">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_DEVICE:9</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy device</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>8</Value>
+				</Property>
+				<Property Id="PROP_SYSTEM_STATUS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+					<!-- システム状態：0でOperational -->
+				</Property>
+				<Property Id="PROP_VENDOR_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>E. Togashi</Value>
+				</Property>
+				<Property Id="PROP_VENDOR_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>0</Value>
+					<!-- 0はASHRAEが使う値。不詳の場合は0で良い。 -->
+				</Property>
+				<Property Id="PROP_MODEL_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>GNU</Value>
+				</Property>
+				<Property Id="PROP_FIRMWARE_REVISION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>1.0.0</Value>
+				</Property>
+				<Property Id="PROP_APPLICATION_SOFTWARE_VERSION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>1.0.0</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy device to test BACnet communication.</Value>
+				</Property>
+				<Property Id="PROP_PROTOCOL_VERSION" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_PROTOCOL_REVISION" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>14</Value>
+				</Property>
+				<Property Id="PROP_PROTOCOL_SERVICES_SUPPORTED" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>010001110000101111001000001010001010101000</Value>
+					<!-- デフォルト -->
+				</Property>
+				<Property Id="PROP_PROTOCOL_OBJECT_TYPES_SUPPORTED" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000000010101010000000000000000100000000111110111111111</Value>
+					<!-- デフォルト -->
+				</Property>
+				<Property Id="PROP_OBJECT_LIST" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+				</Property>
+				<Property Id="PROP_MAX_APDU_LENGTH_ACCEPTED" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>1476</Value>
+				</Property>
+				<Property Id="PROP_SEGMENTATION_SUPPORTED" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>3</Value>
+				</Property>
+				<Property Id="PROP_APDU_TIMEOUT" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>3000</Value>
+				</Property>
+				<Property Id="PROP_NUMBER_OF_APDU_RETRIES" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>3</Value>
+				</Property>
+				<Property Id="PROP_DEVICE_ADDRESS_BINDING" Tag="BACNET_APPLICATION_TAG_NULL" />
+				<Property Id="PROP_DATABASE_REVISION" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_VALUE" Instance="1">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_VALUE:0</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Analog value (int)</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>2</Value>
+					<!-- Analog Valueは2-->
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_SIGNED_INT">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of analog value (int). Normally, the Present Value is of Real type, so this object is for only testing purposes</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>				
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+					<!--イベント状態は正常-->
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>62</Value>
+					<!-- 62は摂氏-->
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_OUTPUT" Instance="2">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_OUTPUT:2</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Analog output (int)</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_SIGNED_INT">
+					<Value>2</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of analog output (int). Normally, the Present Value is of Real type, so this object is for only testing purposes</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>62</Value>
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_INPUT" Instance="3">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_INPUT:3</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Analog input (int)</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_SIGNED_INT">
+					<Value>3</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of analog input (int). Normally, the Present Value is of Real type, so this object is for only testing purposes</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>64</Value>
+				</Property>				
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_VALUE" Instance="4">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_VALUE:4</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Analog value (real)</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>2</Value>
+					<!-- Analog Valueは2-->
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>4</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of analog value (real).</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+					<!--イベント状態は正常-->
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>62</Value>
+					<!-- 62は摂氏-->
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_OUTPUT" Instance="5">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_OUTPUT:5</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Analog output (real)</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>5</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of analog output (real).</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>62</Value>
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_INPUT" Instance="6">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_INPUT:6</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Analog input (real)</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>6</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of analog input (real).</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>64</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_BINARY_VALUE" Instance="7">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_BINARY_VALUE:7</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Binary value</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>5</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of binary value.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_BINARY_OUTPUT" Instance="8">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_BINARY_OUTPUT:8</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Binary output</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>4</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of binary output.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_POLARITY" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>				
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_BINARY_INPUT" Instance="9">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_BINARY_INPUT:9</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Binary input</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>3</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of binary input.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_POLARITY" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>				
+			</Properties>
+		</Object>
+				
+		<Object Type="OBJECT_MULTI_STATE_VALUE" Instance="10">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_MULTI_STATE_VALUE:10</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Multistate value</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>19</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of multistate value.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_NUMBER_OF_STATES" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>5</Value>
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_MULTI_STATE_OUTPUT" Instance="11">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_MULTI_STATE_OUTPUT:11</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Multistate output</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>14</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of multistate output.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_NUMBER_OF_STATES" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>5</Value>
+				</Property>
+				<Property Id="PROP_PRIORITY_ARRAY" Tag="BACNET_APPLICATION_TAG_NULL">
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+					<Value />
+				</Property>
+				<Property Id="PROP_RELINQUISH_DEFAULT" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_MULTI_STATE_INPUT" Instance="12">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_MULTI_STATE_INPUT:12</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Multistate input</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>13</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of multistate input.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_NUMBER_OF_STATES" Tag="BACNET_APPLICATION_TAG_UNSIGNED_INT">
+					<Value>5</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_DATETIME_VALUE" Instance="13">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_DATETIME_VALUE:13</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>BACnet date time value</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>44</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dummy object to test communication of bacnet date time value.</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
+					<Value>01-04-2006 01:00:00</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+			</Properties>
+		</Object>
+		
+	</Objects>
+</DeviceStorage>

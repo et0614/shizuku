@@ -1,8 +1,10 @@
 ﻿using BaCSharp;
 using Popolo.HVAC.MultiplePackagedHeatPump;
-using Popolo.Lighting;
 using Popolo.ThermophysicalProperty;
 using System.IO.BACnet;
+
+using System.IO.BACnet.Storage;
+using System.Reflection;
 
 namespace Shizuku2.BACnet
 {
@@ -22,10 +24,6 @@ namespace Shizuku2.BACnet
     const uint DEVICE_ID = 2;
 
     public const int EXCLUSIVE_PORT = 0xBAC0 + (int)DEVICE_ID;
-
-    const string DEVICE_NAME = "WCCBO Original VRF controller";
-
-    const string DEVICE_DESCRIPTION = "WCCBO Original VRF controller";
 
     const int SIGNAL_UPDATE_SPAN = 60;
 
@@ -88,7 +86,8 @@ namespace Shizuku2.BACnet
 
     #region インスタンス変数・プロパティ
 
-    private BACnetCommunicator communicator;
+    /// <summary>BACnet通信用オブジェクト</summary>
+    public BACnetCommunicator Communicator;
 
     private readonly ExVRFSystem[] vrfSystems;
 
@@ -103,14 +102,15 @@ namespace Shizuku2.BACnet
     {
       vrfSystems = vrfs;
 
-      communicator = new BACnetCommunicator
-        (makeDeviceObject(), EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT);
     }
 
-    /// <summary>BACnet Deviceを作成する</summary>
-    private DeviceObject makeDeviceObject()
+    private DeviceStorage makeStorage()
     {
-      DeviceObject dObject = new DeviceObject(DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
+      DeviceStorage strg = DeviceStorage.Load(
+        new StreamReader
+        (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.VRFSystemControllerStorage.xml"))
+        );
 
       for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)
       {
@@ -118,49 +118,167 @@ namespace Shizuku2.BACnet
         int bBase = 1000 * (1 + ouIndx);
         string vrfName = "VRF" + (1 + ouIndx);
 
-        dObject.AddBacnetObject(new BinaryValue
-          ((int)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting),
-          "RefrigerantTempCtrlSetting_" + vrfName,
-          "This object is used to change the forced evaporating/condensing control of VRF system.", false, false));
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting),
+          Type = BacnetObjectTypes.OBJECT_BINARY_VALUE,
+          Properties = new Property[]
+          {
+            new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_VALUE:" + (bBase + MemberNumber.ForcedRefrigerantTemperature_Setting)),
+            new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "5"),
+            new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RefrigerantTempCtrlSetting_" + vrfName),
+            new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to change the forced evaporating/condensing control of VRF system of " + vrfName),
+            new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+            new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+          }
+        });
 
-        dObject.AddBacnetObject(new BinaryInput
-          ((int)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status),
-          "RefrigerantTempCtrlStatus_" + vrfName,
-          "This object is used to monitor the forced evaporating/condensing control of VRF system.", false));
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status),
+          Type = BacnetObjectTypes.OBJECT_BINARY_INPUT,
+          Properties = new Property[]
+          {
+            new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_INPUT:" + (bBase + MemberNumber.ForcedRefrigerantTemperature_Status)),
+            new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "3"),
+            new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RefrigerantTempCtrlStatus_" + vrfName),
+            new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the forced evaporating/condensing control of VRF system of " + vrfName),
+            new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+            new Property(BacnetPropertyIds.PROP_POLARITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+          }
+        });
 
-        dObject.AddBacnetObject(new AnalogValue<float>
-          ((int)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting),
-          "EvpTempSetting_" + vrfName,
-          "This object is used to set the evaporating temperature of VRF system.", 10, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
-        { m_PROP_HIGH_LIMIT = 15, m_PROP_LOW_LIMIT = 2 });
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+          Properties = new Property[]
+          {
+            new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_VALUE:" + (bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting)),
+            new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "2"),
+            new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "EvpTempSetting_" + vrfName),
+            new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "10"),
+            new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to set the evaporating temperature of VRF system of " +  vrfName),
+            new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+            new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+            new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            new Property(BacnetPropertyIds.PROP_FAULT_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "15"),
+            new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "2"),
+          }
+        });
 
-        dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status),
-          "EvpTempStatus_" + vrfName,
-          "This object is used to monitor the evaporating temperature of VRF system.", 10, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
-        { m_PROP_HIGH_LIMIT = 15, m_PROP_LOW_LIMIT = 2 });
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the evaporating temperature of VRF system of " + vrfName),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "EvpTempStatus_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "10"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "2"),
+              new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "15"),
+            }
+        });
 
-        dObject.AddBacnetObject(new AnalogValue<float>
-          ((int)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting),
-          "CndTempSetting_" + vrfName,
-          "This object is used to set the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
-        { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 }); //これ、適当
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+          Properties = new Property[]
+          {
+            new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_VALUE:" + (bBase + MemberNumber.CondensingTemperatureSetpoint_Setting)),
+            new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "2"),
+            new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "CndTempSetting_" + vrfName),
+            new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "45"),
+            new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to set the condensing temperature of VRF system of " +  vrfName),
+            new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+            new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+            new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "50"),
+            new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "35"),
+          }
+        });
 
-        dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status),
-          "CndTempStatus_" + vrfName,
-          "This object is used to monitor the condensing temperature of VRF system.", 45, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
-        { m_PROP_HIGH_LIMIT = 50, m_PROP_LOW_LIMIT = 35 });
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the condensing temperature of VRF system of " + vrfName),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.CondensingTemperatureSetpoint_Status)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "CndTempStatus_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "45"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "35"),
+              new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "50"),
+            }
+        });
 
-        dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.Electricity),
-          "Electricity_" + vrfName,
-          "This object is used to monitor the outdoor unit's electric consumption (fans and compressors).", 0, BacnetUnitsId.UNITS_KILOWATTS));
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.Electricity),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the outdoor unit's electric consumption (fans and compressors) of " + vrfName),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.Electricity)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Electricity_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "48"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            }
+        });
 
-        dObject.AddBacnetObject(new AnalogInput<float>
-          ((int)(bBase + MemberNumber.HeatLoad),
-          "HeatLoad_" + vrfName,
-          "This object is used to monitor the heat load of VRF system.", 0, BacnetUnitsId.UNITS_KILOWATTS));
+        strg.AddObject(new System.IO.BACnet.Storage.Object()
+        {
+          Instance = (uint)(bBase + MemberNumber.HeatLoad),
+          Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+          Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the heat load of VRF system of " + vrfName),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.HeatLoad)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "HeatLoad_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "48"),
+            }
+        });
 
         for (int iuIndx = 0; iuIndx < vrfSystems[ouIndx].IndoorUnitModes.Length; iuIndx++)
         {
@@ -168,120 +286,330 @@ namespace Shizuku2.BACnet
           bBase = 1000 * (1 + ouIndx) + 100 * (1 + iuIndx);
           vrfName = "VRF" + (1 + ouIndx) + "-" + (1 + iuIndx);
 
-          dObject.AddBacnetObject(new BinaryOutput
-          ((int)(bBase + MemberNumber.OnOff_Setting),
-          "OnOffCommand_" + vrfName.ToString(),
-          "This object is used to start (On)/stop (Off) the indoor unit.", false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.OnOff_Setting),
+            Type = BacnetObjectTypes.OBJECT_BINARY_OUTPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to start (On)/stop (Off) the indoor unit of " + vrfName),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_OUTPUT:" + (bBase + MemberNumber.OnOff_Setting)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "OnOffCommand_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "4"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_POLARITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            }
+          });
 
-          dObject.AddBacnetObject(new BinaryInput
-            ((int)(bBase + MemberNumber.OnOff_Status),
-            "OnOffStatus_" + vrfName.ToString(),
-            "This object is used to monitor the indoor unit's On/Off status.", false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.OnOff_Status),
+            Type = BacnetObjectTypes.OBJECT_BINARY_INPUT,
+            Properties = new Property[]
+          {
+            new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_INPUT:" + (bBase + MemberNumber.OnOff_Status)),
+            new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "3"),
+            new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "OnOffStatus_" + vrfName),
+            new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the indoor unit's On/Off status of " + vrfName),
+            new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+            new Property(BacnetPropertyIds.PROP_POLARITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+          }
+          });
 
-          dObject.AddBacnetObject(new MultiStateOutput
-            ((int)(bBase + MemberNumber.OperationMode_Setting),
-            "ModeCommand_" + vrfName.ToString(),
-            "This object is used to set an indoor unit's operation mode. 1: cool; 2: heat; 3: fan", 3, 3));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.OperationMode_Setting),
+            Type = BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_MULTI_STATE_OUTPUT:" + (bBase + MemberNumber.OperationMode_Setting)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "ModeCommand_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "14"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "3"),
+              new Property(BacnetPropertyIds.PROP_STATE_TEXT, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, ["Cool", "Heat", "Fan"]),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to set an indoor unit's operation mode. 1: cool; 2: heat; 3: fan"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_NUMBER_OF_STATES, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "3"),
+              new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            }
+          });
 
-          dObject.AddBacnetObject(new MultiStateInput
-            ((int)(bBase + MemberNumber.OperationMode_Status),
-            "ModeStatus_" + vrfName.ToString(),
-            "This object is used to monitor an indoor unit's operation mode. 1: cool; 2: heat; 3: fan", 3, 3, false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.OperationMode_Status),
+            Type = BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_MULTI_STATE_INPUT:" + (bBase + MemberNumber.OperationMode_Setting)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "ModeStatus_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "13"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "3"),
+              new Property(BacnetPropertyIds.PROP_STATE_TEXT, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, ["Cool", "Heat", "Fan"]),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor an indoor unit's operation mode. 1: cool; 2: heat; 3: fan"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_NUMBER_OF_STATES, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "3"),
+            }
+          });
 
-          dObject.AddBacnetObject(new AnalogValue<float>
-            ((int)(bBase + MemberNumber.Setpoint_Setting),
-            "TempSPSetting_" + vrfName.ToString(),
-            "This object is used to set the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS, false)
-          { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.Setpoint_Setting),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_VALUE,
+            Properties = new Property[]
+          {
+            new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_VALUE:" + (bBase + MemberNumber.Setpoint_Setting)),
+            new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "2"),
+            new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "TempSPSetting_" + vrfName),
+            new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "24"),
+            new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to set the indoor unit's setpoint of " +  vrfName),
+            new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+            new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+            new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+            new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "32"),
+            new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "16"),
+          }
+          });
 
-          dObject.AddBacnetObject(new AnalogInput<float>
-           ((int)(bBase + MemberNumber.Setpoint_Status),
-           "TempSPStatus_" + vrfName.ToString(),
-           "This object is used to monitor the indoor unit's setpoint.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS)
-          { m_PROP_HIGH_LIMIT = 32, m_PROP_LOW_LIMIT = 16 });
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.Setpoint_Status),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the indoor unit's setpoint of " + vrfName),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.Setpoint_Status)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "TempSPStatus_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "24"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+            new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "32"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "16"),
+            }
+          });
 
-          dObject.AddBacnetObject(new AnalogInput<float>
-            ((int)(bBase + MemberNumber.MeasuredRoomTemperature),
-            "RoomTemp_" + vrfName.ToString(),
-            "This object is used to monitor the room dry-bulb temperature detected by the indoor unit return air sensor.", 24, BacnetUnitsId.UNITS_DEGREES_CELSIUS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.MeasuredRoomTemperature),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the room dry-bulb temperature detected by the indoor unit return air sensor."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.MeasuredRoomTemperature)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RoomTemp_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "24"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "62"),
+            }
+          });
 
-          dObject.AddBacnetObject(new AnalogInput<float>
-            ((int)(bBase + MemberNumber.MeasuredRelativeHumidity),
-            "RoomRHmid_" + vrfName.ToString(),
-            "This object is used to monitor the room relative humidity detected by the indoor unit return air sensor.", 50, BacnetUnitsId.UNITS_PERCENT_RELATIVE_HUMIDITY)
-          { m_PROP_HIGH_LIMIT = 100, m_PROP_LOW_LIMIT = 0 });
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.MeasuredRelativeHumidity),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the room relative humidity detected by the indoor unit return air sensor."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.MeasuredRelativeHumidity)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RoomRHmid_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "50"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "29"),
+            new Property(BacnetPropertyIds.PROP_HIGH_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "100"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            }
+          });
 
-          dObject.AddBacnetObject(new MultiStateOutput
-            ((int)(bBase + MemberNumber.FanSpeed_Setting),
-            "AirFlowRateCommand_" + vrfName.ToString(),
-            "This object is used to set an indoor unit's fan speed. 1: Low; 2: Middle; 3: High", 2, 3));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.FanSpeed_Setting),
+            Type = BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_MULTI_STATE_OUTPUT:" + (bBase + MemberNumber.FanSpeed_Setting)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "AirFlowRateCommand_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "14"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "2"),
+              new Property(BacnetPropertyIds.PROP_STATE_TEXT, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, ["Low", "Middle", "High"]),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to set an indoor unit's fan speed. 1: Low; 2: Middle; 3: High"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_NUMBER_OF_STATES, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "3"),
+              new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            }
+          });
 
-          dObject.AddBacnetObject(new MultiStateInput
-            ((int)(bBase + MemberNumber.FanSpeed_Status),
-            "AirFlowRateStatus_" + vrfName.ToString(),
-            "This object is used to monitor the indoor unit's fan speed. 1: Low; 2: Middle; 3: High", 3, 2, false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.FanSpeed_Status),
+            Type = BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_MULTI_STATE_INPUT:" + (bBase + MemberNumber.FanSpeed_Status)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "AirFlowRateStatus_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "13"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "2"),
+              new Property(BacnetPropertyIds.PROP_STATE_TEXT, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, ["Low", "Middle", "High"]),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the indoor unit's fan speed. 1: Low; 2: Middle; 3: High"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_NUMBER_OF_STATES, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "3"),
+            }
+          });
 
-          dObject.AddBacnetObject(new MultiStateOutput
-            ((int)(bBase + MemberNumber.AirflowDirection_Setting),
-            "AirDirectionCommand_" + vrfName.ToString(),
-            "This object is used to change the indoor unit's airflow direction. 1: Horizontal; 2: 22.5deg; 3: 45deg; 4: 67.5deg; 5: Vertical", 5, 5));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.AirflowDirection_Setting),
+            Type = BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_MULTI_STATE_OUTPUT:" + (bBase + MemberNumber.AirflowDirection_Setting)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "AirDirectionCommand_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "14"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "5"),
+              new Property(BacnetPropertyIds.PROP_STATE_TEXT, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, ["Horizontal", "22.5deg", "45deg", "67.5deg", "Vertical"]),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to change the indoor unit's airflow direction. 1: Horizontal; 2: 22.5deg; 3: 45deg; 4: 67.5deg; 5: Vertical"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_NUMBER_OF_STATES, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "5"),
+              new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+            }
+          });
 
-          dObject.AddBacnetObject(new MultiStateInput
-            ((int)(bBase + MemberNumber.AirflowDirection_Status),
-            "AirDirectionStatus_" + vrfName.ToString(),
-            "This object is used to monitor the indoor unit's airflow direction. 1: Horizontal; 2: 22.5deg; 3: 45deg; 4: 67.5deg; 5: Vertical", 5, 5, false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.AirflowDirection_Status),
+            Type = BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_MULTI_STATE_INPUT:" + (bBase + MemberNumber.AirflowDirection_Status)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "AirDirectionStatus_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "13"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "5"),
+              new Property(BacnetPropertyIds.PROP_STATE_TEXT, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, ["Horizontal", "22.5deg", "45deg", "67.5deg", "Vertical"]),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the indoor unit's airflow direction. 1: Horizontal; 2: 22.5deg; 3: 45deg; 4: 67.5deg; 5: Vertical"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_NUMBER_OF_STATES, BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, "5"),
+            }
+          });
 
-          dObject.AddBacnetObject(new BinaryValue
-            ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting),
-            "RemoteControlStart_" + vrfName.ToString(),
-            "This object is used to permit or prohibit the On/Off operation from the remote controller.", false, false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting),
+            Type = BacnetObjectTypes.OBJECT_BINARY_VALUE,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_VALUE:" + (bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "5"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RemoteControlStart_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to permit or prohibit the On/Off operation from the remote controller."),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRIORITY_ARRAY, BacnetApplicationTags.BACNET_APPLICATION_TAG_NULL, ["","","","","","","","","","","","","","","",""]),
+              new Property(BacnetPropertyIds.PROP_RELINQUISH_DEFAULT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            }
+          });
 
-          dObject.AddBacnetObject(new BinaryInput
-            ((int)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status),
-            "RemoteControlStart_" + vrfName.ToString(),
-            "This object is used to monitor status of permit or prohibit the On/Off operation from the remote controller.", false));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status),
+            Type = BacnetObjectTypes.OBJECT_BINARY_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_BINARY_INPUT:" + (bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "3"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "RemoteControlStart_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor status of permit or prohibit the On/Off operation from the remote controller."),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_POLARITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+            }
+          });
 
-          dObject.AddBacnetObject(new AnalogInput<float>
-           ((int)(bBase + MemberNumber.Electricity),
-           "Electricity_" + vrfName.ToString(),
-           "This object is used to monitor the indoor unit's electric consumption.", 0, BacnetUnitsId.UNITS_KILOWATTS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.Electricity),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the indoor unit's electric consumption."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.Electricity)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "Electricity_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "48"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            }
+          });
 
-          dObject.AddBacnetObject(new AnalogInput<float>
-           ((int)(bBase + MemberNumber.HeatLoad),
-           "HeatLoad_" + vrfName.ToString(),
-           "This object is used to monitor the heat load of indoor unit.", 0, BacnetUnitsId.UNITS_KILOWATTS));
+          strg.AddObject(new System.IO.BACnet.Storage.Object()
+          {
+            Instance = (uint)(bBase + MemberNumber.HeatLoad),
+            Type = BacnetObjectTypes.OBJECT_ANALOG_INPUT,
+            Properties = new Property[]
+            {
+              new Property(BacnetPropertyIds.PROP_DESCRIPTION, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "This object is used to monitor the heat load of indoor unit."),
+              new Property(BacnetPropertyIds.PROP_EVENT_STATE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OBJECT_IDENTIFIER, BacnetApplicationTags.BACNET_APPLICATION_TAG_OBJECT_ID, "OBJECT_ANALOG_INPUT:" + (bBase + MemberNumber.HeatLoad)),
+              new Property(BacnetPropertyIds.PROP_OBJECT_NAME, BacnetApplicationTags.BACNET_APPLICATION_TAG_CHARACTER_STRING, "HeatLoad_" + vrfName),
+              new Property(BacnetPropertyIds.PROP_OBJECT_TYPE, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_OUT_OF_SERVICE, BacnetApplicationTags.BACNET_APPLICATION_TAG_BOOLEAN, "False"),
+              new Property(BacnetPropertyIds.PROP_PRESENT_VALUE, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+              new Property(BacnetPropertyIds.PROP_RELIABILITY, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "0"),
+              new Property(BacnetPropertyIds.PROP_STATUS_FLAGS, BacnetApplicationTags.BACNET_APPLICATION_TAG_BIT_STRING, "0000"),
+              new Property(BacnetPropertyIds.PROP_UNITS, BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, "48"),
+              new Property(BacnetPropertyIds.PROP_LOW_LIMIT, BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, "0"),
+            }
+          });
         }
       }
 
-      return dObject;
+      return strg;
     }
 
     #endregion
-
-    public void OutputBACnetObjectInfo
-      (out uint[] instances, out string[] types, out string[] names, out string[] descriptions, out string[] values)
-    {
-      List<string> tLst = new List<string>();
-      List<uint> iLst = new List<uint>();
-      List<string> nLst = new List<string>();
-      List<string> dLst = new List<string>();
-      List<string> vLst = new List<string>();
-      foreach (BaCSharpObject bObj in communicator.BACnetDevice.ObjectsList)
-      {
-        tLst.Add(bObj.PROP_OBJECT_IDENTIFIER.type.ToString().Substring(7));
-        iLst.Add(bObj.PROP_OBJECT_IDENTIFIER.instance);
-        nLst.Add(bObj.PROP_OBJECT_NAME);
-        dLst.Add(bObj.PROP_DESCRIPTION);
-        IList<BacnetValue> bVal = bObj.FindPropValue("PROP_PRESENT_VALUE");
-        if (bVal != null) vLst.Add(bVal[0].Value.ToString());
-        else vLst.Add(null);
-      }
-      types = tLst.ToArray();
-      instances = iLst.ToArray();
-      names = nLst.ToArray();
-      descriptions = dLst.ToArray();
-      values = vLst.ToArray();
-    }
 
     #region IBACnetController実装
 
@@ -291,7 +619,7 @@ namespace Shizuku2.BACnet
       if (dTime < nextSignalApply) return;
       nextSignalApply = dTime.AddSeconds(SIGNAL_UPDATE_SPAN);
 
-      lock (communicator.BACnetDevice)
+      lock (Communicator)
       {
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
@@ -305,66 +633,85 @@ namespace Shizuku2.BACnet
             bBase = 1000 * (i + 1) + 100 * (j + 1);
 
             //On/off******************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting));
-            bool isIUonSet = BACnetCommunicator.ConvertToBool(((BinaryOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.OnOff_Status));
-            bool isIUonStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            bool isIUonSet = 1u == (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_OUTPUT, (uint)(bBase + MemberNumber.OnOff_Setting)));
+            bool isIUonStt = 1u == (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.OnOff_Status)));
             if (isIUonSet != isIUonStt) //設定!=状態の場合には更新処理
-              ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = isIUonSet ? 1u : 0u;
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.OnOff_Status)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, isIUonSet ? 1u : 0u)
+                );
             //1台でも室内機が動いていれば室外機はOn
             isSystemOn |= isIUonSet;
 
             //運転モード****************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.OperationMode_Setting));
-            uint modeSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.OperationMode_Status));
-            uint modeStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            uint modeSet = (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.OperationMode_Setting)));
+            uint modeStt = (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.OperationMode_Status)));
             if (modeSet != modeStt) //設定!=状態の場合には更新処理
-              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = modeSet;
-
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.OperationMode_Status)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, modeSet)
+                );
             vrf.IndoorUnitModes[j] =
               !isIUonSet ? ExVRFSystem.Mode.ShutOff :
               modeSet == 1 ? ExVRFSystem.Mode.Cooling :
               modeSet == 2 ? ExVRFSystem.Mode.Heating : ExVRFSystem.Mode.ThermoOff;
 
             //室内温度設定***************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
-            float tSpSet = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Setpoint_Status));
-            float tSpStt = ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            float tSpSet = (float)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting)));
+            float tSpStt = (float)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Setpoint_Status)));
             if (tSpSet != tSpStt) //設定!=状態の場合には更新処理
             {
               vrf.SetSetpoint(tSpSet, j, true);
               vrf.SetSetpoint(tSpSet, j, false);
-              ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tSpSet;
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Setpoint_Status)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, tSpSet)
+                );
             }
 
             //ファン風量*****************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.FanSpeed_Setting));
-            uint fanSpdSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.FanSpeed_Status));
-            uint fanSpdStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            uint fanSpdSet = (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.FanSpeed_Setting)));
+            uint fanSpdStt = (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.FanSpeed_Status)));
             if (fanSpdSet != fanSpdStt)
-              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = fanSpdSet;
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.FanSpeed_Status)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, fanSpdSet)
+                );
             vrf.FanSpeeds[j] =
               fanSpdSet == 1 ? ExVRFSystem.FanSpeed.Low :
               fanSpdSet == 2 ? ExVRFSystem.FanSpeed.Middle : ExVRFSystem.FanSpeed.High;
 
             //風向***********************
             //1:Horizontal, 2:22.5deg ,3:45deg ,4:67.5deg ,5:Vertical
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.AirflowDirection_Setting));
-            uint afDirSet = ((MultiStateOutput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.AirflowDirection_Status));
-            uint afDirStt = ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+            uint afDirSet = (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_OUTPUT, (uint)(bBase + MemberNumber.AirflowDirection_Setting)));
+            uint afDirStt = (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.AirflowDirection_Status)));
             if (afDirSet != afDirStt) //設定!=状態の場合には更新処理
-              ((MultiStateInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = afDirSet;
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_MULTI_STATE_INPUT, (uint)(bBase + MemberNumber.AirflowDirection_Status)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_UNSIGNED_INT, afDirSet)
+                );
             vrf.Direction[j] = Math.PI / 180d * Math.Max(5, Math.Min(90, (afDirSet - 1) * 22.5)); //水平でも5degはあることにする
 
             //リモコン手元操作許可禁止*****
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting));
-            bool rmtPmtSPSet = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status));
-            bool rmtPmtSPStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+            bool rmtPmtSPSet = 1u == (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Setting)));
+            bool rmtPmtSPStt = 1u == (uint)Communicator.Storage.ReadPresentValue(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status)));
             if (rmtPmtSPSet != rmtPmtSPStt)
               vrf.PermitSPControl[j] = rmtPmtSPSet;
 
@@ -374,28 +721,40 @@ namespace Shizuku2.BACnet
           bBase = 1000 * (i + 1);
 
           //蒸発温度・凝縮温度強制設定***
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting));
-          bool fcRefSet = BACnetCommunicator.ConvertToBool(((BinaryValue)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status));
-          bool fcRefStt = BACnetCommunicator.ConvertToBool(((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE);
+          bool fcRefSet = 1u == (uint)Communicator.Storage.ReadPresentValue(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_VALUE, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Setting)));
+          bool fcRefStt = 1u == (uint)Communicator.Storage.ReadPresentValue(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status)));
           if (fcRefSet != fcRefStt) //設定!=状態の場合には更新処理
-            ((BinaryInput)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = fcRefSet ? 1u : 0u;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.ForcedRefrigerantTemperature_Status)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, fcRefSet ? 1u :0u)
+              );
 
           //蒸発温度設定***************
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting));
-          float tEvpSet = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status));
-          float tEvpStt = ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+          float tEvpSet = (float)Communicator.Storage.ReadPresentValue(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Setting)));
+          float tEvpStt = (float)Communicator.Storage.ReadPresentValue(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status)));
           if (tEvpSet != tEvpStt) //設定!=状態の場合には更新処理
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tEvpSet;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.EvaporatingTemperatureSetpoint_Status)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, tEvpSet)
+              );
 
           //凝縮温度設定***************
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting));
-          float tCndSet = ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status));
-          float tCndStt = ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE;
+          float tCndSet = (float)Communicator.Storage.ReadPresentValue(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Setting)));
+          float tCndStt = (float)Communicator.Storage.ReadPresentValue(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status)));
           if (tCndSet != tCndStt) //設定!=状態の場合には更新処理
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = tCndSet;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.CondensingTemperatureSetpoint_Status)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, tCndSet)
+              );
 
           //蒸発・凝縮温度反映
           vrfSystems[i].VRFSystem.TargetEvaporatingTemperature
@@ -413,7 +772,7 @@ namespace Shizuku2.BACnet
       if (dTime < nextSignalRead) return;
       nextSignalRead = dTime.AddSeconds(SIGNAL_UPDATE_SPAN);
 
-      lock (communicator.BACnetDevice)
+      lock (Communicator)
       {
         int iuNum = 0;
         for (int i = 0; i < vrfSystems.Length; i++)
@@ -433,41 +792,62 @@ namespace Shizuku2.BACnet
             bool hasSPChanged = vrf.HasSetpointChanged(j, vrf.VRFSystem.CurrentMode != VRFSystem.Mode.Heating);
             if (hasSPChanged)
             {
-              boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting));
-              ((AnalogValue<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE =
-              (float) vrf.GetSetpoint(j, vrf.VRFSystem.CurrentMode != VRFSystem.Mode.Heating);
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_VALUE, (uint)(bBase + MemberNumber.Setpoint_Setting)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)vrf.GetSetpoint(j, vrf.VRFSystem.CurrentMode != VRFSystem.Mode.Heating))
+              );
               vrf.ResetSetpointChangedFlag(j, vrf.VRFSystem.CurrentMode != VRFSystem.Mode.Heating);
-            }            
+            }
 
             //吸い込み温度***************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature));
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)unt.InletAirTemperature;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRoomTemperature)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)unt.InletAirTemperature)
+              );
 
             //吸い込み湿度***************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRelativeHumidity));
             float rhmd = (float)MoistAir.GetRelativeHumidityFromDryBulbTemperatureAndHumidityRatio
               (vrf.VRFSystem.IndoorUnits[j].InletAirTemperature, unt.InletAirHumidityRatio, ATM);
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = rhmd;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.MeasuredRelativeHumidity)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, rhmd)
+              );
 
             //室内機消費電力*************
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Electricity));
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)unt.FanElectricity;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.Electricity)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)unt.FanElectricity)
+              );
 
             //熱負荷*************
             hlSum += (float)unt.HeatTransfer;
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.HeatLoad));
-            ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)unt.HeatTransfer;
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(bBase + MemberNumber.HeatLoad)),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)unt.HeatTransfer)
+              );
 
             iuNum++;
           }
 
           //室外機消費電力*************
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.Electricity));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = (float)(vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity);
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.Electricity)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)(vrf.VRFSystem.CompressorElectricity + vrf.VRFSystem.OutdoorUnitFanElectricity))
+            );
 
           //室外機熱負荷*************
-          boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.HeatLoad));
-          ((AnalogInput<float>)communicator.BACnetDevice.FindBacnetObject(boID)).m_PROP_PRESENT_VALUE = hlSum;
+          Communicator.Storage.WriteProperty(
+            new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)(1000 * (i + 1) + MemberNumber.HeatLoad)),
+            BacnetPropertyIds.PROP_PRESENT_VALUE,
+            new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, hlSum)
+            );
+
         }
       }
     }
@@ -475,13 +855,13 @@ namespace Shizuku2.BACnet
     /// <summary>BACnetControllerのサービスを開始する</summary>
     public void StartService()
     {
-      communicator.StartService();
+      Communicator.StartService();
     }
 
     /// <summary>BACnetControllerのリソースを解放する</summary>
     public void EndService()
     {
-      communicator.EndService();
+      Communicator.EndService();
     }
 
     #endregion

@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shizuku2", "Shizuku2\Shizuku2.csproj", "{E0A645D1-3ABF-4612-AE11-834571E027CD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{28349F19-DAAC-4989-8F16-BC4CA84B9D49} = {28349F19-DAAC-4989-8F16-BC4CA84B9D49}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleVRFController", "SampleVRFController\SampleVRFController.csproj", "{B7A6568C-B955-4322-A030-410CA9D7439C}"
 EndProject
@@ -19,7 +22,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shizuku2Lib", "Shizuku2Lib\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CaseStudyProcessor", "CaseStudyProcessor\CaseStudyProcessor.csproj", "{A422AE28-3033-4045-80B1-0C1589B7B533}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DummyDeviceController", "DummyDeviceController\DummyDeviceController.csproj", "{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DummyDeviceController", "DummyDeviceController\DummyDeviceController.csproj", "{3C15427F-A67B-46AD-B5BA-3AEC58F6C414}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

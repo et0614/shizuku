@@ -40,7 +40,7 @@ namespace Shizuku2.BACnet
     private bool covSubscribed = false;
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    protected BACnetCommunicator communicator;
+    protected BacnetClient client;
 
     /// <summary>DateTimeコントローラのIPアドレス</summary>
     private string dtCtrlIP = "127.0.0.1";
@@ -70,11 +70,9 @@ namespace Shizuku2.BACnet
 
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="id">通信に使うBACnet DeviceのID</param>
-    /// <param name="name">通信に使うBACnet Deviceの名前</param>
-    public PresentValueReadWriter(uint id, string name = "anonymous device")
+    public PresentValueReadWriter(uint id)
     {
-      DeviceObject dObject = new DeviceObject(id, name, name, true);
-      communicator = new BACnetCommunicator(dObject, (int)(0xBAC0 + id));
+      client = new BacnetClient(new BacnetIpUdpProtocolTransport(0xBAC0, (int)(0xBAC0 + id)));
     }
 
     #endregion
@@ -84,13 +82,13 @@ namespace Shizuku2.BACnet
     /// <summary>サービスを開始する</summary>
     public void StartService()
     {
-      communicator.StartService();
+      client.Start();
     }
 
     /// <summary>リソースを解放する</summary>
     public void EndService()
     {
-      communicator.EndService();
+      if (client != null) client.Dispose();
     }
 
     /// <summary>PresentValueを読み取る</summary>
@@ -107,7 +105,7 @@ namespace Shizuku2.BACnet
       //日付型の場合には処理が特殊
       if (typeof(T) == typeof(DateTime) && boType == BacnetObjectTypes.OBJECT_DATETIME_VALUE)
       {
-        if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+        if (client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
         {
           succeeded = true;
           DateTime dt1 = (DateTime)val[0].Value;
@@ -118,7 +116,7 @@ namespace Shizuku2.BACnet
         return default;
       }
       //その他の型
-      else if (communicator.Client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+      else if (client.ReadPropertyRequest(bacAddress, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
       {
         succeeded = true;
         return (T)val[0].Value;
@@ -128,11 +126,9 @@ namespace Shizuku2.BACnet
     }
 
     /// <summary>PresentValueを書き込む</summary>
-    /// <typeparam name="T">データの種類</typeparam>
     /// <param name="bacAddress">通信相手のBACnetアドレス</param>
     /// <param name="boType">BACnetオブジェクトタイプ</param>
     /// <param name="instanceNumber">インスタンス番号</param>
-    /// <param name="tag">タグ</param>
     /// <param name="val">書き込むPresentValue</param>
     /// <param name="succeeded">書き込み成功の真偽</param>
     public void WritePresentValue(BacnetAddress bacAddress, BacnetObjectTypes boType, uint instanceNumber,
@@ -140,7 +136,7 @@ namespace Shizuku2.BACnet
     {
       BacnetObjectId boID = new BacnetObjectId(boType, instanceNumber);
 
-      succeeded = communicator.Client.WritePropertyRequest(
+      succeeded = client.WritePropertyRequest(
         bacAddress, 
         boID, 
         BacnetPropertyIds.PROP_PRESENT_VALUE,
@@ -163,9 +159,9 @@ namespace Shizuku2.BACnet
         BacnetAddress bacAddDT = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + DATETIMECONTROLLER_EXCLUSIVE_PORT.ToString());
 
         //加速度の変更を監視
-        communicator.Client.OnCOVNotification += Client_OnCOVNotification;
+        client.OnCOVNotification += Client_OnCOVNotification;
         BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate);
-        covSubscribed = communicator.Client.SubscribeCOVRequest(bacAddDT, boID, (uint)DateTimeControllerMember.AccerarationRate, false, false, 3600);
+        covSubscribed = client.SubscribeCOVRequest(bacAddDT, boID, (uint)DateTimeControllerMember.AccerarationRate, false, false, 3600);
       }
 
       //日時を更新
@@ -190,8 +186,6 @@ namespace Shizuku2.BACnet
       }
     }
 
-    static int num = 0;
-
     /// <summary>日時を更新する</summary>
     /// <param name="maxTrial">日時更新の最大試行回数[回]</param>
     /// <param name="trialIntervalMSec">試行間の時間間隔[msec]</param>
@@ -202,7 +196,7 @@ namespace Shizuku2.BACnet
       //加速度を取得
       for (int i = 0; i < maxTrial; i++)
       {
-        AccelerationRate = ReadPresentValue<int>(bacAddDT, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate, out bool suc);
+        AccelerationRate = (int)ReadPresentValue<float>(bacAddDT, BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeControllerMember.AccerarationRate, out bool suc);
         if (suc) break;
         if (i == maxTrial - 1) throw new Exception("Can't update date time");
         Thread.Sleep(trialIntervalMSec);
@@ -212,7 +206,7 @@ namespace Shizuku2.BACnet
       for (int i = 0; i < maxTrial; i++)
       {
         BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeControllerMember.BaseRealDateTime);
-        if (communicator.Client.ReadPropertyRequest(bacAddDT, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+        if (client.ReadPropertyRequest(bacAddDT, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
         {
           DateTime dt1 = (DateTime)val[0].Value;
           DateTime dt2 = (DateTime)val[1].Value;
@@ -227,7 +221,7 @@ namespace Shizuku2.BACnet
       for (int i = 0; i < maxTrial; i++)
       {
         BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeControllerMember.BaseAcceleratedDateTime);
-        if (communicator.Client.ReadPropertyRequest(bacAddDT, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
+        if (client.ReadPropertyRequest(bacAddDT, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val))
         {
           DateTime dt1 = (DateTime)val[0].Value;
           DateTime dt2 = (DateTime)val[1].Value;

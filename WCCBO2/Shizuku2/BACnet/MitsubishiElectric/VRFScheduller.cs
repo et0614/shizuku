@@ -35,7 +35,7 @@ namespace Shizuku2.BACnet.MitsubishiElectric
     public int AccelerationRate
     { get { return dtAccl.AccelerationRate; } }
 
-    private BACnetCommunicator communicator;
+    private BACnetCommunicator2 communicator;
 
     /// <summary>室内機の台数を取得する</summary>
     public int NumberOfIndoorUnits { get; private set; }
@@ -62,7 +62,7 @@ namespace Shizuku2.BACnet.MitsubishiElectric
         throw new Exception("Invalid indoor unit number");
 
       DeviceObject dObject = new DeviceObject(THIS_DEVICE_ID, DEVICE_NAME, DEVICE_DESCRIPTION, true);
-      communicator = new BACnetCommunicator(dObject, THIS_EXCLUSIVE_PORT);
+      communicator = new BACnetCommunicator2(dObject, THIS_EXCLUSIVE_PORT);
 
       try
       {
@@ -191,7 +191,7 @@ namespace Shizuku2.BACnet.MitsubishiElectric
         {
           if (value.property.propertyIdentifier == (uint)BacnetPropertyIds.PROP_PRESENT_VALUE)
           {
-            int acc = (int)value.value[0].Value;
+            int acc = (int)((float)value.value[0].Value);
 
             BacnetObjectId boID;
             //基準日時（加速時間）
