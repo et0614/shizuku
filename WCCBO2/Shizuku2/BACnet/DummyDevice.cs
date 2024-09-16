@@ -54,13 +54,14 @@ namespace Shizuku2.BACnet
     #region コンストラクタ
 
     /// <summary>BACnet通信テストのためのダミーDevice</summary>
-    public DummyDevice()
+    /// <param name="localEndpointIP">エミュレータのIPアドレス</param>
+    public DummyDevice(string localEndpointIP)
     {
       DeviceStorage strg = DeviceStorage.Load(
         new StreamReader
         (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.DummyDeviceStorage.xml"))
         );
-      communicator2 = new BACnetCommunicator(strg, EXCLUSIVE_PORT);
+      communicator2 = new BACnetCommunicator(strg, EXCLUSIVE_PORT, localEndpointIP);
     }
 
     #endregion

@@ -17,9 +17,40 @@ namespace ExcelController
 
     #endregion
 
+    #region static変数
+
+    private static string emulatorIpAddress = "127.0.0.1";
+
+    #endregion
+
     static void Main(string[] args)
     {
       Console.WriteLine("Starting Excel controller.");
+
+      //初期設定ファイル読み込み
+      string sFile = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "setting.ini";
+      if (File.Exists(sFile))
+      {
+        using (StreamReader sReader = new StreamReader(sFile))
+        {
+          string ln;
+          while ((ln = sReader.ReadLine()) != null)
+          {
+            if (!ln.StartsWith("#") && ln != "")
+            {
+              ln = ln.Remove(ln.IndexOf(';'));
+              string[] st = ln.Split('=');
+              if (st[0] == "ipadd") emulatorIpAddress = st[1];
+            }
+          }
+        }
+      }
+      else 
+      {
+        Console.WriteLine("Can't find \"setting.ini\".");
+        return;
+      }
+      Console.WriteLine("Use " + emulatorIpAddress + " as the IP address of the emulator.");
 
       //制御値保持インスタンス生成
       vrfCtrl[] vrfCtrls = new vrfCtrl[4];
@@ -44,7 +75,10 @@ namespace ExcelController
       int line = 3;
       while (true)
       {
-        if (line == 675) break;
+        if (
+          wSheet.GetRow(line) == null ||
+          wSheet.GetRow(line).GetCell(0) == null ||
+          wSheet.GetRow(line).GetCell(0).DateCellValue == null) break;
 
         DateTime? dt1 = wSheet.GetRow(line).GetCell(0).DateCellValue;
         DateTime? dt2 = wSheet.GetRow(line).GetCell(1).DateCellValue;
@@ -143,11 +177,11 @@ namespace ExcelController
       Console.WriteLine(" done.");
 
       //コントローラを用意して開始
-      VRFSystemCommunicator vrfCom = new VRFSystemCommunicator(DEVICE_ID, "Excel controller(VRF)");
-      VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 2, "Excel controller (Vent)");
+      VRFSystemCommunicator vrfCom = new VRFSystemCommunicator(DEVICE_ID, "Excel controller(VRF)", emulatorIpAddress);
+      VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 2, "Excel controller (Vent)", emulatorIpAddress);
       vrfCom.StartService();
       ventCom.StartService();
-      while (!vrfCom.SubscribeDateTimeCOV()) ; //COV登録が成功するまでは空ループ
+      while (!vrfCom.SubscribeDateTimeCOV(emulatorIpAddress)) ; //COV登録が成功するまでは空ループ
 
       //制御値更新ループ*************************************
       DateTime dtOut = DateTime.Now;

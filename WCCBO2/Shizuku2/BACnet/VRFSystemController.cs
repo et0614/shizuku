@@ -98,11 +98,11 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public VRFSystemController(ExVRFSystem[] vrfs)
+    public VRFSystemController(ExVRFSystem[] vrfs, string localEndpointIP)
     {
       vrfSystems = vrfs;
 
-      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT, localEndpointIP);
     }
 
     private DeviceStorage makeStorage()

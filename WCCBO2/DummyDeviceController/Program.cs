@@ -5,10 +5,38 @@ namespace DummyDeviceController
   internal class Program
   {
 
-    static DummyDeviceCommunicator communicator = new DummyDeviceCommunicator(999, "Dummy device controller");
+    static string emulatorIpAddress = "127.0.0.1";
+
+    static DummyDeviceCommunicator communicator;// = new DummyDeviceCommunicator(999, "Dummy device controller");
 
     static void Main(string[] args)
     {
+      //初期設定ファイル読み込み
+      string sFile = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "setting.ini";
+      if (File.Exists(sFile))
+      {
+        using (StreamReader sReader = new StreamReader(sFile))
+        {
+          string ln;
+          while ((ln = sReader.ReadLine()) != null)
+          {
+            if (!ln.StartsWith("#") && ln != "")
+            {
+              ln = ln.Remove(ln.IndexOf(';'));
+              string[] st = ln.Split('=');
+              if (st[0] == "ipadd") emulatorIpAddress = st[1];
+            }
+          }
+        }
+      }
+      else
+      {
+        Console.WriteLine("Can't find \"setting.ini\".");
+        return;
+      }
+      Console.WriteLine("Use " + emulatorIpAddress + " as the IP address of the emulator.");
+
+      communicator = new DummyDeviceCommunicator(999, "Dummy device controller", emulatorIpAddress);
       communicator.StartService();
 
       Console.WriteLine("Input command in \"read [Object type]\" or \"write [Object type] [Value]\"");

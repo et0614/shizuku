@@ -56,7 +56,7 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public EnvironmentMonitor(ImmutableBuildingThermalModel model, ExVRFSystem[] vrfs)
+    public EnvironmentMonitor(ImmutableBuildingThermalModel model, ExVRFSystem[] vrfs, string localEndpointIP)
     {
       this.building = model;
       this.vrfSystems = vrfs;
@@ -118,7 +118,7 @@ namespace Shizuku2.BACnet
         }
       }
 
-      Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT, localEndpointIP);
     }
 
     #endregion

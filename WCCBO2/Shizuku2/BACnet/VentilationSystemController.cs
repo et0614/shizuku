@@ -54,11 +54,11 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public VentilationSystemController(VentilationSystem ventSystem)
+    public VentilationSystemController(VentilationSystem ventSystem, string localEndpointIP)
     {
       this.ventSystem = ventSystem;
 
-      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT, localEndpointIP);
     }
 
     private DeviceStorage makeStorage()

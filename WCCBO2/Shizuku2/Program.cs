@@ -5,7 +5,6 @@ using Popolo.HVAC.MultiplePackagedHeatPump;
 using Popolo.Weather;
 using NSec.Cryptography;
 
-using System.IO.BACnet;
 using Shizuku.Models;
 using Popolo.Numerics;
 using Popolo.ThermophysicalProperty;
@@ -46,10 +45,10 @@ namespace Shizuku2
     private const int V_MINOR = 9;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 0;
+    private const int V_REVISION = 1;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.08.11";
+    private const string V_DATE = "2024.09.16";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -71,7 +70,7 @@ namespace Shizuku2
     #region クラス変数
 
     /// <summary>初期設定</summary>
-    private static readonly Dictionary<string, int> initSettings = new Dictionary<string, int>();
+    private static readonly Dictionary<string, string> initSettings = new Dictionary<string, string>();
 
     /// <summary>パスワード</summary>
     private static string password;
@@ -142,7 +141,7 @@ namespace Shizuku2
     private static IBACnetController? vrfSchedl;
 
     /// <summary>ダミーデバイス</summary>
-    private static DummyDevice dummyDv = new DummyDevice(); //ダミーデバイス
+    private static DummyDevice dummyDv;
 
     #endregion
 
@@ -171,34 +170,37 @@ namespace Shizuku2
       ventSystem = new VentilationSystem(building);
 
       //気象データを生成
-      if (initSettings["use_rsw"] == 0) initSettings["rseed_w"] = DateTime.Now.Millisecond;
-      WeatherLoader wetLoader = new WeatherLoader((uint)initSettings["rseed_w"],
-        initSettings["weather"] == 1 ? RandomWeather.Location.Sapporo :
-        initSettings["weather"] == 2 ? RandomWeather.Location.Sendai :
-        initSettings["weather"] == 3 ? RandomWeather.Location.Tokyo :
-        initSettings["weather"] == 4 ? RandomWeather.Location.Osaka :
-        initSettings["weather"] == 5 ? RandomWeather.Location.Fukuoka :
+      if (initSettings["use_rsw"] == "0") initSettings["rseed_w"] = DateTime.Now.Millisecond.ToString();
+      WeatherLoader wetLoader = new WeatherLoader(uint.Parse(initSettings["rseed_w"]),
+        initSettings["weather"] == "1" ? RandomWeather.Location.Sapporo :
+        initSettings["weather"] == "2" ? RandomWeather.Location.Sendai :
+        initSettings["weather"] == "3" ? RandomWeather.Location.Tokyo :
+        initSettings["weather"] == "4" ? RandomWeather.Location.Osaka :
+        initSettings["weather"] == "5" ? RandomWeather.Location.Fukuoka :
         RandomWeather.Location.Naha);
       Sun sun =
-        initSettings["weather"] == 1 ? new Sun(43.0621, 141.3544, 135) :
-        initSettings["weather"] == 2 ? new Sun(38.2682, 140.8693, 135) :
-        initSettings["weather"] == 3 ? new Sun(35.6894, 139.6917, 135) :
-        initSettings["weather"] == 4 ? new Sun(34.6937, 135.5021, 135) :
-        initSettings["weather"] == 5 ? new Sun(33.5903, 130.4017, 135) :
+        initSettings["weather"] == "1" ? new Sun(43.0621, 141.3544, 135) :
+        initSettings["weather"] == "2" ? new Sun(38.2682, 140.8693, 135) :
+        initSettings["weather"] == "3" ? new Sun(35.6894, 139.6917, 135) :
+        initSettings["weather"] == "4" ? new Sun(34.6937, 135.5021, 135) :
+        initSettings["weather"] == "5" ? new Sun(33.5903, 130.4017, 135) :
         new Sun(26.2123, 127.6791, 135);
 
       //テナントを生成//生成と行動で乱数シードを分ける
       tenants = new TenantList(1, building, vrfs); //2023.12.07 固定化。誤入力回避用。
       //tenants = new TenantList((uint)initSettings["rseed_oprm"], building, vrfs);
-      if (initSettings["use_rso"] == 0)
-        initSettings["rseed_o"] = DateTime.Now.Millisecond;
-      tenants.ResetRandomSeed((uint)initSettings["rseed_o"]);
+      if (initSettings["use_rso"] == "0")
+        initSettings["rseed_o"] = DateTime.Now.Millisecond.ToString();
+      tenants.ResetRandomSeed(uint.Parse(initSettings["rseed_o"]));
       //tenants.OutputOccupantsInfo("occupants.csv");
+
+      //ダミーコントローラを準備
+      dummyDv = new DummyDevice(initSettings["ipadd"]);
 
       //日時コントローラを用意して助走計算
       Console.Write("Start precalculation...");
       DateTime dt;
-      if (initSettings["period"] == 0)
+      if (initSettings["period"] == "0")
       {
         dt = new DateTime(1999, 7, 21, 0, 0, 0); //夏季
         tenants.ResetClothing(26.0); //基準着衣量を初期化
@@ -209,8 +211,8 @@ namespace Shizuku2
         tenants.ResetClothing(4.0); //基準着衣量を初期化
       }
 
-      dtCtrl = new DateTimeController(dt, 0); //加速度0で待機
-      dtCtrl.TimeStep = building.TimeStep = Math.Max(1, Math.Min(120, initSettings["timestep"]));
+      dtCtrl = new DateTimeController(dt, 0, initSettings["ipadd"]); //加速度0で待機
+      dtCtrl.TimeStep = building.TimeStep = Math.Max(1, Math.Min(120, int.Parse(initSettings["timestep"])));
 
       //初期化・周期定常化処理
       preRun(dt, wetLoader, sun);
@@ -219,26 +221,26 @@ namespace Shizuku2
       //VRFコントローラ用意
       switch (initSettings["controller"])
       {
-        case 0:
-          vrfCtrl = new VRFSystemController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+        case "0":
+          vrfCtrl = new VRFSystemController(vrfs, initSettings["ipadd"]);
+          if (initSettings["scheduller"] == "1") vrfSchedl = new VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime, initSettings["ipadd"]);
           break;
-        case 1:
+        case "1":
           vrfCtrl = new BACnet.Daikin.VRFController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new BACnet.Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          if (initSettings["scheduller"] == "1") vrfSchedl = new BACnet.Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
-        case 2:
+        case "2":
           vrfCtrl = new BACnet.MitsubishiElectric.VRFController(vrfs);
-          if (initSettings["scheduller"] == 1) vrfSchedl = new BACnet.MitsubishiElectric.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          if (initSettings["scheduller"] == "1") vrfSchedl = new BACnet.MitsubishiElectric.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         default:
           throw new Exception("VRF controller number not supported.");
       }
 
       //その他のBACnet Device      
-      envMntr = new EnvironmentMonitor(building, vrfs); //外気モニタ
-      ocMntr = new OccupantMonitor(tenants); //執務者モニタ
-      ventCtrl = new VentilationSystemController(ventSystem); //換気システムコントローラ
+      envMntr = new EnvironmentMonitor(building, vrfs, initSettings["ipadd"]); //外気モニタ
+      ocMntr = new OccupantMonitor(tenants, initSettings["ipadd"]); //執務者モニタ
+      ventCtrl = new VentilationSystemController(ventSystem, initSettings["ipadd"]); //換気システムコントローラ
 
       //BACnet Device起動
       dtCtrl.StartService();
@@ -251,7 +253,7 @@ namespace Shizuku2
       //saveBACnetDeviceInfo();
 
       //ユーザーIDが0（Geust）の場合にはwarning表示
-      if (initSettings["userid"] == 0)
+      if (initSettings["userid"] == "0")
       {
         Console.WriteLine("Warning: The user ID is set to 0, i.e., run the emulator as guest.");
         Console.WriteLine();
@@ -268,7 +270,7 @@ namespace Shizuku2
       Console.ReadLine();
 
       //加速開始
-      dtCtrl.AccelerationRate = initSettings["accelerationRate"];
+      dtCtrl.AccelerationRate = int.Parse(initSettings["accelerationRate"]);
       dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //基準現在時刻を更新
 
       //DEBUG
@@ -332,7 +334,7 @@ namespace Shizuku2
     /// <param name="sun">太陽</param>
     private static void run(WeatherLoader wetLoader, Sun sun, ref StringBuilder summary)
     {
-      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(initSettings["oneday"] == 1 ? 1 : 7);
+      DateTime endDTime = dtCtrl.CurrentDateTime.AddDays(initSettings["oneday"] == "1" ? 1 : 7);
       DateTime nextOutput = dtCtrl.CurrentDateTime;
       uint ttlOcNum = 0;
       using (StreamWriter swGen = new StreamWriter(OUTPUT_DIR + Path.DirectorySeparatorChar + "general.csv"))
@@ -423,7 +425,7 @@ namespace Shizuku2
             {
               updateSummary(summary, false);
               outputStatus(swGen, swZone, swVRF, swVent, swOcc, swDRate, false);
-              nextOutput = building.CurrentDateTime.AddSeconds(initSettings["outputSpan"]);
+              nextOutput = building.CurrentDateTime.AddSeconds(int.Parse(initSettings["outputSpan"]));
             }
           }
 
@@ -1050,7 +1052,7 @@ namespace Shizuku2
     /// <returns>加湿する時間帯か否か</returns>
     private static bool isHumidifyTime()
     {
-      return initSettings["period"] == 1 && !(
+      return initSettings["period"] == "1" && !(
         dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Saturday |
         dtCtrl.CurrentDateTime.DayOfWeek == DayOfWeek.Sunday |
         dtCtrl.CurrentDateTime.Hour < HUMID_START |
@@ -1095,13 +1097,13 @@ namespace Shizuku2
               string[] st = line.Split('=');
               if (st[0] == "userpass") password = st[1];
               else if (initSettings.ContainsKey(st[0]))
-                initSettings[st[0]] = int.Parse(st[1]);
+                initSettings[st[0]] = st[1];
               else
-                initSettings.Add(st[0], int.Parse(st[1]));
+                initSettings.Add(st[0], st[1]);
             }
           }
         }
-        if (HL_TEST_MODE) initSettings["accelerationRate"] = 1000000;
+        if (HL_TEST_MODE) initSettings["accelerationRate"] = "1000000";
         return true;
       }
       else return false;
@@ -1214,9 +1216,9 @@ namespace Shizuku2
         vrfs[i].TargetCondensingTemperature = vrfs[i].MaxCondensingTemperature;
 
         //冷暖房モード
-        vrfs[i].CurrentMode = (initSettings["period"] == 0) ? VRFSystem.Mode.Heating : VRFSystem.Mode.Cooling;
+        vrfs[i].CurrentMode = (initSettings["period"] == "0") ? VRFSystem.Mode.Heating : VRFSystem.Mode.Cooling;
         for (int j = 0; j < vrfs[i].IndoorUnitNumber; j++)
-          vrfs[i].SetIndoorUnitMode((initSettings["period"] == 0) ? VRFUnit.Mode.Heating : VRFUnit.Mode.Cooling);
+          vrfs[i].SetIndoorUnitMode((initSettings["period"] == "0") ? VRFUnit.Mode.Heating : VRFUnit.Mode.Cooling);
 
         //室内機を回転数制御に
         for (int j = 0; j < vrfs[i].IndoorUnitNumber; j++)

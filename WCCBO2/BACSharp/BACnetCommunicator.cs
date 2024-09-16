@@ -38,10 +38,16 @@ namespace BaCSharp
 
     #region コンストラクタ
 
+    /*/// <summary>インスタンスを初期化する</summary>
+    /// <param name="storage"></param>
+    /// <param name="exclusivePort"></param>
+    public BACnetCommunicator(DeviceStorage storage, int exclusivePort) : this(storage, exclusivePort, "")
+    { }*/
+
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="storage"></param>
     /// <param name="exclusivePort"></param>
-    public BACnetCommunicator(DeviceStorage storage, int exclusivePort)
+    public BACnetCommunicator(DeviceStorage storage, int exclusivePort, string localEndPointIP)
     {
       m_storage = storage;
 
@@ -50,7 +56,8 @@ namespace BaCSharp
       m_storage.ReadOverride += new DeviceStorage.ReadOverrideHandler(m_storage_ReadOverride);
 
       //BACnetClientを作成
-      BacnetIpUdpProtocolTransport bUDP = new BacnetIpUdpProtocolTransport(0xBAC0, exclusivePort);
+      BacnetIpUdpProtocolTransport bUDP = new BacnetIpUdpProtocolTransport(
+        0xBAC0, exclusivePort, false, 1472, localEndPointIP);
       m_ip_server = new BacnetClient(bUDP);
 
       m_ip_server.OnWhoIs += new BacnetClient.WhoIsHandler(OnWhoIs);

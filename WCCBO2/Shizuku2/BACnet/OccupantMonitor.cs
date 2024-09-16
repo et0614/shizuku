@@ -61,11 +61,11 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public OccupantMonitor(ImmutableTenantList tenants)
+    public OccupantMonitor(ImmutableTenantList tenants, string localEndpointIP)
     {
       this.tenants = tenants;      
 
-      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(makeStorage(), EXCLUSIVE_PORT, localEndpointIP);
     }
 
     #endregion

@@ -13,16 +13,22 @@ namespace Shizuku2.BACnet
 
     #region インスタンス変数・プロパティ
 
-    VRFSystemCommunicator vrfCom = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduller");
+    private string localEndPointIP = "127.0.0.1";
 
-    VentilationSystemCommunicator vntCom = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduller"); //ID適当
+    VRFSystemCommunicator vrfCom;// = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduller");
+
+    VentilationSystemCommunicator vntCom;// = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduller"); //ID適当
 
     #endregion
 
     #region コンストラクタ
 
-    public VRFScheduller(ExVRFSystem[] vrfs, int accRate, DateTime now)
-    { }
+    public VRFScheduller(ExVRFSystem[] vrfs, int accRate, DateTime now, string localEndPointIP)
+    {
+      this.localEndPointIP = localEndPointIP;
+      vrfCom = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduller", localEndPointIP);
+      vntCom = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduller", localEndPointIP); //ID適当
+    }
 
     private void startScheduling()
     {
@@ -122,7 +128,7 @@ namespace Shizuku2.BACnet
     {
       vrfCom.StartService();
       vntCom.StartService();
-      vrfCom.SubscribeDateTimeCOV(); //日時更新
+      vrfCom.SubscribeDateTimeCOV(localEndPointIP); //日時更新
       startScheduling();
     }
 

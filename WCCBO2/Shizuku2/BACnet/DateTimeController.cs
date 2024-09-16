@@ -75,7 +75,7 @@ namespace Shizuku2.BACnet
 
     #region コンストラクタ
 
-    public DateTimeController(DateTime currentDTime, int accRate)
+    public DateTimeController(DateTime currentDTime, int accRate, string localEndpointIP)
     {
       dtAccelerator = new DateTimeAccelerator(accRate, currentDTime);
       cDTime = currentDTime;
@@ -109,7 +109,7 @@ namespace Shizuku2.BACnet
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
         );
 
-      Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT);
+      Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT, localEndpointIP);
     }
 
     #endregion
