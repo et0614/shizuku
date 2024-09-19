@@ -59,6 +59,8 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         CondensingTemperatureSetpoint_Status = 20
         # 消費電力
         Electricity = 21
+        # 熱負荷
+        HeatLoad = 22
 
     class Mode(Enum):
         # 冷却
@@ -377,8 +379,8 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Returns:
             list(bool,float): 読み取り成功の真偽,蒸発温度設定値[C]
         """
-        inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.CondensingTemperatureSetpoint_Status.value)
-        return await self.read_present_value(self.target_ip,inst,Real)
+        inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.EvaporatingTemperatureSetpoint_Status.value)
+        return await self.read_present_value(self.target_ip,inst)
     
     async def change_condensing_temperature(self, oUnitIndex, condensingTemperature):
         """凝縮温度設定値[C]を変える
@@ -399,7 +401,32 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list(bool,float): 読み取り成功の真偽,凝縮温度設定値[C]
         """
         inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.CondensingTemperatureSetpoint_Status.value)
-        return await self.read_present_value(self.target_ip,inst,Real)
+        return await self.read_present_value(self.target_ip,inst)
+
+# endregion
+
+# region 熱負荷
+
+    async def get_indoor_unit_heatload(self, oUnitIndex, iUnitIndex):
+        """室内機の熱負荷[kW]を取得する
+        Args:
+            oUnitIndex (int): 室外機番号（1～4）
+            iUnitIndex (int): 室内機番号（1～5）
+        Returns:
+            list(bool,float): 読み取り成功の真偽,室内機の熱負荷[kW]
+        """
+        inst = 'analogInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.HeatLoad.value)
+        return await self.read_present_value(self.target_ip,inst)
+    
+    async def get_outdoor_unit_heatload(self, oUnitIndex):
+        """室外機の熱負荷[kW]を取得する
+        Args:
+            oUnitIndex (int): 室外機番号（1～4）
+        Returns:
+            list(bool,float): 読み取り成功の真偽,室外機の熱負荷[kW]
+        """
+        inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.HeatLoad.value)
+        return await self.read_present_value(self.target_ip,inst)
 
 # endregion
 
@@ -414,7 +441,7 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list(bool,float): 読み取り成功の真偽,室内機の消費電力[kW]
         """
         inst = 'analogInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.Electricity.value)
-        return await self.read_present_value(self.target_ip,inst,Real)
+        return await self.read_present_value(self.target_ip,inst)
     
     async def get_outdoor_unit_electricity(self, oUnitIndex):
         """室外機の消費電力[kW]を取得する
@@ -424,7 +451,7 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list(bool,float): 読み取り成功の真偽,室外機の消費電力[kW]
         """
         inst = 'analogInput:' + self._get_ou_objNum(oUnitIndex,self._member.Electricity.value)
-        return await self.read_present_value(self.target_ip,inst,Real)
+        return await self.read_present_value(self.target_ip,inst)
 
 # endregion
 
@@ -448,6 +475,9 @@ async def main():
     
     # 停止
     await turn_off(vrfCom)
+
+    # 熱負荷と電力
+    await read_state(vrfCom)
     
     # 無限ループで待機
     while True:
@@ -492,6 +522,15 @@ async def turn_on(vrfCom):
             print('change direction...',end='')
             rslt = await vrfCom.change_direction(i+1,j+1,VRFSystemCommunicator.Direction.Degree_450)
             print('success' if rslt[0] else 'failed')
+
+async def read_state(vrfCom):
+    for i in range(4):
+        val = await vrfCom.get_outdoor_unit_heatload(i + 1)
+        print('Heat load of vrf' + str(i + 1) + (' = ' + '{:.1f}kW'.format(val[1]) if val[0] else ' 通信失敗'))
+
+        val = await vrfCom.get_outdoor_unit_electricity(i + 1)
+        print('Electricity of vrf' + str(i + 1) + (' = ' + '{:.1f}kW'.format(val[1]) if val[0] else ' 通信失敗'))
+
 
 if __name__ == "__main__":
     asyncio.run(main())

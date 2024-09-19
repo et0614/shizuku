@@ -61,7 +61,7 @@ class VentilationSystemCommunicator(PresentValueReadWriter.PresentValueReadWrite
             list: 読み取り成功の真偽,南側テナントのCO2濃度[ppm]
         """        
         inst = 'analogInput:' + str(self._member.SouthCO2Level.value)
-        return self.read_present_value(self.target_ip,inst,Unsigned)
+        return self.read_present_value(self.target_ip,inst,Real) #2024.09.19修正
     
 
     def get_north_tenant_CO2_level(self):
@@ -70,7 +70,7 @@ class VentilationSystemCommunicator(PresentValueReadWriter.PresentValueReadWrite
             list: 読み取り成功の真偽,北側テナントのCO2濃度[ppm]
         """        
         inst = 'analogInput:' + str(self._member.NorthCO2Level.value)
-        return self.read_present_value(self.target_ip,inst,Unsigned)
+        return self.read_present_value(self.target_ip,inst,Real) #2024.09.19修正
 
 # endregion    
 

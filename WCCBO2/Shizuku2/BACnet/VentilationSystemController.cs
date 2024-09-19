@@ -212,7 +212,7 @@ namespace Shizuku2.BACnet
       Communicator.Storage.WriteProperty(
         new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NorthCO2Level),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
-        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)ventSystem.CO2Level_SouthTenant)
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)ventSystem.CO2Level_NorthTenant)
         );
     }
 

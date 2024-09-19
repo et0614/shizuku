@@ -299,7 +299,7 @@ class PresentValueReadWriter(BIPSimpleApplication):
 
     def _update_date_time(self):
         success = True
-        val = self.read_present_value(self.dtc_id, 'analogOutput:2', Integer)
+        val = self.read_present_value(self.dtc_id, 'analogOutput:2', Real) #2024.09.19:修正
         self.acc_rate = val[1] if val[0] else 0
         # time.sleep(0.1) #これがないとiocbの返り値が別スレッドの値になることがある。本質的な回避策ではないので問題有り
         val = self.read_present_value(self.dtc_id, 'datetimeValue:3', DateTime)

@@ -2,7 +2,7 @@ import PresentValueReadWriter
 import time
 
 from enum import Enum
-from bacpypes.primitivedata import Real, Integer, Enumerated
+from bacpypes.primitivedata import Real, Enumerated
 
 class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
@@ -81,7 +81,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list: 読み取り成功の真偽,在室している執務者数
         """
         inst = 'analogInput:' + str(10000 * int(tenant.value) + self._member.OccupantNumber.value)       
-        return self.read_present_value(self.target_ip,inst,Integer)
+        return self.read_present_value(self.target_ip,inst,Real) #2024.09.19修正
 
 
     def get_zone_occupant_number(self, tenant, zone_number):
@@ -93,7 +93,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list: 読み取り成功の真偽,ゾーンに在室している執務者数
         """
         inst = 'analogInput:' + str(10000 * int(tenant.value) + 1000 * zone_number + self._member.OccupantNumber.value)       
-        return self.read_present_value(self.target_ip,inst,Integer)
+        return self.read_present_value(self.target_ip,inst,Real) #2024.09.19修正
 
 
     def get_averaged_thermal_sensation(self, tenant, zone_number):
@@ -178,7 +178,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list: 読み取り成功の真偽,温冷感
         """        
         inst = 'analogInput:' + str(10000 * int(tenant.value) + 10 * occupant_index + self._member.ThermalSensation.value)
-        return self.read_present_value(self.target_ip,inst,Integer)
+        return self.read_present_value(self.target_ip,inst,Real) #2024.09.19修正
 
 
     def get_clothing_index(self, tenant, occupant_index):
