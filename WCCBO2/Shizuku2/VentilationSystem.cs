@@ -248,7 +248,8 @@ namespace Shizuku2
     /// <param name="co2Level">CO2濃度[ppm]</param>
     /// <returns>CO2濃度[ppm]にもとづく不満足者率[-]</returns>
     /// <remarks>
-    /// 900ppmで0.5%、1000ppmで99.5%程度
+    /// 1000ppmを超えると急速に不満が上昇する関数としている。
+    /// 現実的ではなく、ビル管法を無視した倫理的でない手法でスコアを稼ぐことを抑制するという趣旨。
     /// </remarks>
     private static double getDissatisfideRate(double co2Level)
     {

@@ -30,7 +30,7 @@ class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         # ドラフトによる不満足者率
         Dissatisfied_Draft = 6
         # 上下温度分布による不満足者率
-        Dissatisfied_VerticalTemp = 6
+        Dissatisfied_VerticalTemp = 7
 
     class Tenant(Enum):
         # 南テナント
