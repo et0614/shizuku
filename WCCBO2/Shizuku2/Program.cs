@@ -257,7 +257,7 @@ namespace Shizuku2
       {
         Console.WriteLine("Warning: The user ID is set to 0, i.e., run the emulator as guest.");
         Console.WriteLine();
-      }      
+      }
 
       //BACnet controllerの登録を待つ
       Console.WriteLine("Waiting for BACnet controller registration.");

@@ -41,11 +41,11 @@ namespace Shizuku2.BACnet
       /// <summary>着衣量</summary>
       ClothingIndex = 4,
       /// <summary>熱的な不満足者率</summary>
-      Dissatisfied_Thermal,
+      Dissatisfied_Thermal = 5,
       /// <summary>ドラフトによる不満足者率</summary>
-      Dissatisfied_Draft,
+      Dissatisfied_Draft = 6,
       /// <summary>上下温度分布による不満足者率</summary>
-      Dissatisfied_VerticalTemp
+      Dissatisfied_VerticalTemp = 7
     }
 
     #endregion
