@@ -965,7 +965,10 @@
           "System.IO.Ports": "5.0.1"
         },
         "runtime": {
-          "BACnet.dll": {}
+          "BACnet.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       },
       "BACSharp/1.0.0": {
@@ -973,7 +976,10 @@
           "BACnet": "1.0.0"
         },
         "runtime": {
-          "BACSharp.dll": {}
+          "BACSharp.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }

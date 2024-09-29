@@ -39,16 +39,16 @@ namespace Shizuku2
     private const double ELC_PRIM_RATE = 0.00976;
 
     /// <summary>バージョン（メジャー）</summary>
-    private const int V_MAJOR = 0;
+    private const int V_MAJOR = 1;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 9;
+    private const int V_MINOR = 0;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 2;
+    private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.09.19";
+    private const string V_DATE = "2024.09.29";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
