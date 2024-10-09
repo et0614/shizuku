@@ -165,7 +165,7 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list(bool,Mode): 読み取り成功の真偽,運転モード
         """        
         inst = 'multiStateInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.OperationMode_Status.value)
-        val = await self.read_present_value(self.target_ip,inst,Unsigned)
+        val = await self.read_present_value(self.target_ip,inst)
         return val[0], self.Mode.Cooling if val[1] == 1 else (self.Mode.Heating if val[1] == 2 else self.Mode.ThermoOff)
 
 # endregion
@@ -319,7 +319,7 @@ class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             list(bool,bool): 読み取り成功の真偽,手元リモコン操作が許可されているか否か
         """
         inst = 'binaryInput:' + self._get_iu_objNum(oUnitIndex,iUnitIndex,self._member.RemoteControllerPermittion_Setpoint_Status.value)
-        val = await self.read_present_value(self.target_ip,inst,Enumerated)
+        val = await self.read_present_value(self.target_ip,inst)
         return val[0], (val[1] == 1)
 
 # endregion

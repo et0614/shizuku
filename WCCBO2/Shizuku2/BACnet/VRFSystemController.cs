@@ -713,7 +713,15 @@ namespace Shizuku2.BACnet
             bool rmtPmtSPStt = 1u == (uint)Communicator.Storage.ReadPresentValue(
               new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status)));
             if (rmtPmtSPSet != rmtPmtSPStt)
+            {
+              //2024.10.09 Bugfix
+              Communicator.Storage.WriteProperty(
+                new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)(bBase + MemberNumber.RemoteControllerPermittion_Setpoint_Status)),
+                BacnetPropertyIds.PROP_PRESENT_VALUE,
+                new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, rmtPmtSPSet ? 1u : 0u)
+                );
               vrf.PermitSPControl[j] = rmtPmtSPSet;
+            }
 
             iuNum++;
           }

@@ -1,4 +1,5 @@
 ﻿using System.IO.BACnet;
+using System.Net;
 
 namespace Shizuku2.BACnet
 {
@@ -119,5 +120,87 @@ namespace Shizuku2.BACnet
 
     #endregion
 
+    /* 2024.10.01テスト。負荷が大きすぎるために保留
+    #region COV登録関連
+
+    private bool covSubscribed = false;
+
+    private bool[,] znTmpCOVSubscribed = new bool[4, 8];
+    private double[,] znTmps = new double[4, 8];
+
+    public bool EnableZoneTemperatureCOV(int oUnitIndex, int iUnitIndex)
+    {
+      //COV未登録の場合は登録
+      if (!covSubscribed)
+        client.OnCOVNotification += Client_OnCOVNotification;
+
+      //温度がそもそも登録されている場合
+      if (znTmpCOVSubscribed[oUnitIndex - 1, iUnitIndex - 1]) return true;
+
+      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + memberNumber.DrybulbTemperature);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum);
+
+      //まず現在値を読み取る
+      znTmps[oUnitIndex - 1, iUnitIndex - 1] = GetZoneDrybulbTemperature(oUnitIndex, iUnitIndex, out bool succeeded);
+      if (!succeeded) return false;
+
+      //COV登録
+      znTmpCOVSubscribed[oUnitIndex - 1, iUnitIndex - 1] = client.SubscribeCOVRequest(bacAddress, boID, instNum, false, false, 3600);
+      return znTmpCOVSubscribed[oUnitIndex, iUnitIndex];
+    }
+
+    public bool DisableZoneTemperatureCOV(int oUnitIndex, int iUnitIndex)
+    {
+      //温度がそもそも登録されていない場合
+      if (znTmpCOVSubscribed[oUnitIndex - 1, iUnitIndex - 1]) return true;
+
+      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + memberNumber.DrybulbTemperature);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum);
+
+      //COV解除
+      bool rslt = client.SubscribeCOVRequest(bacAddress, boID, instNum, true, false, 3600);
+      if(rslt) znTmpCOVSubscribed[oUnitIndex, iUnitIndex] = false;
+      return rslt;
+    }
+
+    private void Client_OnCOVNotification(
+      BacnetClient sender, BacnetAddress adr, byte invokeId, uint subscriberProcessIdentifier, 
+      BacnetObjectId initiatingDeviceIdentifier, BacnetObjectId monitoredObjectIdentifier, 
+      uint timeRemaining, bool needConfirm, ICollection<BacnetPropertyValue> values, BacnetMaxSegments maxSegments)
+    {
+      UInt16 port = BitConverter.ToUInt16(new byte[] { adr.adr[5], adr.adr[4] });
+
+      //ポート番号が異なる場合は終了
+      if (port != ENVIRONMENTMONITOR_EXCLUSIVE_PORT) return;
+      uint instID = monitoredObjectIdentifier.instance;
+
+      //ゾーンの温湿度が変化した場合
+      if (
+        monitoredObjectIdentifier.type == BacnetObjectTypes.OBJECT_ANALOG_INPUT &&
+        1100 < instID && instID < 4500)
+      {
+        //温度は1の位が1
+        if (instID % 10 == 1)
+        {
+          foreach (BacnetPropertyValue vl in values)
+          {
+            if (vl.property.propertyIdentifier == 85) //Presentvalue
+              znTmps[(instID / 1000) % 10 - 1, (instID / 100) % 10 - 1] = (float)vl.value[0].Value;
+          }
+          Console.WriteLine(znTmps[(instID / 1000) % 10 - 1, (instID / 100) % 10 - 1]);
+        }
+
+        //湿度は1の位が2
+        if (instID % 10 == 2)
+        {
+
+        }
+      }
+
+    }
+
+    
+    #endregion
+    */
   }
 }
