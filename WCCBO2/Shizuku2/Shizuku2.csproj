@@ -47,7 +47,7 @@
 
   <ItemGroup>
     <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
-    <PackageReference Include="Popolo" Version="2.3.1.71" />
+    <PackageReference Include="Popolo" Version="2.3.1.75" />
   </ItemGroup>
 
   <ItemGroup>
