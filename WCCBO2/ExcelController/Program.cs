@@ -25,7 +25,7 @@ namespace ExcelController
 
     static void Main(string[] args)
     {
-      Console.WriteLine("Starting Excel controller.");
+      Console.WriteLine("Starting Excel controller. Version 1.0.1");
 
       //初期設定ファイル読み込み
       string sFile = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "setting.ini";
@@ -125,8 +125,12 @@ namespace ExcelController
 
             //Setpoint
             float sp = (float)wSheet.GetRow(line).GetCell(col++).NumericCellValue;
+            bool spAdded = false;
             if (line == 3 || ic.spTemp[ic.spTemp.Count - 1].Item2 != sp)
+            {
               ic.spTemp.Add(Tuple.Create(dTime, sp));
+              spAdded = true;
+            }
 
             //Fan speed
             string sFs = wSheet.GetRow(line).GetCell(col++).StringCellValue;
@@ -149,7 +153,10 @@ namespace ExcelController
             //Permit control
             bool pmt = wSheet.GetRow(line).GetCell(col++).BooleanCellValue;
             if (line == 3 || ic.permitRCtrl[ic.permitRCtrl.Count - 1].Item2 != pmt)
+            {
               ic.permitRCtrl.Add(Tuple.Create(dTime, pmt));
+              if(!pmt && !spAdded) ic.spTemp.Add(Tuple.Create(dTime, sp));
+            }
 
             //全熱交換器*********************
             //On/Off_hex
