@@ -2,7 +2,7 @@
 
 namespace Shizuku2.BACnet
 {
-  public class VRFScheduller : IBACnetController
+  public class VRFScheduler : IBACnetController
   {
 
     #region 定数宣言
@@ -15,19 +15,19 @@ namespace Shizuku2.BACnet
 
     private string localEndPointIP = "127.0.0.1";
 
-    VRFSystemCommunicator vrfCom;// = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduller");
+    VRFSystemCommunicator vrfCom;// = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduler");
 
-    VentilationSystemCommunicator vntCom;// = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduller"); //ID適当
+    VentilationSystemCommunicator vntCom;// = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduler"); //ID適当
 
     #endregion
 
     #region コンストラクタ
 
-    public VRFScheduller(ExVRFSystem[] vrfs, int accRate, DateTime now, string localEndPointIP)
+    public VRFScheduler(ExVRFSystem[] vrfs, int accRate, DateTime now, string localEndPointIP)
     {
       this.localEndPointIP = localEndPointIP;
-      vrfCom = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduller", localEndPointIP);
-      vntCom = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduller", localEndPointIP); //ID適当
+      vrfCom = new VRFSystemCommunicator(THIS_DEVICE_ID, "WCCBO Original VRF scheduler", localEndPointIP);
+      vntCom = new VentilationSystemCommunicator(THIS_DEVICE_ID + 10, "WCCBO Original HEX scheduler", localEndPointIP); //ID適当
     }
 
     private void startScheduling()

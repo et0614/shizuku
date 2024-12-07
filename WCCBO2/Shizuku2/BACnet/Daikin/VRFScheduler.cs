@@ -4,7 +4,7 @@ using System.IO.BACnet.Base;
 
 namespace Shizuku2.BACnet.Daikin
 {
-  public class VRFScheduller : IBACnetController
+  public class VRFScheduler : IBACnetController
   {
 
     #region 定数宣言
@@ -17,9 +17,9 @@ namespace Shizuku2.BACnet.Daikin
 
     public const int THIS_EXCLUSIVE_PORT = 0xBAC0 + (int)THIS_DEVICE_ID;
 
-    const string DEVICE_NAME = "Daikin VRF scheduller";
+    const string DEVICE_NAME = "Daikin VRF scheduler";
 
-    const string DEVICE_DESCRIPTION = "Daikin VRF scheduller";
+    const string DEVICE_DESCRIPTION = "Daikin VRF scheduler";
 
     #endregion
 
@@ -104,7 +104,7 @@ namespace Shizuku2.BACnet.Daikin
 
     #region コンストラクタ
 
-    public VRFScheduller(ExVRFSystem[] vrfs, int accRate, DateTime now)
+    public VRFScheduler(ExVRFSystem[] vrfs, int accRate, DateTime now)
     {
       dtAccl = new DateTimeAccelerator(accRate, now);
 

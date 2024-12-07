@@ -42,13 +42,13 @@ namespace Shizuku2
     private const int V_MAJOR = 1;
 
     /// <summary>バージョン（マイナー）</summary>
-    private const int V_MINOR = 0;
+    private const int V_MINOR = 1;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 2;
+    private const int V_REVISION = 0;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.10.16";
+    private const string V_DATE = "2024.12.07";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -187,8 +187,8 @@ namespace Shizuku2
         new Sun(26.2123, 127.6791, 135);
 
       //テナントを生成//生成と行動で乱数シードを分ける
-      tenants = new TenantList(1, building, vrfs); //2023.12.07 固定化。誤入力回避用。
-      //tenants = new TenantList((uint)initSettings["rseed_oprm"], building, vrfs);
+      //tenants = new TenantList(1, building, vrfs); //2023.12.07 固定化。誤入力回避用。
+      tenants = new TenantList(uint.Parse(initSettings["rseed_oprm"]), building, vrfs); //2024.12.07解放
       if (initSettings["use_rso"] == "0")
         initSettings["rseed_o"] = DateTime.Now.Millisecond.ToString();
       tenants.ResetRandomSeed(uint.Parse(initSettings["rseed_o"]));
@@ -205,10 +205,15 @@ namespace Shizuku2
         dt = new DateTime(1999, 7, 21, 0, 0, 0); //夏季
         tenants.ResetClothing(26.0); //基準着衣量を初期化
       }
-      else
+      else if (initSettings["period"] == "1")
       {
         dt = new DateTime(1999, 2, 10, 0, 0, 0); //冬季
         tenants.ResetClothing(4.0); //基準着衣量を初期化
+      }
+      else
+      {
+        dt = new DateTime(1999, 5, 1, 0, 0, 0); //春季
+        tenants.ResetClothing(15.0); //基準着衣量を初期化
       }
 
       dtCtrl = new DateTimeController(dt, 0, initSettings["ipadd"]); //加速度0で待機
@@ -223,15 +228,15 @@ namespace Shizuku2
       {
         case "0":
           vrfCtrl = new VRFSystemController(vrfs, initSettings["ipadd"]);
-          if (initSettings["scheduller"] == "1") vrfSchedl = new VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime, initSettings["ipadd"]);
+          if (initSettings["scheduler"] == "1") vrfSchedl = new VRFScheduler(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime, initSettings["ipadd"]);
           break;
         case "1":
           vrfCtrl = new BACnet.Daikin.VRFController(vrfs);
-          if (initSettings["scheduller"] == "1") vrfSchedl = new BACnet.Daikin.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          if (initSettings["scheduler"] == "1") vrfSchedl = new BACnet.Daikin.VRFScheduler(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         case "2":
           vrfCtrl = new BACnet.MitsubishiElectric.VRFController(vrfs);
-          if (initSettings["scheduller"] == "1") vrfSchedl = new BACnet.MitsubishiElectric.VRFScheduller(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
+          if (initSettings["scheduler"] == "1") vrfSchedl = new BACnet.MitsubishiElectric.VRFScheduler(vrfs, dtCtrl.AccelerationRate, dtCtrl.CurrentDateTime);
           break;
         default:
           throw new Exception("VRF controller number not supported.");
@@ -486,7 +491,8 @@ namespace Shizuku2
       }
 
       //エネルギー消費関連を更新
-      instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_SouthTenant;
+      //instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_SouthTenant;
+      instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_NorthTenant; //2024.12.07 BUGfix
       for (int i = 0; i < vrfs.Length; i++)
         instantaneousEnergyConsumption += vrfs[i].Electricity;
       instantaneousEnergyConsumption *= ELC_PRIM_RATE;
@@ -1160,49 +1166,97 @@ namespace Shizuku2
 
     static ExVRFSystem[] makeVRFSystem(ImmutableBuildingThermalModel building)
     {
-      VRFSystem[] vrfs = new VRFSystem[]
+      bool smallVRF = initSettings["small_vrf"] == "1";
+
+      VRFSystem[] vrfs;
+      if (smallVRF)
       {
-        VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C40_0, 0, false),
-        VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C22_4, 0, false),
-        VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C33_5, 0, false),
-        VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C22_4, 0, false)
-      };
+        vrfs = new VRFSystem[]
+        {
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C28_0, 0, false),
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVA, VRFInitializer.CoolingCapacity.C16_0, 0, false),
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C28_0, 0, false),
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVA, VRFInitializer.CoolingCapacity.C16_0, 0, false)
+        };
 
-      vrfs[0].AddIndoorUnit(new VRFUnit[]
+        vrfs[0].AddIndoorUnit(new VRFUnit[]
+        {
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6)
+        });
+
+        vrfs[1].AddIndoorUnit(new VRFUnit[]
+        {
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6)
+        });
+
+        vrfs[2].AddIndoorUnit(new VRFUnit[]
+        {
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6)
+        });
+
+        vrfs[3].AddIndoorUnit(new VRFUnit[]
+        {
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6),
+        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C3_6)
+        });
+      }
+      else
       {
+        vrfs = new VRFSystem[]
+        {
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C40_0, 0, false),
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C22_4, 0, false),
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C33_5, 0, false),
+          VRFInitializer.MakeOutdoorUnit(VRFInitializer.OutdoorUnitModel.Daikin_VRVX, VRFInitializer.CoolingCapacity.C22_4, 0, false)
+        };
 
-        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
-        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
-        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
-        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
-        VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1)
-      });
+        vrfs[0].AddIndoorUnit(new VRFUnit[]
+        {
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
+          VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1)
+        });
 
-      vrfs[1].AddIndoorUnit(new VRFUnit[]
-      {
-
+        vrfs[1].AddIndoorUnit(new VRFUnit[]
+        {
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6)
-      });
+        });
 
-      vrfs[2].AddIndoorUnit(new VRFUnit[]
-      {
+        vrfs[2].AddIndoorUnit(new VRFUnit[]
+        {
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C7_1)
-      });
+        });
 
-      vrfs[3].AddIndoorUnit(new VRFUnit[]
-      {
+        vrfs[3].AddIndoorUnit(new VRFUnit[]
+        {
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6),
         VRFInitializer.MakeIndoorUnit_Daikin(VRFInitializer.IndoorUnitType.CeilingRoundFlow_S, VRFInitializer.CoolingCapacity.C5_6)
-      });
+        });
+      }
 
       //設定
       for (int i = 0; i < 4; i++)

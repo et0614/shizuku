@@ -1,6 +1,6 @@
 ﻿DateTimeController:1
 VRFController:2
-VRFScheduller:3
+VRFScheduler:3
 WeatherMonitor:4
 OccupantMonitor:5
 Dummy:9
