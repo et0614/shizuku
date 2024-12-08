@@ -40,8 +40,7 @@ namespace DummyDeviceController
       communicator.StartService();
 
       Console.WriteLine("Input command in \"read [Object type]\" or \"write [Object type] [Value]\"");
-      Console.WriteLine("Object type: avi(analog value int), aoi(analog output int), aii(analog input int)");
-      Console.WriteLine("             avr(analog value real), aoi(analog output real), aii(analog input real)");
+      Console.WriteLine("Object type: av(analog value), ao(analog output), ai(analog input)");
       Console.WriteLine("             bv(binary value), bo(binary output), bi(binary input)");
       Console.WriteLine("             mv(multistate value), mo(multistate output), mi(multistate input)");
       Console.WriteLine("             dt(datetime)");
@@ -70,7 +69,7 @@ namespace DummyDeviceController
       Console.Write("Reading present value... ");
       switch (objType)
       {
-        case "avi":
+        /*case "avi":
           result = communicator.ReadAnalogValueInt(out suc);
           break;
         case "aoi":
@@ -78,14 +77,14 @@ namespace DummyDeviceController
           break;
         case "aii":
           result = communicator.ReadAnalogInputInt(out suc);
-          break;
-        case "avr":
+          break;*/
+        case "av":
           result = communicator.ReadAnalogValueReal(out suc);
           break;
-        case "aor":
+        case "ao":
           result = communicator.ReadAnalogOutputReal(out suc);
           break;
-        case "air":
+        case "ai":
           result = communicator.ReadAnalogInputReal(out suc);
           break;
         case "bv":
@@ -125,7 +124,7 @@ namespace DummyDeviceController
       Console.Write("Writing present value... ");
       switch (objType)
       {
-        case "avi":
+        /*case "avi":
           communicator.WriteAnalogValue(int.Parse(value), out suc);
           break;
         case "aoi":
@@ -133,14 +132,14 @@ namespace DummyDeviceController
           break;
         case "aii":
           //Analog inputは書き込みできない
-          break;
-        case "avr":
+          break;*/
+        case "av":
           communicator.WriteAnalogValue(float.Parse(value), out suc);
           break;
-        case "aor":
+        case "ao":
           communicator.WriteAnalogOutput(float.Parse(value), out suc);
           break;
-        case "air":
+        case "ai":
           //Analog inputは書き込みできない
           break;
         case "bv":
