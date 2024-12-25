@@ -179,6 +179,25 @@ class PresentValueReadWriter():
 
 # endregion
 
+# region 加速度関連
+
+    async def get_acceleration_rate(self):
+        """加速度[-]を取得する
+
+        Returns:
+            list: 読み取り成功の真偽,加速度[-]
+        """
+        return await self.read_present_value(self.dtc_id,'analogOutput:2')
+
+    async def change_acceleration_rate(self, acceleration_rate):
+        """加速度[-]を変える
+        Args:
+            acceleration_rate (float): 加速度[-]
+        Returns:
+            bool:命令が成功したか否か
+            """
+        return await self.write_present_value(self.dtc_id,'analogOutput:2',Real(acceleration_rate))
+
 # region サンプル
 
 async def main():

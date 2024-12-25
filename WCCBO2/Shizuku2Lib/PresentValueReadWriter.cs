@@ -235,5 +235,42 @@ namespace Shizuku2.BACnet
 
     #endregion
 
+    #region 加速度関連の処理
+
+    /// <summary>加速度[-]を変える</summary>
+    /// <param name="accelerationRate">加速度[-]</param>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
+    public void ChangeAccelerationRate
+      (float accelerationRate, out bool succeeded, string ipAddress = "127.0.0.1")
+    {
+      dtCtrlIP = ipAddress;
+      BacnetAddress bacAddDT = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + DATETIMECONTROLLER_EXCLUSIVE_PORT.ToString());
+
+      WritePresentValue(bacAddDT,
+        BacnetObjectTypes.OBJECT_ANALOG_OUTPUT,
+        2,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, accelerationRate),
+        out succeeded);
+    }
+
+    /// <summary>加速度[-]を取得する</summary>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
+    /// <returns>加速度[-]</returns>
+    public float GetSetpointTemperature
+      (out bool succeeded, string ipAddress = "127.0.0.1")
+    {
+      dtCtrlIP = ipAddress;
+      BacnetAddress bacAddDT = new BacnetAddress(BacnetAddressTypes.IP, ipAddress + ":" + DATETIMECONTROLLER_EXCLUSIVE_PORT.ToString());
+
+      return ReadPresentValue<float>(bacAddDT,
+        BacnetObjectTypes.OBJECT_ANALOG_OUTPUT,
+        2,
+        out succeeded);
+    }
+
+    #endregion
+
   }
 }
