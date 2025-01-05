@@ -86,7 +86,7 @@
 					<Value>Current date and time in the simulation. This value might been accelerated.</Value>
 				</Property>
 				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
-					<Value>01-01-2024 00:00:00</Value>
+					<Value>2024-01-01T00:00:00.000</Value>
 				</Property>
 				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
 					<Value>0000</Value>
@@ -164,7 +164,7 @@
 					<Value>Real world date and time starting to accelerate.</Value>
 				</Property>
 				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
-					<Value>01-01-2024 00:00:00</Value>
+					<Value>2024-01-01T00:00:00.000</Value>
 				</Property>
 				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
 					<Value>0000</Value>
@@ -187,7 +187,7 @@
 					<Value>Date and time on the simulation when the acceleration started.</Value>
 				</Property>
 				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
-					<Value>01-01-2024 00:00:00</Value>
+					<Value>2024-01-01T00:00:00.000</Value>
 				</Property>
 				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
 					<Value>0000</Value>

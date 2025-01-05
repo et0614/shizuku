@@ -45,10 +45,10 @@ namespace Shizuku2
     private const int V_MINOR = 1;
 
     /// <summary>バージョン（リビジョン）</summary>
-    private const int V_REVISION = 0;
+    private const int V_REVISION = 1;
 
     /// <summary>バージョン（日付）</summary>
-    private const string V_DATE = "2024.12.07";
+    private const string V_DATE = "2025.01.04";
 
     /// <summary>加湿開始時刻</summary>
     private const int HUMID_START = 8;
@@ -90,8 +90,12 @@ namespace Shizuku2
     /// <summary>計算が遅れているか否か</summary>
     private static bool isDelayed = false;
 
-    /// <summary>平均不満足率（温冷感+ドラフト+上下温度+CO2）</summary>
-    private static double averagedDissatisfactionRate = 0.0;
+    /// <summary>平均不満足者率（温冷感+ドラフト+上下温度+CO2）</summary>
+    private static double averagedDissatisfactionRate
+    {
+      get { return envMntr.AveragedDissatisfactionRate; }
+      set { envMntr.AveragedDissatisfactionRate = value; }
+    }
 
     /// <summary>温冷感による不満足率[-]</summary>
     private static double dissatisfactionRate_thermal = 0.0;
@@ -103,7 +107,11 @@ namespace Shizuku2
     private static double dissatisfactionRate_vTempDif = 0.0;
 
     /// <summary>積算エネルギー消費量[GJ]</summary>
-    private static double totalEnergyConsumption = 0.0;
+    private static double totalEnergyConsumption
+    {
+      get { return envMntr.TotalEnergyConsumption; }
+      set { envMntr.TotalEnergyConsumption = value; }
+    }
 
     /// <summary>瞬時エネルギー消費量[GJ/h]</summary>
     private static double instantaneousEnergyConsumption = 0.0;
@@ -247,43 +255,45 @@ namespace Shizuku2
       ocMntr = new OccupantMonitor(tenants, initSettings["ipadd"]); //執務者モニタ
       ventCtrl = new VentilationSystemController(ventSystem, initSettings["ipadd"]); //換気システムコントローラ
 
-      //BACnet Device起動
-      dtCtrl.StartService();
-      vrfCtrl.StartService();
-      envMntr.StartService();
-      ocMntr.StartService();
-      ventCtrl.StartService();
-      dummyDv.StartService();
-      //BACnet Deviceの情報を書き出す
-      //saveBACnetDeviceInfo();
-
-      //ユーザーIDが0（Geust）の場合にはwarning表示
-      if (initSettings["userid"] == "0")
-      {
-        Console.WriteLine("Warning: The user ID is set to 0, i.e., run the emulator as guest.");
-        Console.WriteLine();
-      }
-
-      //BACnet controllerの登録を待つ
-      Console.WriteLine("Waiting for BACnet controller registration.");
-      Console.WriteLine("Press \"Enter\" key to continue.");
-      //Defaultコントローラ開始
-      vrfSchedl?.StartService();
-      int key;
-      while ((key = Console.Read()) != -1)
-        if ((char)key == (char)ConsoleKey.Enter) break;
-      Console.ReadLine();
-
-      //加速開始
-      dtCtrl.AccelerationRate = int.Parse(initSettings["accelerationRate"]);
-      dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //基準現在時刻を更新
-
-      //DEBUG
-      //saveScore();
-
       bool finished = false;
       try
       {
+        //BACnet Device起動
+        dtCtrl.StartService();
+        vrfCtrl.StartService();
+        envMntr.StartService();
+        ocMntr.StartService();
+        ventCtrl.StartService();
+        dummyDv.StartService();
+        //BACnet Deviceの情報を書き出す
+        //saveBACnetDeviceInfo();
+
+        //ユーザーIDが0（Geust）の場合にはwarning表示
+        if (initSettings["userid"] == "0")
+        {
+          Console.WriteLine("Warning: The user ID is set to 0, i.e., run the emulator as guest.");
+          Console.WriteLine();
+        }
+
+        //加速度を設定
+        dtCtrl.AccelerationRate = int.Parse(initSettings["accelerationRate"]);
+
+        //BACnet controllerの登録を待つ
+        Console.WriteLine("Waiting for BACnet controller registration.");
+        Console.WriteLine("Press \"Enter\" key to continue.");
+        //Defaultコントローラ開始
+        vrfSchedl?.StartService();
+        int key;
+        while ((key = Console.Read()) != -1)
+          if ((char)key == (char)ConsoleKey.Enter) break;
+        Console.ReadLine();
+
+        //加速開始
+        dtCtrl.InitializeDateTime(dt);
+
+        //DEBUG
+        //saveScore();
+
         //別スレッドで経過を表示
         Task.Run(() =>
         {
@@ -322,6 +332,16 @@ namespace Shizuku2
       catch (Exception e)
       {
         finished = true;
+
+        //ポート開放
+        dtCtrl.EndService();
+        vrfCtrl.EndService();
+        envMntr.EndService();
+        ocMntr.EndService();
+        ventCtrl.EndService();
+        vrfSchedl?.EndService();
+        dummyDv.EndService();
+
         using (StreamWriter sWriter = new StreamWriter("error.log"))
         {
           sWriter.Write(e.ToString());

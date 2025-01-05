@@ -81,7 +81,8 @@ class PresentValueReadWriter():
                     day=response.date[2],
                     hour=response.time[0],
                     minute=response.time[1],
-                    second=response.time[2])
+                    second=response.time[2],
+                    microsecond=10000 * response.time[3]) # Hundredths (BACnet標準) -> microsecond
             else:
                 return True, response
         except ErrorRejectAbortNack as err:
@@ -132,7 +133,7 @@ class PresentValueReadWriter():
     async def cov_loop(self):
         # 既に登録されている場合には日時だけ更新して二重登録を回避
         if self.dtcov_scribed:
-            return self._update_date_time()
+            return await self.sync_date_time()
         try:
             async with self.bacdevice.change_of_value(
                 address=Address(self.dtc_id),
@@ -145,33 +146,30 @@ class PresentValueReadWriter():
                     property_identifier, property_value = await scm.get_value()
                     if(f"{property_identifier}"=='present-value'):
                         self.dtcov_scribed = True
-                        await self._update_date_time()
+                        await self.sync_date_time()
         except Exception as err:
             return False
 
-    async def _update_date_time(self):
-        """日時をエミュレータに合わせる
+    async def sync_date_time(self):
+        """日時をエミュレータに同期させる
         Args:
         Returns:
             bool: 成功したか否か
         """ 
         val = await self.read_present_value(self.dtc_id, 'analogOutput:2')
-        self.acc_rate = val[1] if val[0] else 0
+        if val[0]: self.acc_rate = val[1]
+        else: return False 
         val = await self.read_present_value(self.dtc_id, 'datetimeValue:3')
-        if val[0]:
-            self.base_real_datetime = val[1]
-        else:
-            return False
+        if val[0]: self.base_real_datetime = val[1]
+        else: return False
         val = await self.read_present_value(self.dtc_id, 'datetimeValue:4')
-        if val[0]:
-            self.base_sim_datetime = val[1]
-        else:
-            return False
+        if val[0]: self.base_sim_datetime = val[1]
+        else: return False
         return True
 
     def current_date_time(self):
         """現在の日時を取得する
-
+        Args:
         Returns:
             datetime: 現在の日時
         """        
@@ -197,6 +195,8 @@ class PresentValueReadWriter():
             bool:命令が成功したか否か
             """
         return await self.write_present_value(self.dtc_id,'analogOutput:2',Real(acceleration_rate))
+
+# endregion
 
 # region サンプル
 

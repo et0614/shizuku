@@ -100,7 +100,8 @@ public class Property
 
       //’Ç‰Á
       case BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME:
-        return new BacnetValue(type, DateTime.Parse(value));
+        return new BacnetValue(type, DateTime.ParseExact(value, "yyyy-MM-ddTHH:mm:ss.fff", null));
+        //return new BacnetValue(type, DateTime.Parse(value));
         //return new BacnetValue(type, DateTime.Parse(value) DateTime.ParseExact(value, "dd-MM-yyyy HH:mm:ss", null)); //debug
       //’Ç‰Á‚±‚±‚Ü‚Å
 
@@ -127,6 +128,11 @@ public class Property
               : string.Join(";", ((BacnetValue[])value.Value)
                   .Select(v => SerializeValue(v, v.Tag)));
         }
+
+      //’Ç‰Á
+      case BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME:
+        return ((DateTime)value.Value).ToString("yyyy-MM-ddTHH:mm:ss.fff");
+      //’Ç‹L‚±‚±‚Ü‚Å
       default:
         return value.Value.ToString();
     }

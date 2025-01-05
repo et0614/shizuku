@@ -33,7 +33,11 @@ namespace Shizuku2.BACnet
       /// <summary>水平面全天日射</summary>
       GlobalHorizontalRadiation = 3,
       /// <summary>夜間放射</summary>
-      NocturnalRadiation = 4
+      NocturnalRadiation = 4,
+      /// <summary>エネルギー消費量</summary>
+      EnergyConsumption = 5,
+      /// <summary>平均不満足者率</summary>
+      DissatisfactionRate = 6
     }
 
     #endregion
@@ -96,7 +100,7 @@ namespace Shizuku2.BACnet
 
     /// <summary>ゾーン（下部空間）の乾球温度[C]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>ゾーン（下部空間）の乾球温度[C]</returns>
     public float GetZoneDrybulbTemperature(int oUnitIndex, int iUnitIndex, out bool succeeded)
@@ -108,7 +112,7 @@ namespace Shizuku2.BACnet
 
     /// <summary>ゾーン（下部空間）の相対湿度[%]を取得する</summary>
     /// <param name="oUnitIndex">室外機番号（1～4）</param>
-    /// <param name="iUnitIndex">室内機番号（1～8）</param>
+    /// <param name="iUnitIndex">室内機番号（1～5）</param>
     /// <param name="succeeded">通信が成功したか否か</param>
     /// <returns>ゾーン（下部空間）の相対湿度[%]</returns>
     public float GetZoneRelativeHumidity(int oUnitIndex, int iUnitIndex, out bool succeeded)
@@ -116,6 +120,28 @@ namespace Shizuku2.BACnet
       uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + memberNumber.RelativeHumdity);
       return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
+    }
+
+    #endregion
+
+    #region 成績関連
+
+    /// <summary>エネルギー消費量[GJ]を取得する</summary>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>エネルギー消費量[GJ]</returns>
+    public float GetTotalEnergyConsumption(out bool succeeded)
+    {
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.EnergyConsumption, out succeeded);
+    }
+
+    /// <summary>平均不満足者率[-]を取得する</summary>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>平均不満足者率[-]</returns>
+    public float GetAveragedDissatisfactionRate(out bool succeeded)
+    {
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.DissatisfactionRate, out succeeded);
     }
 
     #endregion

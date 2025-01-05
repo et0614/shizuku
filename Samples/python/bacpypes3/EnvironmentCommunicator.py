@@ -25,6 +25,10 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         GlobalHorizontalRadiation=3
         # 夜間放射
         NocturnalRadiation=4
+        # エネルギー消費
+        EnergyConsumption=5
+        # 不満足者率
+        DissatisfactionRate=6
 
 # endregion
 
@@ -72,11 +76,27 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         """
         return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.NocturnalRadiation.value))
     
+    async def get_total_energy_consumption(self):
+        """エネルギー消費量[MJ]を取得する
+
+        Returns:
+            list: 読み取り成功の真偽,エネルギー消費量[MJ]
+        """
+        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.EnergyConsumption.value))
+
+    async def get_averaged_dissatisfaction_rate(self):
+        """平均不満足者率[-]を取得する
+
+        Returns:
+            list: 読み取り成功の真偽,平均不満足者率[-]
+        """
+        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.DissatisfactionRate.value))
+
     async def get_zone_drybulb_temperature(self,oUnitIndex,iUnitIndex):
         """ゾーン（下部空間）の乾球温度[C]を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
 
         Returns:
             list: 読み取り成功の真偽,ゾーン（下部空間）の乾球温度[C]
@@ -88,7 +108,7 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         """ゾーン（下部空間）の相対湿度[%]を取得する
         Args:
             oUnitIndex (int): 室外機番号（1～4）
-            iUnitIndex (int): 室内機番号（1～8）
+            iUnitIndex (int): 室内機番号（1～5）
 
         Returns:
             list: 読み取り成功の真偽,ゾーン（下部空間）の相対湿度[%]

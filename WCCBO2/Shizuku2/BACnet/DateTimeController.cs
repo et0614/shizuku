@@ -109,7 +109,34 @@ namespace Shizuku2.BACnet
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
         );
 
+      strg.ChangeOfValue += Strg_ChangeOfValue;
       Communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT, localEndpointIP);
+    }
+
+    private void Strg_ChangeOfValue(DeviceStorage sender, BacnetObjectId objectId, BacnetPropertyIds propertyId, uint arrayIndex, IList<BacnetValue> value)
+    {
+      //加速度変化時には関連情報もまとめて更新
+      if (
+        objectId.type == BacnetObjectTypes.OBJECT_ANALOG_OUTPUT &&
+        objectId.instance == (uint)MemberNumber.Acceleration &&
+        propertyId == BacnetPropertyIds.PROP_PRESENT_VALUE)
+      {
+        AccelerationRate = (int)(float)value[0].Value;
+
+        //加速が開始された現実の日時
+        Communicator.Storage.WriteProperty(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseRealDateTime),
+          BacnetPropertyIds.PROP_PRESENT_VALUE,
+          new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseRealDateTime)
+          );
+
+        //加速された日時における加速開始日時
+        Communicator.Storage.WriteProperty(
+          new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseAcceleratedDateTime),
+          BacnetPropertyIds.PROP_PRESENT_VALUE,
+          new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
+          );
+      }
     }
 
     #endregion
@@ -131,6 +158,13 @@ namespace Shizuku2.BACnet
       else return false;
     }
 
+    /// <summary>計算開始日を初期化する</summary>
+    /// <param name="dateTime">計算開始日</param>
+    public void InitializeDateTime(DateTime dateTime)
+    {
+      dtAccelerator.InitDateTime(dtAccelerator.AccelerationRate, DateTime.Now, dateTime);
+    }
+
     #endregion
 
     #region IBACnetController実装
@@ -138,8 +172,8 @@ namespace Shizuku2.BACnet
     public void ApplyManipulatedVariables(DateTime dTime)
     {
       //加速度
-      AccelerationRate = (int)(float)Communicator.Storage.ReadPresentValue(
-        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (int)MemberNumber.Acceleration));
+      //AccelerationRate = (int)(float)Communicator.Storage.ReadPresentValue(
+      //  new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (int)MemberNumber.Acceleration));
     }
 
 
@@ -152,7 +186,7 @@ namespace Shizuku2.BACnet
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, CurrentDateTime)
         );
 
-      //加速が開始された現実の日時
+      /*//加速が開始された現実の日時
       Communicator.Storage.WriteProperty(
         new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseRealDateTime),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
@@ -164,7 +198,7 @@ namespace Shizuku2.BACnet
         new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.BaseAcceleratedDateTime),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
-        );
+        );*/
     }
 
     public void StartService()

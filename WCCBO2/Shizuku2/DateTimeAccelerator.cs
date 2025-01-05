@@ -23,7 +23,7 @@ namespace Shizuku2
       get { return accRate; }
       set
       {
-        InitDateTime(value, AcceleratedDateTime);
+        InitDateTime(value, DateTime.Now, AcceleratedDateTime);
       }
     }
 
@@ -49,11 +49,11 @@ namespace Shizuku2
 
     /// <summary>インスタンスを初期化する</summary>
     /// <param name="accRate">加速度[-]</param>
-    /// <param name="dTime">日時</param>
-    public DateTimeAccelerator(int accRate, DateTime dTime)
+    /// <param name="baseAcceleratedDateTime">加速された日時における加速開始日時</param>
+    public DateTimeAccelerator(int accRate, DateTime baseAcceleratedDateTime)
     {
       this.accRate = accRate;
-      BaseAcceleratedDateTime = dTime;
+      BaseAcceleratedDateTime = baseAcceleratedDateTime;
       BaseRealDateTime = DateTime.Now;
     }
 
@@ -62,24 +62,13 @@ namespace Shizuku2
     #region インスタンスメソッド
 
     public void InitDateTime
-      (int accRate, DateTime acceleratedDateTime)
-    {
-      if (0 <= accRate)
-      {
-        BaseAcceleratedDateTime = acceleratedDateTime;
-        BaseRealDateTime = DateTime.Now;
-        this.accRate = accRate; //順番大切。先にこれを変えてしまうとAcceleratedDateTime自体が変わる
-      }
-    }
-
-    public void InitDateTime
      (int accRate, DateTime baseRealDateTime, DateTime baseAcceleratedDateTime)
     {
       if (0 <= accRate)
       {
         BaseAcceleratedDateTime = baseAcceleratedDateTime;
         BaseRealDateTime = baseRealDateTime;
-        this.accRate = accRate;
+        this.accRate = accRate; //順番大切。先にこれを変えてしまうとAcceleratedDateTime自体が変わる
       }
     }
 

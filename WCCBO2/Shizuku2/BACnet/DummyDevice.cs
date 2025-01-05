@@ -24,9 +24,9 @@ namespace Shizuku2.BACnet
     #region インスタンス変数・プロパティ
 
     /// <summary>BACnet通信用オブジェクト</summary>
-    private BACnetCommunicator communicator2;
+    private BACnetCommunicator communicator;
 
-    public BACnetCommunicator Communicator { get { return communicator2; } }
+    public BACnetCommunicator Communicator { get { return communicator; } }
 
     #endregion
 
@@ -61,7 +61,7 @@ namespace Shizuku2.BACnet
         new StreamReader
         (Assembly.GetExecutingAssembly().GetManifestResourceStream("Shizuku2.Resources.DummyDeviceStorage.xml"))
         );
-      communicator2 = new BACnetCommunicator(strg, EXCLUSIVE_PORT, localEndpointIP);
+      communicator = new BACnetCommunicator(strg, EXCLUSIVE_PORT, localEndpointIP);
     }
 
     #endregion
@@ -72,14 +72,14 @@ namespace Shizuku2.BACnet
 
     public void EndService()
     {
-      communicator2.EndService();
+      communicator.EndService();
     }
 
     public void ReadMeasuredValues(DateTime dTime) { }
 
     public void StartService()
     {
-      communicator2.StartService();
+      communicator.StartService();
     }
 
     #endregion

@@ -209,6 +209,74 @@
 				</Property>
 			</Properties>
 		</Object>
+
+		<Object Type="OBJECT_ANALOG_INPUT" Instance="5">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_INPUT:5</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Total Energy Consumption</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Total energy consumption.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>126</Value>
+					<!-- MJ -->
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_ANALOG_INPUT" Instance="6">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_ANALOG_INPUT:6</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Dissatisfaction rate</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_REAL">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Averaged dissatisfaction rate of occupants.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+					<!-- In_alarm, Fault, Overridden, Out_of_serviceの順で、0は正常-->
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_UNITS" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>95</Value>
+					<!-- NO Units -->
+				</Property>
+			</Properties>
+		</Object>
 		
 	</Objects>
 </DeviceStorage>

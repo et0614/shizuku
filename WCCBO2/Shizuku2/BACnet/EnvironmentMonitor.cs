@@ -37,7 +37,11 @@ namespace Shizuku2.BACnet
       /// <summary>水平面全天日射</summary>
       GlobalHorizontalRadiation = 3,
       /// <summary>夜間放射</summary>
-      NocturnalRadiation = 4
+      NocturnalRadiation = 4,
+      /// <summary>エネルギー消費量</summary>
+      EnergyConsumption = 5,
+      /// <summary>平均不満足者率</summary>
+      DissatisfactionRate = 6
     }
 
     #endregion
@@ -51,6 +55,12 @@ namespace Shizuku2.BACnet
 
     /// <summary>熱負荷計算モデル</summary>
     private ImmutableBuildingThermalModel building { get; set; }
+
+    /// <summary>平均不満足者率[-]を設定・取得する</summary>
+    public double AveragedDissatisfactionRate { get; set; }
+
+    /// <summary>積算エネルギー消費量[GJ]を設定・取得する</summary>
+    public double TotalEnergyConsumption { get; set; }    
 
     #endregion
 
@@ -163,6 +173,20 @@ namespace Shizuku2.BACnet
         new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NocturnalRadiation),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)building.NocturnalRadiation)
+        );
+
+      //エネルギー消費
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.EnergyConsumption),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)(1000 * TotalEnergyConsumption))
+        );
+
+      //平均不満足者率
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.DissatisfactionRate),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)AveragedDissatisfactionRate)
         );
 
       for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)

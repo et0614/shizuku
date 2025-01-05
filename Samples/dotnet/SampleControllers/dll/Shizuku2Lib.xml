@@ -157,6 +157,12 @@
         <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.NocturnalRadiation">
             <summary>夜間放射</summary>
         </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.EnergyConsumption">
+            <summary>エネルギー消費量</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.DissatisfactionRate">
+            <summary>平均不満足者率</summary>
+        </member>
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.#ctor(System.UInt32,System.String,System.String)">
             <summary>インスタンスを初期化する</summary>
             <param name="id">通信に使うBACnet DeviceのID</param>
@@ -186,16 +192,26 @@
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetZoneDrybulbTemperature(System.Int32,System.Int32,System.Boolean@)">
             <summary>ゾーン（下部空間）の乾球温度[C]を取得する</summary>
             <param name="oUnitIndex">室外機番号（1～4）</param>
-            <param name="iUnitIndex">室内機番号（1～8）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
             <param name="succeeded">通信が成功したか否か</param>
             <returns>ゾーン（下部空間）の乾球温度[C]</returns>
         </member>
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetZoneRelativeHumidity(System.Int32,System.Int32,System.Boolean@)">
             <summary>ゾーン（下部空間）の相対湿度[%]を取得する</summary>
             <param name="oUnitIndex">室外機番号（1～4）</param>
-            <param name="iUnitIndex">室内機番号（1～8）</param>
+            <param name="iUnitIndex">室内機番号（1～5）</param>
             <param name="succeeded">通信が成功したか否か</param>
             <returns>ゾーン（下部空間）の相対湿度[%]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetTotalEnergyConsumption(System.Boolean@)">
+            <summary>エネルギー消費量[GJ]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>エネルギー消費量[GJ]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetAveragedDissatisfactionRate(System.Boolean@)">
+            <summary>平均不満足者率[-]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>平均不満足者率[-]</returns>
         </member>
         <member name="T:Shizuku2.BACnet.OccupantCommunicator">
             <summary>Shizuku2のOccupantモニタとの通信ユーティリティクラス</summary>
@@ -422,6 +438,18 @@
             <summary>日時を更新する</summary>
             <param name="maxTrial">日時更新の最大試行回数[回]</param>
             <param name="trialIntervalMSec">試行間の時間間隔[msec]</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.ChangeAccelerationRate(System.Single,System.Boolean@,System.String)">
+            <summary>加速度[-]を変える</summary>
+            <param name="accelerationRate">加速度[-]</param>
+            <param name="succeeded">通信が成功したか否か</param>
+            <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.GetSetpointTemperature(System.Boolean@,System.String)">
+            <summary>加速度[-]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
+            <returns>加速度[-]</returns>
         </member>
         <member name="T:Shizuku2.BACnet.VentilationSystemCommunicator">
             <summary>Shizuku2のVentilationコントローラとの通信ユーティリティクラス</summary>
