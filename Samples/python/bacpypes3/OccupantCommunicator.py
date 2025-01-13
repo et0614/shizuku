@@ -1,10 +1,10 @@
-import PresentValueReadWriter
+import DateTimeCommunicator
 import time
 import asyncio
 
 from enum import Enum
 
-class OccupantCommunicator(PresentValueReadWriter.PresentValueReadWriter):
+class OccupantCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 
 # region 定数宣言
 

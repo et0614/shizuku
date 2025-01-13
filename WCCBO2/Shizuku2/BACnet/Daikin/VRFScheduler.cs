@@ -76,6 +76,25 @@ namespace Shizuku2.BACnet.Daikin
       VentilationAmount_Status = 35
     }
 
+    /// <summary>項目</summary>
+    private enum DTMemberNumber
+    {
+      /// <summary>現在のシミュレーション上の日時</summary>
+      CurrentDateTimeInSimulation = 1,
+      /// <summary>加速度</summary>
+      AccelerationRate = 2,
+      /// <summary>現実時間の基準日時</summary>
+      BaseRealDateTime = 3,
+      /// <summary>シミュレーション上の基準日時</summary>
+      BaseAcceleratedDateTime = 4,
+      /// <summary>シミュレーション上の終了日時</summary>
+      EndDateTime = 5,
+      /// <summary>計算遅延中か否か</summary>
+      IsDelayed = 6,
+      /// <summary>計算完了済か否か</summary>
+      IsFinished = 7
+    }
+
     #endregion
 
     #region インスタンス変数・プロパティ
@@ -244,7 +263,7 @@ namespace Shizuku2.BACnet.Daikin
       if (
         port == DateTimeController.EXCLUSIVE_PORT &&
         monitoredObjectIdentifier.type == BacnetObjectTypes.OBJECT_ANALOG_OUTPUT &&
-        monitoredObjectIdentifier.instance == (uint)DateTimeController.MemberNumber.Acceleration)
+        monitoredObjectIdentifier.instance == (uint)DTMemberNumber.AccelerationRate)
       {
         //この処理は汚いが・・・
         foreach (BacnetPropertyValue value in values)
@@ -255,7 +274,7 @@ namespace Shizuku2.BACnet.Daikin
 
             BacnetObjectId boID;
             //基準日時（加速時間）
-            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseAcceleratedDateTime);
+            boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DTMemberNumber.BaseAcceleratedDateTime);
             if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val1))
             {
               DateTime dt1 = (DateTime)val1[0].Value;
@@ -263,7 +282,7 @@ namespace Shizuku2.BACnet.Daikin
               DateTime bAccDTime = new DateTime(dt1.Year, dt1.Month, dt1.Day, dt2.Hour, dt2.Minute, dt2.Second);
 
               //基準日時（現実時間）
-              boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DateTimeController.MemberNumber.BaseRealDateTime);
+              boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (uint)DTMemberNumber.BaseRealDateTime);
               if (communicator.Client.ReadPropertyRequest(adr, boID, BacnetPropertyIds.PROP_PRESENT_VALUE, out IList<BacnetValue> val2))
               {
                 dt1 = (DateTime)val2[0].Value;
@@ -305,8 +324,8 @@ namespace Shizuku2.BACnet.Daikin
       //COV通告登録処理
       communicator.Client.OnCOVNotification += Client_OnCOVNotification;
       BacnetAddress bacAddress = new BacnetAddress(BacnetAddressTypes.IP, "127.0.0.1:" + DateTimeController.EXCLUSIVE_PORT.ToString());
-      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DateTimeController.MemberNumber.Acceleration);
-      communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)DateTimeController.MemberNumber.Acceleration, false, false, 3600);
+      BacnetObjectId boID = new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)DTMemberNumber.AccelerationRate);
+      communicator.Client.SubscribeCOVRequest(bacAddress, boID, (uint)DTMemberNumber.AccelerationRate, false, false, 3600);
 
       //Who is送信
       communicator.Client.WhoIs();

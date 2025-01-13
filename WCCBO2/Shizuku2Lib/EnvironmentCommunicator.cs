@@ -1,11 +1,10 @@
 ﻿using System.IO.BACnet;
-using System.Net;
 
 namespace Shizuku2.BACnet
 {
 
   /// <summary>Shizuku2のEnvironmentモニタとの通信ユーティリティクラス</summary>
-  public class EnvironmentCommunicator : PresentValueReadWriter
+  public class EnvironmentCommunicator : DateTimeCommunicator
   {
 
     #region 定数宣言
@@ -24,7 +23,7 @@ namespace Shizuku2.BACnet
     #region 列挙型
 
     /// <summary>項目</summary>
-    private enum memberNumber
+    private enum MemberNumber
     {
       /// <summary>乾球温度</summary>
       DrybulbTemperature = 1,
@@ -34,10 +33,14 @@ namespace Shizuku2.BACnet
       GlobalHorizontalRadiation = 3,
       /// <summary>夜間放射</summary>
       NocturnalRadiation = 4,
-      /// <summary>エネルギー消費量</summary>
-      EnergyConsumption = 5,
+      /// <summary>合計エネルギー消費量</summary>
+      TotalEnergyConsumption = 5,
       /// <summary>平均不満足者率</summary>
-      DissatisfactionRate = 6
+      AveragedDissatisfactionRate = 6,
+      /// <summary>瞬時エネルギー消費量</summary>
+      InstantaneousEnergyConsumption = 7,
+      /// <summary>瞬時不満足者率</summary>
+      InstantaneousDissatisfactionRate = 8,
     }
 
     #endregion
@@ -64,7 +67,7 @@ namespace Shizuku2.BACnet
     public float GetDrybulbTemperature(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.DrybulbTemperature, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.DrybulbTemperature, out succeeded);
     }
 
     /// <summary>相対湿度[%]を取得する</summary>
@@ -73,7 +76,7 @@ namespace Shizuku2.BACnet
     public float GetRelativeHumidity(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.RelativeHumdity, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.RelativeHumdity, out succeeded);
     }
 
     /// <summary>水平面全天日射[W/m2]を取得する</summary>
@@ -82,7 +85,7 @@ namespace Shizuku2.BACnet
     public float GetGlobalHorizontalRadiation(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.GlobalHorizontalRadiation, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.GlobalHorizontalRadiation, out succeeded);
     }
 
     /// <summary>夜間放射[W/m2]を取得する</summary>
@@ -91,7 +94,7 @@ namespace Shizuku2.BACnet
     public float GetNocturnalRadiation(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.NocturnalRadiation, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.NocturnalRadiation, out succeeded);
     }
 
     #endregion
@@ -105,7 +108,7 @@ namespace Shizuku2.BACnet
     /// <returns>ゾーン（下部空間）の乾球温度[C]</returns>
     public float GetZoneDrybulbTemperature(int oUnitIndex, int iUnitIndex, out bool succeeded)
     {
-      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + memberNumber.DrybulbTemperature);
+      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + MemberNumber.DrybulbTemperature);
       return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
@@ -117,7 +120,7 @@ namespace Shizuku2.BACnet
     /// <returns>ゾーン（下部空間）の相対湿度[%]</returns>
     public float GetZoneRelativeHumidity(int oUnitIndex, int iUnitIndex, out bool succeeded)
     {
-      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + memberNumber.RelativeHumdity);
+      uint instNum = (uint)(1000 * oUnitIndex + 100 * iUnitIndex + MemberNumber.RelativeHumdity);
       return ReadPresentValue<float>
         (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, instNum, out succeeded);
     }
@@ -126,13 +129,13 @@ namespace Shizuku2.BACnet
 
     #region 成績関連
 
-    /// <summary>エネルギー消費量[GJ]を取得する</summary>
+    /// <summary>合計エネルギー消費量[GJ]を取得する</summary>
     /// <param name="succeeded">通信が成功したか否か</param>
-    /// <returns>エネルギー消費量[GJ]</returns>
+    /// <returns>合計エネルギー消費量[GJ]</returns>
     public float GetTotalEnergyConsumption(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.EnergyConsumption, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.TotalEnergyConsumption, out succeeded);
     }
 
     /// <summary>平均不満足者率[-]を取得する</summary>
@@ -141,7 +144,25 @@ namespace Shizuku2.BACnet
     public float GetAveragedDissatisfactionRate(out bool succeeded)
     {
       return ReadPresentValue<float>
-        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)memberNumber.DissatisfactionRate, out succeeded);
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.AveragedDissatisfactionRate, out succeeded);
+    }
+
+    /// <summary>瞬時エネルギー消費量[kW]を取得する</summary>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>瞬時エネルギー消費量[kW]</returns>
+    public float GetInstantaneousEnergyConsumption(out bool succeeded)
+    {
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.InstantaneousEnergyConsumption, out succeeded);
+    }
+
+    /// <summary>瞬時不満足者率[-]を取得する</summary>
+    /// <param name="succeeded">通信が成功したか否か</param>
+    /// <returns>瞬時不満足者率[-]</returns>
+    public float GetInstantaneousDissatisfactionRate(out bool succeeded)
+    {
+      return ReadPresentValue<float>
+        (bacAddress, BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.InstantaneousDissatisfactionRate, out succeeded);
     }
 
     #endregion

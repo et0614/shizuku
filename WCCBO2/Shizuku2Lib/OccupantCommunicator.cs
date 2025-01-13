@@ -4,7 +4,7 @@ namespace Shizuku2.BACnet
 {
 
   /// <summary>Shizuku2のOccupantモニタとの通信ユーティリティクラス</summary>
-  public class OccupantCommunicator : PresentValueReadWriter
+  public class OccupantCommunicator : DateTimeCommunicator
   {
 
     #region 定数宣言

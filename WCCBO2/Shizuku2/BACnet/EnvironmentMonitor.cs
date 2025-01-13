@@ -38,10 +38,14 @@ namespace Shizuku2.BACnet
       GlobalHorizontalRadiation = 3,
       /// <summary>夜間放射</summary>
       NocturnalRadiation = 4,
-      /// <summary>エネルギー消費量</summary>
-      EnergyConsumption = 5,
+      /// <summary>合計エネルギー消費量</summary>
+      TotalEnergyConsumption = 5,
       /// <summary>平均不満足者率</summary>
-      DissatisfactionRate = 6
+      AveragedDissatisfactionRate = 6,
+      /// <summary>瞬時エネルギー消費量</summary>
+      InstantaneousEnergyConsumption = 7,
+      /// <summary>瞬時不満足者率</summary>
+      InstantaneousDissatisfactionRate = 8,
     }
 
     #endregion
@@ -60,7 +64,13 @@ namespace Shizuku2.BACnet
     public double AveragedDissatisfactionRate { get; set; }
 
     /// <summary>積算エネルギー消費量[GJ]を設定・取得する</summary>
-    public double TotalEnergyConsumption { get; set; }    
+    public double TotalEnergyConsumption { get; set; }
+
+    /// <summary>瞬時エネルギー消費量[GJ/h]を設定・取得する</summary>
+    public double InstantaneousEnergyConsumption { get; set; }
+
+    /// <summary>瞬時不満足者率[-]を設定・取得する</summary>
+    public double InstantaneousDissatisfactionRate { get; set; }
 
     #endregion
 
@@ -175,18 +185,32 @@ namespace Shizuku2.BACnet
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)building.NocturnalRadiation)
         );
 
-      //エネルギー消費
+      //合計エネルギー消費
       Communicator.Storage.WriteProperty(
-        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.EnergyConsumption),
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.TotalEnergyConsumption),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)(1000 * TotalEnergyConsumption))
         );
 
       //平均不満足者率
       Communicator.Storage.WriteProperty(
-        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.DissatisfactionRate),
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.AveragedDissatisfactionRate),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)AveragedDissatisfactionRate)
+        );
+
+      //瞬時エネルギー消費
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.InstantaneousEnergyConsumption),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)(InstantaneousEnergyConsumption / 3.6)) //kWに変換
+        );
+
+      //瞬時不満足者率
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_INPUT, (uint)MemberNumber.InstantaneousDissatisfactionRate),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)InstantaneousDissatisfactionRate)
         );
 
       for (int ouIndx = 0; ouIndx < vrfSystems.Length; ouIndx++)

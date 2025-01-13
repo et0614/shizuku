@@ -12,10 +12,6 @@ class PresentValueReadWriter():
     """BACnet通信でPresent valueを読み書きするクラス
     """  
 
-    DATETIMECONTROLLER_DEVICE_ID = 1
-
-    DATETIMECONTROLLER_EXCLUSIVE_PORT = 0xBAC0 + DATETIMECONTROLLER_DEVICE_ID
-
     def __init__(self, id, name='anonymous device', device_ip='127.0.0.1', emulator_ip='127.0.0.1', time_out_sec = 1.0):
         """インスタンスを初期化する
 
@@ -32,15 +28,6 @@ class PresentValueReadWriter():
 
         # idを保存
         self.id = id
-
-        # DateTimeControllerのIPアドレスを保存
-        self.dtc_id = emulator_ip + ':' + str(self.DATETIMECONTROLLER_EXCLUSIVE_PORT)
-
-        # DateTimeのCOV登録状況
-        self.dtcov_scribed = False
-        self.acc_rate = 0
-        self.base_real_datetime = datetime.datetime.today()
-        self.base_sim_datetime = datetime.datetime.today()
 
         this_device = DeviceObject(
             objectName=name,
@@ -117,87 +104,6 @@ class PresentValueReadWriter():
 
 # endregion
 
-# region datetime COV関連
-
-    async def subscribe_date_time_cov(self):
-        """シミュレーション日時の加速度に関するCOVを登録する
-
-        Args:
-            monitored_ip (str): DateTimeControllerオブジェクトのIPアドレス(xxx.xxx.xxx.xxxの形式)
-
-        Returns:
-            None
-        """        
-        asyncio.create_task(self.cov_loop())
-
-    async def cov_loop(self):
-        # 既に登録されている場合には日時だけ更新して二重登録を回避
-        if self.dtcov_scribed:
-            return await self.sync_date_time()
-        try:
-            async with self.bacdevice.change_of_value(
-                address=Address(self.dtc_id),
-                subscriber_process_identifier=self.id,
-                monitored_object_identifier=ObjectIdentifier('analog-output:2'), # 加速度
-                lifetime=60*60*24*365, #1年間
-                issue_confirmed_notifications=True
-            ) as scm: #SubscriptionContextManager
-                while True:
-                    property_identifier, property_value = await scm.get_value()
-                    if(f"{property_identifier}"=='present-value'):
-                        self.dtcov_scribed = True
-                        await self.sync_date_time()
-        except Exception as err:
-            return False
-
-    async def sync_date_time(self):
-        """日時をエミュレータに同期させる
-        Args:
-        Returns:
-            bool: 成功したか否か
-        """ 
-        val = await self.read_present_value(self.dtc_id, 'analogOutput:2')
-        if val[0]: self.acc_rate = val[1]
-        else: return False 
-        val = await self.read_present_value(self.dtc_id, 'datetimeValue:3')
-        if val[0]: self.base_real_datetime = val[1]
-        else: return False
-        val = await self.read_present_value(self.dtc_id, 'datetimeValue:4')
-        if val[0]: self.base_sim_datetime = val[1]
-        else: return False
-        return True
-
-    def current_date_time(self):
-        """現在の日時を取得する
-        Args:
-        Returns:
-            datetime: 現在の日時
-        """        
-        return (datetime.datetime.today() - self.base_real_datetime) * self.acc_rate + self.base_sim_datetime
-
-# endregion
-
-# region 加速度関連
-
-    async def get_acceleration_rate(self):
-        """加速度[-]を取得する
-
-        Returns:
-            list: 読み取り成功の真偽,加速度[-]
-        """
-        return await self.read_present_value(self.dtc_id,'analogOutput:2')
-
-    async def change_acceleration_rate(self, acceleration_rate):
-        """加速度[-]を変える
-        Args:
-            acceleration_rate (float): 加速度[-]
-        Returns:
-            bool:命令が成功したか否か
-            """
-        return await self.write_present_value(self.dtc_id,'analogOutput:2',Real(acceleration_rate))
-
-# endregion
-
 # region サンプル
 
 async def main():
@@ -208,10 +114,6 @@ async def main():
         emulator_ip='127.0.0.1',
         time_out_sec=1
     )
-
-    # 日時のCOVを登録
-    print('Subscribe COV')
-    await pv_rw.subscribe_date_time_cov()
 
     # read property
     pValue = await pv_rw.read_present_value(addr='127.0.0.1:47817', obj_id='analog-value,4')
@@ -261,14 +163,8 @@ async def main():
     success = await pv_rw.write_present_value('127.0.0.1:47817', 'multiStateInput:12', Unsigned(1))
     print('Writing multiStateInput ' + ('success' if success[0] else ('failed because of ' + str(success[1]))))
 
-    # 無限ループで日時を表示
-    while True:
-        print(pv_rw.current_date_time().strftime('%Y/%m/%d %H:%M:%S'))
-        await asyncio.sleep(1)
-        pass
 
 if __name__ == "__main__":
     asyncio.run(main())
-    # main()
 
 # endregion

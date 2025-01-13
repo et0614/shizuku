@@ -1,11 +1,10 @@
-﻿using System.Diagnostics.Metrics;
-using System.IO.BACnet;
+﻿using System.IO.BACnet;
 using System.IO.BACnet.Base;
 
 namespace Shizuku2.BACnet
 {
   /// <summary>Shizuku2のDummy Deviceとの通信ユーティリティクラス</summary>
-  public class DummyDeviceCommunicator : PresentValueReadWriter
+  public class DummyDeviceCommunicator : DateTimeCommunicator
   {
 
     #region 定数宣言

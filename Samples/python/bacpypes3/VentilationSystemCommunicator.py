@@ -1,11 +1,11 @@
-import PresentValueReadWriter
+import DateTimeCommunicator
 import time
 import asyncio
 
 from enum import Enum
 from bacpypes3.primitivedata import Enumerated, Unsigned
 
-class VentilationSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
+class VentilationSystemCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 
 # region 定数宣言
 

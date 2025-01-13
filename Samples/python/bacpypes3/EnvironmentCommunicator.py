@@ -1,10 +1,10 @@
-import PresentValueReadWriter
+import DateTimeCommunicator
 import time
 import asyncio
 
 from enum import Enum
 
-class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
+class EnvironmentCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 
 # region 定数宣言
 
@@ -26,9 +26,13 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         # 夜間放射
         NocturnalRadiation=4
         # エネルギー消費
-        EnergyConsumption=5
+        TotalEnergyConsumption=5
         # 不満足者率
-        DissatisfactionRate=6
+        AveragedDissatisfactionRate=6
+        # 瞬時エネルギー消費量
+        InstantaneousEnergyConsumption=7
+        # 瞬時不満足者率
+        InstantaneousDissatisfactionRate=8
 
 # endregion
 
@@ -40,6 +44,7 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
             name (str): 通信用のDeviceの名前
             device_ip (str): 通信に使うDeviceのIP Address（xxx.xxx.xxx.xxx）
             emulator_ip (str): エミュレータのIP Address（xxx.xxx.xxx.xxx）
+            time_out_sec (float): タイムアウトまでの時間[sec]
         """
         super().__init__(id, name, device_ip, emulator_ip, time_out_sec)
         self.target_ip = emulator_ip + ':' + str(self.ENVIRONMENTMONITOR_EXCLUSIVE_PORT)
@@ -77,12 +82,12 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.NocturnalRadiation.value))
     
     async def get_total_energy_consumption(self):
-        """エネルギー消費量[MJ]を取得する
+        """合計エネルギー消費量[MJ]を取得する
 
         Returns:
             list: 読み取り成功の真偽,エネルギー消費量[MJ]
         """
-        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.EnergyConsumption.value))
+        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.TotalEnergyConsumption.value))
 
     async def get_averaged_dissatisfaction_rate(self):
         """平均不満足者率[-]を取得する
@@ -90,7 +95,23 @@ class EnvironmentCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Returns:
             list: 読み取り成功の真偽,平均不満足者率[-]
         """
-        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.DissatisfactionRate.value))
+        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.AveragedDissatisfactionRate.value))
+
+    async def get_instantaneous_energy_consumption(self):
+        """瞬時エネルギー消費量[kW]を取得する
+
+        Returns:
+            list: 読み取り成功の真偽,瞬時エネルギー消費量[kW]
+        """
+        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.InstantaneousEnergyConsumption.value))
+
+    async def get_instantaneous_dissatisfaction_rate(self):
+        """瞬時不満足者率[-]を取得する
+
+        Returns:
+            list: 読み取り成功の真偽,瞬時不満足者率[-]
+        """
+        return await self.read_present_value(self.target_ip,'analogInput:' + str(self._member.InstantaneousDissatisfactionRate.value))
 
     async def get_zone_drybulb_temperature(self,oUnitIndex,iUnitIndex):
         """ゾーン（下部空間）の乾球温度[C]を取得する

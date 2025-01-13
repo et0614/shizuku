@@ -25,7 +25,7 @@ namespace ExcelController
 
     static void Main(string[] args)
     {
-      Console.WriteLine("Starting Excel controller. Version 1.0.1");
+      Console.WriteLine("Starting Excel controller. Version 1.0.2");
 
       //初期設定ファイル読み込み
       string sFile = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "setting.ini";
@@ -188,7 +188,7 @@ namespace ExcelController
       VentilationSystemCommunicator ventCom = new VentilationSystemCommunicator(DEVICE_ID + 2, "Excel controller (Vent)", emulatorIpAddress);
       vrfCom.StartService();
       ventCom.StartService();
-      while (!vrfCom.SubscribeDateTimeCOV(emulatorIpAddress)) ; //COV登録が成功するまでは空ループ
+      while (!vrfCom.SubscribeDateTimeCOV()) ; //COV登録が成功するまでは空ループ
 
       //制御値更新ループ*************************************
       DateTime dtOut = DateTime.Now;

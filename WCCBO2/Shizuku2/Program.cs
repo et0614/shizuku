@@ -60,7 +60,7 @@ namespace Shizuku2
     private const string RESULT_FILE = "result.szk";
 
     /// <summary>データ出力ディレクトリ</summary>
-    private const string OUTPUT_DIR = "data";
+    private static readonly string OUTPUT_DIR = AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "data";
 
     /// <summary>日時型の文字列変換フォーマット</summary>
     private const string DT_FORMAT = "yyyy/MM/dd HH:mm:ss";
@@ -87,9 +87,6 @@ namespace Shizuku2
     /// <summary>テナントリスト</summary>
     private static TenantList tenants;
 
-    /// <summary>計算が遅れているか否か</summary>
-    private static bool isDelayed = false;
-
     /// <summary>平均不満足者率（温冷感+ドラフト+上下温度+CO2）</summary>
     private static double averagedDissatisfactionRate
     {
@@ -111,21 +108,6 @@ namespace Shizuku2
     {
       get { return envMntr.TotalEnergyConsumption; }
       set { envMntr.TotalEnergyConsumption = value; }
-    }
-
-    /// <summary>瞬時エネルギー消費量[GJ/h]</summary>
-    private static double instantaneousEnergyConsumption = 0.0;
-
-    /// <summary>瞬時不満足者率[-]を取得する</summary>
-    public static double InstantaneousDissatisfactionRate
-    {
-      get {
-        return 1 -
-          (1 - dissatisfactionRate_thermal) *
-          (1 - dissatisfactionRate_draft) *
-          (1 - dissatisfactionRate_vTempDif) *
-          (1 - ventSystem.DissatisifactionRateFromCO2Level);
-      }
     }
 
     #region BACnet Device
@@ -207,28 +189,28 @@ namespace Shizuku2
 
       //日時コントローラを用意して助走計算
       Console.Write("Start precalculation...");
-      DateTime dt;
+      DateTime sttDt;
       if (initSettings["period"] == "0")
       {
-        dt = new DateTime(1999, 7, 21, 0, 0, 0); //夏季
+        sttDt = new DateTime(1999, 7, 21, 0, 0, 0); //夏季
         tenants.ResetClothing(26.0); //基準着衣量を初期化
       }
       else if (initSettings["period"] == "1")
       {
-        dt = new DateTime(1999, 2, 10, 0, 0, 0); //冬季
+        sttDt = new DateTime(1999, 2, 10, 0, 0, 0); //冬季
         tenants.ResetClothing(4.0); //基準着衣量を初期化
       }
       else
       {
-        dt = new DateTime(1999, 5, 1, 0, 0, 0); //春季
+        sttDt = new DateTime(1999, 5, 1, 0, 0, 0); //春季
         tenants.ResetClothing(15.0); //基準着衣量を初期化
       }
 
-      dtCtrl = new DateTimeController(dt, 0, initSettings["ipadd"]); //加速度0で待機
+      dtCtrl = new DateTimeController(sttDt, sttDt.AddDays(initSettings["oneday"] == "1" ? 1 : 7), 0, initSettings["ipadd"]); //加速度0で待機
       dtCtrl.TimeStep = building.TimeStep = Math.Max(1, Math.Min(120, int.Parse(initSettings["timestep"])));
 
       //初期化・周期定常化処理
-      preRun(dt, wetLoader, sun);
+      preRun(sttDt, wetLoader, sun);
       Console.WriteLine("Done." + Environment.NewLine);
 
       //VRFコントローラ用意
@@ -255,7 +237,7 @@ namespace Shizuku2
       ocMntr = new OccupantMonitor(tenants, initSettings["ipadd"]); //執務者モニタ
       ventCtrl = new VentilationSystemController(ventSystem, initSettings["ipadd"]); //換気システムコントローラ
 
-      bool finished = false;
+      dtCtrl.IsFinished = false;
       try
       {
         //BACnet Device起動
@@ -275,8 +257,9 @@ namespace Shizuku2
           Console.WriteLine();
         }
 
-        //加速度を設定
-        dtCtrl.AccelerationRate = int.Parse(initSettings["accelerationRate"]);
+        //加速度を0倍に
+        dtCtrl.SetAccelerationRate(0);
+        dtCtrl.ResetDateTime(sttDt);
 
         //BACnet controllerの登録を待つ
         Console.WriteLine("Waiting for BACnet controller registration.");
@@ -289,7 +272,7 @@ namespace Shizuku2
         Console.ReadLine();
 
         //加速開始
-        dtCtrl.InitializeDateTime(dt);
+        dtCtrl.SetAccelerationRate(int.Parse(initSettings["accelerationRate"]));        
 
         //DEBUG
         //saveScore();
@@ -300,7 +283,7 @@ namespace Shizuku2
           Console.WriteLine();
           Console.WriteLine("Start emulation.");
 
-          while (!finished)
+          while (!dtCtrl.IsFinished)
           {
             string dis = tenants.NumberOfOccupantStayInBuilding == 0 ?
             "There are no office workers in the building." :
@@ -310,9 +293,9 @@ namespace Shizuku2
             ventSystem.DissatisifactionRateFromCO2Level.ToString("F4"));
             Console.WriteLine(
               dtCtrl.CurrentDateTime.ToString(DT_FORMAT) +
-              "  " + totalEnergyConsumption.ToString("F4") + " (" + instantaneousEnergyConsumption.ToString("F4") + ")" +
+              "  " + totalEnergyConsumption.ToString("F4") + " (" + envMntr.InstantaneousEnergyConsumption.ToString("F4") + ")" +
               "  " + averagedDissatisfactionRate.ToString("F4") + " (" + dis + ")" +
-              "  " + (isDelayed ? "DELAYED" : "")
+              "  " + (dtCtrl.IsDelayed ? "DELAYED" : "")
               );
             Thread.Sleep(1000);
           }
@@ -322,16 +305,17 @@ namespace Shizuku2
         StringBuilder summary = new StringBuilder();
         updateSummary(summary, true);
         run(wetLoader, sun, ref summary);
-        finished = true;
+        dtCtrl.IsFinished = true;
         //結果書き出し
         saveScore(summary);
 
         Console.WriteLine("Emulation finished. Press \"Enter\" key to exit.");
+        dtCtrl.ReadMeasuredValues(dtCtrl.CurrentDateTime); //計算終了をBACnetで外部に開示
         Console.ReadLine();
       }
       catch (Exception e)
       {
-        finished = true;
+        dtCtrl.IsFinished = true;
 
         //ポート開放
         dtCtrl.EndService();
@@ -379,7 +363,7 @@ namespace Shizuku2
           Thread.Sleep(100);
           dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime); //加速度を監視
 
-          while (dtCtrl.TryProceed(out isDelayed))
+          while (dtCtrl.TryProceed())
           {
             //1週間で計算終了
             if (endDTime < dtCtrl.CurrentDateTime) break;
@@ -457,6 +441,10 @@ namespace Shizuku2
           //1週間で計算終了
           if (endDTime < dtCtrl.CurrentDateTime) break;
         }
+
+        //加速を停止して日時を初期化
+        dtCtrl.SetAccelerationRate(0);
+        dtCtrl.ResetDateTime(endDTime);
       }
     }
 
@@ -501,22 +489,27 @@ namespace Shizuku2
       //不満足者率を更新
       tenants.GetDissatisfiedInfo(building, vrfs, 
         out dissatisfactionRate_thermal, out dissatisfactionRate_draft, out dissatisfactionRate_vTempDif);
+      envMntr.InstantaneousDissatisfactionRate = 1 -
+        (1 - dissatisfactionRate_thermal) * (1 - dissatisfactionRate_draft) *
+        (1 - dissatisfactionRate_vTempDif) * (1 - ventSystem.DissatisifactionRateFromCO2Level);
+
       if (tenants.NumberOfOccupantStayInBuilding != 0)
       {
         uint tNum = tenants.NumberOfOccupantStayInBuilding + totalOccupants;
         averagedDissatisfactionRate = (
-          averagedDissatisfactionRate * totalOccupants + 
-          InstantaneousDissatisfactionRate * tenants.NumberOfOccupantStayInBuilding) / tNum;
+          averagedDissatisfactionRate * totalOccupants +
+          envMntr.InstantaneousDissatisfactionRate * tenants.NumberOfOccupantStayInBuilding) / tNum;
         totalOccupants = tNum;
       }
 
       //エネルギー消費関連を更新
       //instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_SouthTenant;
-      instantaneousEnergyConsumption = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_NorthTenant; //2024.12.07 BUGfix
+      double ie = ventSystem.FanElectricity_SouthTenant + ventSystem.FanElectricity_NorthTenant; //2024.12.07 BUGfix
       for (int i = 0; i < vrfs.Length; i++)
-        instantaneousEnergyConsumption += vrfs[i].Electricity;
-      instantaneousEnergyConsumption *= ELC_PRIM_RATE;
-      totalEnergyConsumption += instantaneousEnergyConsumption * (building.TimeStep / 3600d);
+        ie += vrfs[i].Electricity;
+      ie *= ELC_PRIM_RATE;
+      envMntr.InstantaneousEnergyConsumption = ie;
+      totalEnergyConsumption += ie * (building.TimeStep / 3600d);
     }
 
     /// <summary>内部発熱を反映する</summary>
@@ -668,9 +661,9 @@ namespace Shizuku2
         "," + (1000 * building.OutdoorHumidityRatio).ToString("F1") +
         "," + building.Sun.GlobalHorizontalRadiation.ToString("F1") +
         "," + totalEnergyConsumption.ToString("F5") +
-        "," + instantaneousEnergyConsumption.ToString("F5") +
+        "," + envMntr.InstantaneousEnergyConsumption.ToString("F5") +
         "," + averagedDissatisfactionRate.ToString("F4") +
-        "," + InstantaneousDissatisfactionRate.ToString("F4") + 
+        "," + envMntr.InstantaneousDissatisfactionRate.ToString("F4") + 
         "," + dissatisfactionRate_thermal.ToString("F4") +
         "," + dissatisfactionRate_draft.ToString("F4") +
         "," + dissatisfactionRate_vTempDif.ToString("F4") +
@@ -816,8 +809,8 @@ namespace Shizuku2
         sBuilder.Append(
           building.CurrentDateTime.ToString("yyyy/MM/dd") + "," + 
           building.CurrentDateTime.ToString("HH:mm:ss") + "," +
-          instantaneousEnergyConsumption + "," +
-          InstantaneousDissatisfactionRate
+          envMntr.InstantaneousEnergyConsumption + "," +
+          envMntr.InstantaneousDissatisfactionRate
           );
         for (int i = 0; i < vrfs.Length; i++)
         {

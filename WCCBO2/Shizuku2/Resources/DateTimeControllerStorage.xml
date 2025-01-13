@@ -77,13 +77,13 @@
 					<Value>OBJECT_DATETIME_VALUE:1</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
-					<Value>Current date and time</Value>
+					<Value>Current_DateTime</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
 					<Value>44</Value>
 				</Property>
 				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
-					<Value>Current date and time in the simulation. This value might been accelerated.</Value>
+					<Value>Current date and time in the simulation. Due to the lag in BACnet communication, by the time this value is read, the simulation has already progressed further in time. To calculate the exact and accurate date and time, calculations should be performed using "Acceleration_Rate," "Realtime_Base_DateTime," and "Simulation_Base_DateTime." </Value>
 				</Property>
 				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
 					<Value>2024-01-01T00:00:00.000</Value>
@@ -100,7 +100,7 @@
 					<Value>OBJECT_ANALOG_OUTPUT:2</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
-					<Value>Acceleration rate</Value>
+					<Value>Acceleration_Rate</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
 					<Value>1</Value>
@@ -155,13 +155,13 @@
 					<Value>OBJECT_DATETIME_VALUE:3</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
-					<Value>Base real date and time</Value>
+					<Value>Realtime_Base_DateTime</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
 					<Value>44</Value>
 				</Property>
 				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
-					<Value>Real world date and time starting to accelerate.</Value>
+					<Value>Real world date and time when the acceleration started.</Value>
 				</Property>
 				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
 					<Value>2024-01-01T00:00:00.000</Value>
@@ -178,7 +178,7 @@
 					<Value>OBJECT_DATETIME_VALUE:4</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
-					<Value>Base date and time in the simulation</Value>
+					<Value>Simulation_Base_DateTime</Value>
 				</Property>
 				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
 					<Value>44</Value>
@@ -194,6 +194,94 @@
 				</Property>
 			</Properties>
 		</Object>
-				
+
+		<Object Type="OBJECT_DATETIME_VALUE" Instance="5">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_DATETIME_VALUE:5</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Simulation_End_DateTime</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>44</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>The date and time to end the simulation.</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_DATETIME">
+					<Value>2024-01-01T00:00:00.000</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_BINARY_INPUT" Instance="6">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_BINARY_INPUT:6</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Simulation_Delayed</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>3</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>This property indicates whether a calculation delay is occurring in the simulation. A value of 'True' means that the simulation's internal date and time are lagging behind the accurately calculated date and time derived from 'Acceleration_Rate,' 'Realtime_Base_DateTime,' and 'Simulation_Base_DateTime.'"</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_POLARITY" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+
+		<Object Type="OBJECT_BINARY_INPUT" Instance="7">
+			<Properties>
+				<Property Id="PROP_OBJECT_IDENTIFIER" Tag="BACNET_APPLICATION_TAG_OBJECT_ID">
+					<Value>OBJECT_BINARY_INPUT:7</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_NAME" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>Simulation_Finished</Value>
+				</Property>
+				<Property Id="PROP_OBJECT_TYPE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>3</Value>
+				</Property>
+				<Property Id="PROP_PRESENT_VALUE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>1</Value>
+				</Property>
+				<Property Id="PROP_DESCRIPTION" Tag="BACNET_APPLICATION_TAG_CHARACTER_STRING">
+					<Value>This property indicates whether the simulation has completed. A value of 'True' signifies that the simulation has successfully reached its final state, while 'False' indicates the simulation is still ongoing.</Value>
+				</Property>
+				<Property Id="PROP_STATUS_FLAGS" Tag="BACNET_APPLICATION_TAG_BIT_STRING">
+					<Value>0000</Value>
+				</Property>
+				<Property Id="PROP_EVENT_STATE" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+				<Property Id="PROP_OUT_OF_SERVICE" Tag="BACNET_APPLICATION_TAG_BOOLEAN">
+					<Value>False</Value>
+				</Property>
+				<Property Id="PROP_POLARITY" Tag="BACNET_APPLICATION_TAG_ENUMERATED">
+					<Value>0</Value>
+				</Property>
+			</Properties>
+		</Object>
+		
+		
 	</Objects>
 </DeviceStorage>

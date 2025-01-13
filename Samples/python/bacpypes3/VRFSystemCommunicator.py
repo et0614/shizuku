@@ -1,10 +1,10 @@
 import asyncio
-import PresentValueReadWriter
+import DateTimeCommunicator
 
 from enum import Enum
 from bacpypes3.primitivedata import Enumerated, Real, Unsigned
 
-class VRFSystemCommunicator(PresentValueReadWriter.PresentValueReadWriter):
+class VRFSystemCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 
 # region 定数宣言
 

@@ -4,7 +4,7 @@ using System.IO.BACnet.Base;
 namespace Shizuku2.BACnet
 {
   /// <summary>Shizuku2のVRFコントローラとの通信ユーティリティクラス</summary>
-  public class VRFSystemCommunicator : PresentValueReadWriter
+  public class VRFSystemCommunicator : DateTimeCommunicator
   {
 
     #region 定数宣言

@@ -5,7 +5,7 @@ namespace Shizuku2.BACnet
 {
 
   /// <summary>Shizuku2のVentilationコントローラとの通信ユーティリティクラス</summary>
-  public class VentilationSystemCommunicator : PresentValueReadWriter
+  public class VentilationSystemCommunicator : DateTimeCommunicator
   {
 
     #region 定数宣言

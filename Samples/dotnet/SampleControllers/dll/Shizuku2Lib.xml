@@ -4,6 +4,109 @@
         <name>Shizuku2Lib</name>
     </assembly>
     <members>
+        <member name="T:Shizuku2.BACnet.DateTimeCommunicator">
+            <summary>Shizuku2のDateTimeControllerとの通信ユーティリティクラス</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.DATETIME_CONTROLLER_DEVICE_ID">
+            <summary>Device ID</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.DATETIME_CONTROLLER_EXCLUSIVE_PORT">
+            <summary>排他的ポート番号</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.bacAddress">
+            <summary>Dummy DeviceのBACnetアドレス</summary>
+        </member>
+        <member name="T:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber">
+            <summary>項目</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.CurrentDateTimeInSimulation">
+            <summary>現在のシミュレーション上の日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.AccelerationRate">
+            <summary>加速度</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.BaseRealDateTime">
+            <summary>現実時間の基準日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.BaseAcceleratedDateTime">
+            <summary>シミュレーション上の基準日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.EndDateTime">
+            <summary>シミュレーション上の終了日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.IsDelayed">
+            <summary>計算遅延中か否か</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.IsFinished">
+            <summary>計算完了済か否か</summary>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.#ctor(System.UInt32,System.String,System.String)">
+            <summary>インスタンスを初期化する</summary>
+            <param name="id">通信に使うBACnet DeviceのID</param>
+            <param name="name">通信に使うBACnet Deviceの名前</param>
+            <param name="ipAddress">エミュレータのIPアドレス（「xxx.xxx.xxx.xxx」の形式）</param>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.covSubscribed">
+            <summary>COV登録済みか否か</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.baseRealDateTime">
+            <summary>現実時間の基準日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.baseAcceleratedDateTime">
+            <summary>シミュレーション上の基準日時</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.accelerationRate">
+            <summary>加速度[-]</summary>
+        </member>
+        <member name="P:Shizuku2.BACnet.DateTimeCommunicator.CurrentDateTime">
+            <summary>シミュレーション上の現在日時を取得する</summary>
+            <remarks>
+            正しい値を取得するには予めSyncDateTime()で時刻を同期させるか、SubscribeDateTimeCOV()メソッドでCOV通知を受けるようにしておく必要がある
+            </remarks>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.SubscribeDateTimeCOV">
+            <summary>シミュレーション日時の加速度に関するCOVを登録する</summary>
+            <returns>登録成功の真偽</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.SyncDateTime">
+            <summary>日時を同期させる</summary>
+            <returns>同期が成功したか否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.ChangeAccelerationRate(System.Int32,System.Boolean@)">
+            <summary>加速度[-]を変える</summary>
+            <param name="accelerationRate">加速度[-]</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetAccelerationRate(System.Boolean@)">
+            <summary>加速度[-]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>加速度[-]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.getBaseRealDateTime(System.Boolean@)">
+            <summary>現実時間の基準日時を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>現実時間の基準日時</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.getBaseAcceleratedDateTime(System.Boolean@)">
+            <summary>シミュレーション上の基準日時を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>シミュレーション上の基準日時</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetEndDateTime(System.Boolean@)">
+            <summary>計算を終えるシミュレーション上の日時を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>計算を終えるシミュレーション上の日時</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsEmulatorDelayed(System.Boolean@)">
+            <summary>計算遅延の有無を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>計算遅延の有無</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsEmulatorFinished(System.Boolean@)">
+            <summary>計算が終了済か否かを取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>計算が終了済か否か</returns>
+        </member>
         <member name="T:Shizuku2.BACnet.DummyDeviceCommunicator">
             <summary>Shizuku2のDummy Deviceとの通信ユーティリティクラス</summary>
         </member>
@@ -142,25 +245,25 @@
         <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.bacAddress">
             <summary>WeatherモニタのBACnetアドレス</summary>
         </member>
-        <member name="T:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber">
+        <member name="T:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber">
             <summary>項目</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.DrybulbTemperature">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.DrybulbTemperature">
             <summary>乾球温度</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.RelativeHumdity">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.RelativeHumdity">
             <summary>相対湿度</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.GlobalHorizontalRadiation">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.GlobalHorizontalRadiation">
             <summary>水平面全天日射</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.NocturnalRadiation">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.NocturnalRadiation">
             <summary>夜間放射</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.EnergyConsumption">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.EnergyConsumption">
             <summary>エネルギー消費量</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.memberNumber.DissatisfactionRate">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.DissatisfactionRate">
             <summary>平均不満足者率</summary>
         </member>
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.#ctor(System.UInt32,System.String,System.String)">
@@ -366,41 +469,8 @@
         <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DATETIMECONTROLLER_EXCLUSIVE_PORT">
             <summary>DateTimeコントローラの排他的ポート番号</summary>
         </member>
-        <member name="T:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember">
-            <summary>項目</summary>
-        </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.CurrentDateTimeInSimulation">
-            <summary>シミュレーション内の加速された日時</summary>
-        </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.AccerarationRate">
-            <summary>加速度</summary>
-        </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.BaseRealDateTime">
-            <summary>現実時間の基準日時</summary>
-        </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.DateTimeControllerMember.BaseAcceleratedDateTime">
-            <summary>シミュレーション内の基準日時</summary>
-        </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.covSubscribed">
-            <summary>COV登録済みか否か</summary>
-        </member>
         <member name="F:Shizuku2.BACnet.PresentValueReadWriter.client">
             <summary>BACnet通信用オブジェクト</summary>
-        </member>
-        <member name="F:Shizuku2.BACnet.PresentValueReadWriter.dtCtrlIP">
-            <summary>DateTimeコントローラのIPアドレス</summary>
-        </member>
-        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.AccelerationRate">
-            <summary>加速度を取得する</summary>
-        </member>
-        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.BaseRealDateTime">
-            <summary>現実時間の基準日時を取得する</summary>
-        </member>
-        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.BaseAcceleratedDateTime">
-            <summary>シミュレーション内の基準日時を取得する</summary>
-        </member>
-        <member name="P:Shizuku2.BACnet.PresentValueReadWriter.CurrentDateTime">
-            <summary>シミュレーション内の現在日時を取得する</summary>
         </member>
         <member name="M:Shizuku2.BACnet.PresentValueReadWriter.#ctor(System.UInt32)">
             <summary>インスタンスを初期化する</summary>
@@ -428,28 +498,6 @@
             <param name="instanceNumber">インスタンス番号</param>
             <param name="val">書き込むPresentValue</param>
             <param name="succeeded">書き込み成功の真偽</param>
-        </member>
-        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.SubscribeDateTimeCOV(System.String)">
-            <summary>シミュレーション日時の加速度に関するCOVを登録する</summary>
-            <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
-            <returns>登録成功の真偽</returns>
-        </member>
-        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.updateDateTime(System.Int32,System.Int32)">
-            <summary>日時を更新する</summary>
-            <param name="maxTrial">日時更新の最大試行回数[回]</param>
-            <param name="trialIntervalMSec">試行間の時間間隔[msec]</param>
-        </member>
-        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.ChangeAccelerationRate(System.Single,System.Boolean@,System.String)">
-            <summary>加速度[-]を変える</summary>
-            <param name="accelerationRate">加速度[-]</param>
-            <param name="succeeded">通信が成功したか否か</param>
-            <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
-        </member>
-        <member name="M:Shizuku2.BACnet.PresentValueReadWriter.GetSetpointTemperature(System.Boolean@,System.String)">
-            <summary>加速度[-]を取得する</summary>
-            <param name="succeeded">通信が成功したか否か</param>
-            <param name="ipAddress">DateTimeControllerオブジェクトのIPアドレス（xxx.xxx.xxx.xxxの形式）</param>
-            <returns>加速度[-]</returns>
         </member>
         <member name="T:Shizuku2.BACnet.VentilationSystemCommunicator">
             <summary>Shizuku2のVentilationコントローラとの通信ユーティリティクラス</summary>

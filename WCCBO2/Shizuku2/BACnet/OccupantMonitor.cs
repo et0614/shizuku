@@ -45,7 +45,7 @@ namespace Shizuku2.BACnet
       /// <summary>ドラフトによる不満足者率</summary>
       Dissatisfied_Draft = 6,
       /// <summary>上下温度分布による不満足者率</summary>
-      Dissatisfied_VerticalTemp = 7
+      Dissatisfied_VerticalTemp = 7,
     }
 
     #endregion

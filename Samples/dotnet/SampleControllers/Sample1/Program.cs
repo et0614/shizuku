@@ -6,7 +6,7 @@ namespace Sample1
   {
     static void Main(string[] args)
     {
-      PresentValueReadWriter pvrw = new PresentValueReadWriter(10);
+      DateTimeCommunicator pvrw = new DateTimeCommunicator(10);
       pvrw.StartService();
 
       Console.Write("Subscribe COV...");
