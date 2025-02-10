@@ -325,8 +325,7 @@ namespace Shizuku2
         ventCtrl.EndService();
         vrfSchedl?.EndService();
         dummyDv.EndService();
-
-        using (StreamWriter sWriter = new StreamWriter("error.log"))
+        using (StreamWriter sWriter = new StreamWriter(AppDomain.CurrentDomain.BaseDirectory + Path.DirectorySeparatorChar + "error.log"))
         {
           sWriter.Write(e.ToString());
         }
