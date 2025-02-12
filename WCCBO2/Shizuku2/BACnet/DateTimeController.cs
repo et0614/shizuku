@@ -2,7 +2,6 @@
 using System.IO.BACnet;
 using System.IO.BACnet.Storage;
 using System.Reflection;
-using static Popolo.ThermophysicalProperty.Refrigerant;
 
 namespace Shizuku2.BACnet
 {
@@ -61,11 +60,29 @@ namespace Shizuku2.BACnet
     /// <summary>計算遅延中か否か</summary>
     public bool IsDelayed
     {
-      get { return IsFinished ? false : isDelayed; }
+      get { return !IsFinished && isDelayed; }
     }
 
     /// <summary>計算が終了済か否か</summary>
     public bool IsFinished { get; set; }
+
+    /// <summary>一時停止するまでの秒数[sec]を設定・取得する</summary>
+    public int PauseTimer { get; private set; } = 864000;
+
+    private bool _isPaused = false;
+
+    /// <summary>一時停止中か否かを取得する</summary>
+    public bool IsPaused
+    {
+      get
+      {
+        return _isPaused || IsFinished;
+      }
+      private set
+      {
+        _isPaused = value;
+      }
+    }
 
     #endregion
 
@@ -87,7 +104,11 @@ namespace Shizuku2.BACnet
       /// <summary>計算遅延中か否か</summary>
       IsDelayed = 6,
       /// <summary>計算完了済か否か</summary>
-      IsFinished = 7
+      IsFinished = 7,
+      /// <summary>一時停止までの秒数</summary>
+      PauseTimer = 8,
+      /// <summary>一時停止中か否か</summary>
+      IsPaused = 9
     }
 
     #endregion
@@ -106,8 +127,8 @@ namespace Shizuku2.BACnet
         );
 
       strg.WriteProperty(
-        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.CurrentDateTimeInSimulation), 
-        BacnetPropertyIds.PROP_PRESENT_VALUE, 
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_DATETIME_VALUE, (int)MemberNumber.CurrentDateTimeInSimulation),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, CurrentDateTime)
         );
 
@@ -175,6 +196,27 @@ namespace Shizuku2.BACnet
           new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_DATETIME, dtAccelerator.BaseAcceleratedDateTime)
           );
       }
+      //一時停止までの時間が更新されたとき
+      else if (
+        objectId.type == BacnetObjectTypes.OBJECT_ANALOG_OUTPUT &&
+        objectId.instance == (uint)MemberNumber.PauseTimer &&
+        propertyId == BacnetPropertyIds.PROP_PRESENT_VALUE)
+      {
+        PauseTimer = (int)(float)value[0].Value;
+        //一時停止状態変化時には基準日時を更新
+        if ((PauseTimer <= 0 && !IsPaused) || (0 < PauseTimer && IsPaused))
+        {
+          ResetDateTime(CurrentDateTime);
+
+          IsPaused = PauseTimer <= 0;
+          if (IsPaused)
+            Communicator.Storage.WriteProperty(
+              new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)MemberNumber.IsPaused),
+              BacnetPropertyIds.PROP_PRESENT_VALUE,
+              new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, 1u)
+              );
+        }
+      }
     }
 
     #endregion
@@ -186,10 +228,23 @@ namespace Shizuku2.BACnet
     public bool TryProceed()
     {
       DateTime dt = dtAccelerator.AcceleratedDateTime;
-      if (cDTime.AddSeconds(TimeStep) <= dt)
+      if (cDTime.AddSeconds(TimeStep) <= dt && 0 < PauseTimer)
       {
+        //遅延判定
         isDelayed = cDTime.AddSeconds(2 * TimeStep) <= dt;
+
+        //日時を進める
         cDTime = cDTime.AddSeconds(TimeStep);
+
+        //タイマー更新
+        PauseTimer = Math.Max(0, PauseTimer - (int)TimeStep);
+        if (PauseTimer <= 0)
+        {
+          ResetDateTime(cDTime); //一時停止した場合には日時を初期化
+          IsPaused = true;
+        }
+        else IsPaused = false;
+
         return true;
       }
       else isDelayed = false;
@@ -244,9 +299,7 @@ namespace Shizuku2.BACnet
     #region IBACnetController実装
 
     public void ApplyManipulatedVariables(DateTime dTime)
-    {
-      
-    }
+    { }
 
     public void ReadMeasuredValues(DateTime dTime)
     {
@@ -269,6 +322,20 @@ namespace Shizuku2.BACnet
         new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)MemberNumber.IsFinished),
         BacnetPropertyIds.PROP_PRESENT_VALUE,
         new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, IsFinished ? 1u : 0u)
+        );
+
+      //一時停止までの時間
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_ANALOG_OUTPUT, (uint)MemberNumber.PauseTimer),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_REAL, (float)PauseTimer)
+        );
+
+      //一時停止中か否か
+      Communicator.Storage.WriteProperty(
+        new BacnetObjectId(BacnetObjectTypes.OBJECT_BINARY_INPUT, (uint)MemberNumber.IsPaused),
+        BacnetPropertyIds.PROP_PRESENT_VALUE,
+        new BacnetValue(BacnetApplicationTags.BACNET_APPLICATION_TAG_ENUMERATED, (IsPaused || IsFinished) ? 1u : 0u)
         );
     }
 

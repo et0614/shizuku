@@ -257,7 +257,7 @@ namespace Shizuku2
           Console.WriteLine();
         }
 
-        //加速度を0倍に
+        //加速度を設定
         dtCtrl.SetAccelerationRate(0);
         dtCtrl.ResetDateTime(sttDt);
 
@@ -272,7 +272,7 @@ namespace Shizuku2
         Console.ReadLine();
 
         //加速開始
-        dtCtrl.SetAccelerationRate(int.Parse(initSettings["accelerationRate"]));        
+        dtCtrl.SetAccelerationRate(int.Parse(initSettings["accelerationRate"]));
 
         //DEBUG
         //saveScore();
@@ -295,7 +295,7 @@ namespace Shizuku2
               dtCtrl.CurrentDateTime.ToString(DT_FORMAT) +
               "  " + totalEnergyConsumption.ToString("F4") + " (" + envMntr.InstantaneousEnergyConsumption.ToString("F4") + ")" +
               "  " + averagedDissatisfactionRate.ToString("F4") + " (" + dis + ")" +
-              "  " + (dtCtrl.IsDelayed ? "DELAYED" : "")
+              "  " + (dtCtrl.IsPaused ? "PAUSED" : (dtCtrl.IsDelayed ? "DELAYED" : ""))
               );
             Thread.Sleep(1000);
           }
@@ -360,7 +360,7 @@ namespace Shizuku2
         {
           //最低でも0.1秒ごとに計算実施判定
           Thread.Sleep(100);
-          dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime); //加速度を監視
+          dtCtrl.ApplyManipulatedVariables(dtCtrl.CurrentDateTime); //加速度を監視: 2025.02.11コメントアウト
 
           while (dtCtrl.TryProceed())
           {

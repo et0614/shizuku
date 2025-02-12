@@ -30,7 +30,7 @@ namespace AccelerationController
 
     #endregion
 
-    private PresentValueReadWriter pvrw = new PresentValueReadWriter(DEVICE_ID);
+    private DateTimeCommunicator pvrw = new DateTimeCommunicator(DEVICE_ID);
 
     public Form1()
     {

@@ -40,6 +40,12 @@
         <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.IsFinished">
             <summary>計算完了済か否か</summary>
         </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.PauseTimer">
+            <summary>一時停止までの秒数</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.DateTimeCommunicator.MemberNumber.IsPaused">
+            <summary>一時停止中か否か</summary>
+        </member>
         <member name="M:Shizuku2.BACnet.DateTimeCommunicator.#ctor(System.UInt32,System.String,System.String)">
             <summary>インスタンスを初期化する</summary>
             <param name="id">通信に使うBACnet DeviceのID</param>
@@ -64,8 +70,11 @@
             正しい値を取得するには予めSyncDateTime()で時刻を同期させるか、SubscribeDateTimeCOV()メソッドでCOV通知を受けるようにしておく必要がある
             </remarks>
         </member>
+        <member name="P:Shizuku2.BACnet.DateTimeCommunicator.IsPaused">
+            <summary>一時停止中か否かを取得する</summary>
+        </member>
         <member name="M:Shizuku2.BACnet.DateTimeCommunicator.SubscribeDateTimeCOV">
-            <summary>シミュレーション日時の加速度に関するCOVを登録する</summary>
+            <summary>シミュレーション日時に関するCOVを登録する</summary>
             <returns>登録成功の真偽</returns>
         </member>
         <member name="M:Shizuku2.BACnet.DateTimeCommunicator.SyncDateTime">
@@ -92,17 +101,32 @@
             <param name="succeeded">通信が成功したか否か</param>
             <returns>シミュレーション上の基準日時</returns>
         </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsPaused(System.Boolean@)">
+            <summary>一時停止中か否かを取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>一時停止中か否か</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.ChangePauseTimer(System.Int32,System.Boolean@)">
+            <summary>一時停止までの秒数[sec]を変える</summary>
+            <param name="pauseTimer">一時停止までの秒数[sec]</param>
+            <param name="succeeded">通信が成功したか否か</param>
+        </member>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetPauseTimer(System.Boolean@)">
+            <summary>一時停止までの秒数[sec]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>一時停止までの秒数[sec]</returns>
+        </member>
         <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetEndDateTime(System.Boolean@)">
             <summary>計算を終えるシミュレーション上の日時を取得する</summary>
             <param name="succeeded">通信が成功したか否か</param>
             <returns>計算を終えるシミュレーション上の日時</returns>
         </member>
-        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsEmulatorDelayed(System.Boolean@)">
-            <summary>計算遅延の有無を取得する</summary>
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsDelayed(System.Boolean@)">
+            <summary>計算が遅延しているか否かを取得する</summary>
             <param name="succeeded">通信が成功したか否か</param>
-            <returns>計算遅延の有無</returns>
+            <returns>計算が遅延しているか否か</returns>
         </member>
-        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsEmulatorFinished(System.Boolean@)">
+        <member name="M:Shizuku2.BACnet.DateTimeCommunicator.GetIsFinished(System.Boolean@)">
             <summary>計算が終了済か否かを取得する</summary>
             <param name="succeeded">通信が成功したか否か</param>
             <returns>計算が終了済か否か</returns>
@@ -260,11 +284,17 @@
         <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.NocturnalRadiation">
             <summary>夜間放射</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.EnergyConsumption">
-            <summary>エネルギー消費量</summary>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.TotalEnergyConsumption">
+            <summary>合計エネルギー消費量</summary>
         </member>
-        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.DissatisfactionRate">
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.AveragedDissatisfactionRate">
             <summary>平均不満足者率</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.InstantaneousEnergyConsumption">
+            <summary>瞬時エネルギー消費量</summary>
+        </member>
+        <member name="F:Shizuku2.BACnet.EnvironmentCommunicator.MemberNumber.InstantaneousDissatisfactionRate">
+            <summary>瞬時不満足者率</summary>
         </member>
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.#ctor(System.UInt32,System.String,System.String)">
             <summary>インスタンスを初期化する</summary>
@@ -307,14 +337,24 @@
             <returns>ゾーン（下部空間）の相対湿度[%]</returns>
         </member>
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetTotalEnergyConsumption(System.Boolean@)">
-            <summary>エネルギー消費量[GJ]を取得する</summary>
+            <summary>合計エネルギー消費量[GJ]を取得する</summary>
             <param name="succeeded">通信が成功したか否か</param>
-            <returns>エネルギー消費量[GJ]</returns>
+            <returns>合計エネルギー消費量[GJ]</returns>
         </member>
         <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetAveragedDissatisfactionRate(System.Boolean@)">
             <summary>平均不満足者率[-]を取得する</summary>
             <param name="succeeded">通信が成功したか否か</param>
             <returns>平均不満足者率[-]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetInstantaneousEnergyConsumption(System.Boolean@)">
+            <summary>瞬時エネルギー消費量[kW]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>瞬時エネルギー消費量[kW]</returns>
+        </member>
+        <member name="M:Shizuku2.BACnet.EnvironmentCommunicator.GetInstantaneousDissatisfactionRate(System.Boolean@)">
+            <summary>瞬時不満足者率[-]を取得する</summary>
+            <param name="succeeded">通信が成功したか否か</param>
+            <returns>瞬時不満足者率[-]</returns>
         </member>
         <member name="T:Shizuku2.BACnet.OccupantCommunicator">
             <summary>Shizuku2のOccupantモニタとの通信ユーティリティクラス</summary>
