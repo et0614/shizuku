@@ -1,5 +1,6 @@
 import datetime
 import asyncio
+from typing import Union
 
 from bacpypes3.pdu import Address, IPv4Address
 from bacpypes3.ipv4.app import NormalApplication
@@ -12,7 +13,7 @@ class PresentValueReadWriter():
     """BACnet通信でPresent valueを読み書きするクラス
     """  
 
-    def __init__(self, id, name='anonymous device', device_ip='127.0.0.1', emulator_ip='127.0.0.1', time_out_sec = 1.0):
+    def __init__(self, id:int, name:str='anonymous device', device_ip:str='127.0.0.1', emulator_ip:str='127.0.0.1', time_out_sec:float = 1.0):
         """インスタンスを初期化する
 
         Args:
@@ -43,7 +44,7 @@ class PresentValueReadWriter():
 
 # region readproperty関連
 
-    async def read_present_value(self, addr, obj_id):
+    async def read_present_value(self, addr:str, obj_id:str):
         """Read property requestでPresent valueを読み取る（同期処理）
 
         Args:
@@ -79,7 +80,7 @@ class PresentValueReadWriter():
 
 # region writeproperty関連
 
-    async def write_present_value(self, addr, obj_id, value):
+    async def write_present_value(self, addr:str, obj_id:str, value:Union[Real,Integer,DateTime]):
         """Write property requestでPresent valueを書き込む（同期処理）
 
         Args:

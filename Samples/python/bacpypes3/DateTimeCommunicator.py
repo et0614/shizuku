@@ -35,6 +35,10 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         IsDelayed = 6
         # 計算完了済か否か
         IsFinished = 7
+        # 一時停止までの秒数
+        PauseTimer = 8
+        # 一時停止中か否か
+        IsPaused = 9
 
     # endregion
 
@@ -54,10 +58,15 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         self.__target_ip = emulator_ip + ':' + str(self.DATETIMECONTROLLER_EXCLUSIVE_PORT)
 
         # DateTimeのCOV登録状況
-        self.dtcov_scribed = False
+        self.__acccov_scribed = False
+        self.__ispcov_scribed = False
+        # self.dtcov_scribed = False
         self.__acc_rate = 0
         self.__base_real_datetime = datetime.datetime.today()
         self.__base_sim_datetime = datetime.datetime.today()
+
+        # 一時停止状況
+        self.is_paused = False
 
     # endregion
 
@@ -68,11 +77,12 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Args:None
         Returns:None
         """        
-        asyncio.create_task(self.cov_loop())
+        asyncio.create_task(self.acccov_loop()) # 加速度を監視
+        asyncio.create_task(self.ispcov_loop()) # 一時停止状態を監視
 
-    async def cov_loop(self):
+    async def acccov_loop(self):
         # 既に登録されている場合には日時だけ更新して二重登録を回避
-        if self.dtcov_scribed:
+        if self.__acccov_scribed:
             return await self.sync_date_time()
         try:
             async with self.bacdevice.change_of_value(
@@ -82,10 +92,31 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
                 lifetime=60*60*24*365, #1年間
                 issue_confirmed_notifications=True
             ) as scm: #SubscriptionContextManager
+                self.__acccov_scribed = True
                 while True:
                     property_identifier, property_value = await scm.get_value()
                     if(f"{property_identifier}"=='present-value'):
-                        self.dtcov_scribed = True
+                        await self.sync_date_time()
+        except Exception as err:
+            return False
+        
+    async def ispcov_loop(self):
+        # 既に登録されている場合には日時だけ更新して二重登録を回避
+        if self.__ispcov_scribed:
+            return await self.sync_date_time()
+        try:
+            async with self.bacdevice.change_of_value(
+                address=Address(self.__target_ip),
+                subscriber_process_identifier=self.id + 1,
+                monitored_object_identifier=ObjectIdentifier('binaryInput:' + str(DateTimeCommunicator._member.IsPaused.value)), # 一時停止
+                lifetime=60*60*24*365, #1年間
+                issue_confirmed_notifications=True
+            ) as scm: #SubscriptionContextManager
+                self.__ispcov_scribed = True
+                while True:
+                    property_identifier, property_value = await scm.get_value()
+                    if(f"{property_identifier}"=='present-value'):
+                        self.is_paused = (property_value._value == 1)
                         await self.sync_date_time()
         except Exception as err:
             return False
@@ -112,8 +143,11 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         Args:
         Returns:
             datetime: 現在の日時
-        """        
-        return (datetime.datetime.today() - self.__base_real_datetime) * self.__acc_rate + self.__base_sim_datetime
+        """
+        if self.is_paused:
+            return self.__base_sim_datetime
+        else: 
+            return (datetime.datetime.today() - self.__base_real_datetime) * self.__acc_rate + self.__base_sim_datetime
 
     # endregion
 
@@ -138,6 +172,36 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
     # endregion
 
+    # region 一時停止関連の処理
+
+    async def get_pause_timer(self):
+        """一時停止までの時間[sec]を取得する
+
+        Returns:
+            list: 読み取り成功の真偽,一時停止までの時間[sec]
+        """
+        return await self.read_present_value(self.__target_ip,'analogOutput:' + str(DateTimeCommunicator._member.PauseTimer.value))
+
+    async def change_pause_timer(self, pause_timer):
+        """一時停止までの時間[sec]を変える
+        Args:
+            pause_timer (float): 一時停止までの時間[sec]
+        Returns:
+            bool:命令が成功したか否か
+            """
+        return await self.write_present_value(self.__target_ip,'analogOutput:' + str(DateTimeCommunicator._member.PauseTimer.value),Real(pause_timer))
+
+    async def get_is_paused(self):
+        """計算が一時停止中か否かを取得する
+
+        Returns:
+            list: 読み取り成功の真偽,計算が一時停止中か否か
+        """
+        val = await self.read_present_value(self.__target_ip,'binary-input:' + str(DateTimeCommunicator._member.IsPaused.value))
+        return val[0], (val[1] == 1)
+
+    # endregion
+
     # region その他の処理
 
     async def get_end_dateTime(self):
@@ -149,7 +213,7 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         return await self.read_present_value(self.__target_ip,'datetime-value:' + str(DateTimeCommunicator._member.EndDateTime.value))
 
 
-    async def get_is_emulator_delayed(self):
+    async def get_is_delayed(self):
         """計算遅延の有無を取得するを取得する
 
         Returns:
@@ -159,7 +223,7 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         return val[0], (val[1] == 1)
     
 
-    async def get_is_emulator_finished(self):
+    async def get_is_finished(self):
         """計算が終了済か否かを取得する
 
         Returns:
@@ -189,10 +253,12 @@ async def main():
     # 無限ループで日時を表示
     while True:
         print(pv_rw.current_date_time().strftime('%Y/%m/%d %H:%M:%S'))
-        val = await pv_rw.get_is_emulator_delayed()
+        val = await pv_rw.get_is_delayed()
         print('Is delayed? ' + (str(val[1]) if val[0] else ' 通信失敗'))
-        val = await pv_rw.get_is_emulator_finished()
+        val = await pv_rw.get_is_finished()
         print('Is finished? ' + (str(val[1]) if val[0] else ' 通信失敗'))
+        val = await pv_rw.get_is_paused()
+        print('Is paused? ' + (str(val[1]) if val[0] else ' 通信失敗'))
         print()
         await asyncio.sleep(1)
         pass
