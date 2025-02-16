@@ -58,9 +58,10 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         self.__target_ip = emulator_ip + ':' + str(self.DATETIMECONTROLLER_EXCLUSIVE_PORT)
 
         # DateTimeのCOV登録状況
-        self.__acccov_scribed = False
-        self.__ispcov_scribed = False
-        # self.dtcov_scribed = False
+        self.__acccov_task = None
+        self.__ispcov_task = None
+
+        # 日時を計算するための加速度・基準日時
         self.__acc_rate = 0
         self.__base_real_datetime = datetime.datetime.today()
         self.__base_sim_datetime = datetime.datetime.today()
@@ -72,17 +73,29 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
 
     # region 現在日時取得関連
 
-    async def subscribe_date_time_cov(self):
-        """シミュレーション日時に関する情報をCOVを登録する
+    def unsubscribe_date_time_cov(self):
+        """シミュレーション日時に関する情報のCOVイベントを解除する
         Args:None
         Returns:None
-        """        
-        asyncio.create_task(self.acccov_loop()) # 加速度を監視
-        asyncio.create_task(self.ispcov_loop()) # 一時停止状態を監視
+        """ 
+        self.__acccov_task.cancel()
+        self.__ispcov_task.cancel()
+        self.__acccov_task = None
+        self.__ispcov_task = None
+
+
+    async def subscribe_date_time_cov(self):
+        """シミュレーション日時に関する情報のCOVイベントを登録する
+        Args:None
+        Returns:None
+        """
+        self.__acccov_task = asyncio.create_task(self.acccov_loop())
+        self.__ispcov_task = asyncio.create_task(self.ispcov_loop())
+
 
     async def acccov_loop(self):
         # 既に登録されている場合には日時だけ更新して二重登録を回避
-        if self.__acccov_scribed:
+        if self.__acccov_task == None:
             return await self.sync_date_time()
         try:
             async with self.bacdevice.change_of_value(
@@ -100,9 +113,10 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
         except Exception as err:
             return False
         
+
     async def ispcov_loop(self):
         # 既に登録されている場合には日時だけ更新して二重登録を回避
-        if self.__ispcov_scribed:
+        if self.__ispcov_task == None:
             return await self.sync_date_time()
         try:
             async with self.bacdevice.change_of_value(
@@ -120,6 +134,7 @@ class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
                         await self.sync_date_time()
         except Exception as err:
             return False
+        
 
     async def sync_date_time(self):
         """日時をエミュレータに同期させる
