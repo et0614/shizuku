@@ -1,8 +1,11 @@
-import DateTimeCommunicator
 import time
 import asyncio
 
 from enum import Enum
+
+import sys,os
+sys.path.append(os.path.dirname(__file__))
+import DateTimeCommunicator
 
 class EnvironmentCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 

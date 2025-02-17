@@ -1,8 +1,11 @@
 import asyncio
-import DateTimeCommunicator
 
 from enum import Enum
 from bacpypes3.primitivedata import Enumerated, Real, Unsigned
+
+import sys,os
+sys.path.append(os.path.dirname(__file__))
+import DateTimeCommunicator
 
 class VRFSystemCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 

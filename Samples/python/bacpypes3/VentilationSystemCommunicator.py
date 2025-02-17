@@ -1,9 +1,12 @@
-import DateTimeCommunicator
 import time
 import asyncio
 
 from enum import Enum
 from bacpypes3.primitivedata import Enumerated, Unsigned
+
+import sys,os
+sys.path.append(os.path.dirname(__file__))
+import DateTimeCommunicator
 
 class VentilationSystemCommunicator(DateTimeCommunicator.DateTimeCommunicator):
 

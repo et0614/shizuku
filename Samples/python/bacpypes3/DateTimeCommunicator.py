@@ -1,10 +1,13 @@
 import datetime
 import asyncio
-import PresentValueReadWriter
 from enum import Enum
 
 from bacpypes3.pdu import Address
 from bacpypes3.primitivedata import ObjectIdentifier, Real
+
+import sys,os
+sys.path.append(os.path.dirname(__file__))
+import PresentValueReadWriter
 
 class DateTimeCommunicator(PresentValueReadWriter.PresentValueReadWriter):
     """Shizuku2のDateTimeControllerとの通信ユーティリティクラス
